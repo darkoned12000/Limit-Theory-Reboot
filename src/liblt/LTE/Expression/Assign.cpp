@@ -51,8 +51,8 @@ namespace LTE {
     CompileEnvironment& env)
   {
     if (list->GetSize() != 3) {
-      Log_Error(Stringize()
-        | "'set' expects 2 arguments, but got "
+      env.ReportError(list, Stringize()
+        | "'set' expects 2 arguments (target, value), but got "
         | (list->GetSize() - 1));
       return nullptr;
     }
@@ -68,9 +68,9 @@ namespace LTE {
 
     value = Expression_Conversion(value, location->GetType());
     if (!value) {
-      Log_Error(Stringize()
-        | "Assigning to location of type '" | locationType->name
-        | "', with a value of type '" | valueType->name | "'");
+      env.ReportError(list, Stringize()
+        | "cannot assign value of type '" | valueType->name
+        | "' to target of type '" | locationType->name | "'");
       return nullptr;
     }
 

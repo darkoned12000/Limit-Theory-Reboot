@@ -156,18 +156,16 @@ namespace LTE {
     }
 
     if (!function) {
-      if (env.detail)
-        Log_Message(Stringize()
-          | "expressioncall -- could not locate function '"
-          | name | "'");
+      env.ReportError(list, Stringize()
+        | "no function named '" | name | "' found in this script or imported scripts");
       return nullptr;
     }
 
     if (list->GetSize() != function->parameters.size() + 1) {
-      if (env.detail)
-        Log_Message(Stringize()
-          | "expressioncall -- list has wrong number of arguments for function '"
-          | function->name | "'");
+      env.ReportError(list, Stringize()
+        | "function '" | function->name | "' expects "
+        | function->parameters.size() | " argument(s), but got "
+        | (list->GetSize() - 1));
       return nullptr;
     }
 
@@ -177,7 +175,13 @@ namespace LTE {
       if (!argument) return nullptr;
 
       argument = Expression_Conversion(argument, function->parameters[i - 1].type);
-      if (!argument) return nullptr;
+      if (!argument) {
+        env.ReportError(list, Stringize()
+          | "argument " | (i) | " to function '" | function->name
+          | "' has type '" | arguments.back()->GetType()->GetAliasName()
+          | "' but expected '" | function->parameters[i - 1].type->GetAliasName() | "'");
+        return nullptr;
+      }
 
       arguments.push(argument);
     }

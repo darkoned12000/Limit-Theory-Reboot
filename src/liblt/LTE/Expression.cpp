@@ -1,3 +1,8 @@
+// Copyright (C) 2025  darkoned12000
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Part of the ltheory-old-test modernization effort (Revamp Work).
+// See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
+
 #include "Expression.h"
 #include "Environment.h"
 #include "Expressions.h"
@@ -57,12 +62,31 @@ namespace LTE {
         if (e) return e;
       }
 
+      /* If we get here, nothing recognized the atom — report with suggestions. */
+      String const& name = list->GetValue();
+      Vector<String> candidates;
+      env.CollectVariableNames(candidates);
+      if (env.script) {
+        for (auto it = env.script->functions.begin(); it != env.script->functions.end(); ++it)
+          candidates.push(it->first);
+        for (auto it = env.script->types.begin(); it != env.script->types.end(); ++it)
+          candidates.push(it->first);
+      }
+      String suggestion = BestMatch(name, candidates);
+      if (suggestion.size() > 0)
+        env.ReportError(list, Stringize()
+          | "unresolved name '" | name | "' (did you mean '" | suggestion | "'?)");
+      else
+        env.ReportError(list, Stringize()
+          | "unresolved name '" | name | "'");
       return nullptr;
     }
 
     /* Empty lists are never used, but check for them to prevent crash. */
-    if (list->GetSize() == 0)
+    if (list->GetSize() == 0) {
+      env.ReportError(list, "empty expression (missing operand?)");
       return nullptr;
+    }
 
     if (list->Get(0)->IsAtom()) {
       String const& value = list->Get(0)->GetValue();
@@ -141,14 +165,10 @@ namespace LTE {
     if (list->GetSize() == 1)
       return Expression_Compile(list->Get(0), env);
 
+    /* Nothing recognized this expression — report with context. */
     if (!env.hasErrors) {
       env.hasErrors = true;
-      env.detail = true;
-      std::cout << "'" << env.script->name << "' -- failed to compile ";
-      StringList_Print(list);
-      std::cout << std::endl;
-      Expression_Compile(list, env, locals);
-      env.detail = false;
+      env.PrintErrors(env.script->name);
     }
 
     return nullptr;

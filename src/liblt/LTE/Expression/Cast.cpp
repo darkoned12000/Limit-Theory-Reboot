@@ -11,12 +11,17 @@ namespace LTE {
     StringList const& list,
     CompileEnvironment& env)
   {
-    if (list->GetSize() != 3)
+    if (list->GetSize() != 3) {
+      env.ReportError(list, "'cast' expects 2 arguments (type, expression)");
       return nullptr;
+    }
 
     Type type = env.script->ResolveType(list->Get(1));
-    if (!type)
+    if (!type) {
+      env.ReportError(list, Stringize()
+        | "'cast' -- unknown type '" | list->Get(1)->GetString() | "'");
       return nullptr;
+    }
 
     Expression e = Expression_Compile(list->Get(2), env);
     if (!e)

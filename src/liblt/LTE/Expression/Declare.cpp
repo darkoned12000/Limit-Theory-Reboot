@@ -126,15 +126,16 @@ namespace LTE {
     Vector<String>* locals)
   {
     if (list->GetSize() != 3) {
-      Log_Error(Stringize()
-        | "'var' expects 2 arguments, but got "
+      env.ReportError(list, Stringize()
+        | "'var' expects 2 arguments (name, value), but got "
         | (list->GetSize() - 1));
       return nullptr;
     }
 
     if (!locals) {
-      Log_Error(Stringize()
-        | "'var' used in a scope that is not eligible for variable binding.");
+      env.ReportError(list,
+        "'var' used in a scope that does not support variable binding "
+        "(e.g. inside a function call argument)");
       return nullptr;
     }
 
@@ -143,8 +144,9 @@ namespace LTE {
 
     Type valueType = value->GetType();
     if (!valueType->assign) {
-      Log_Error(Stringize()
-        | "Illegal var type '" | valueType->name | "'");
+      env.ReportError(list, Stringize()
+        | "cannot declare variable of type '" | valueType->name
+        | "' (type is not assignable)");
       return nullptr;
     }
 
@@ -169,15 +171,15 @@ namespace LTE {
     Vector<String>* locals)
   {
     if (list->GetSize() != 3) {
-      Log_Error(Stringize()
-        | "'ref' expects 2 arguments, but got "
+      env.ReportError(list, Stringize()
+        | "'ref' expects 2 arguments (name, value), but got "
         | (list->GetSize() - 1));
       return nullptr;
     }
 
     if (!locals) {
-      Log_Error(Stringize()
-        | "'ref' used in a scope that is not eligible for variable binding.");
+      env.ReportError(list,
+        "'ref' used in a scope that does not support variable binding");
       return nullptr;
     }
 
@@ -192,7 +194,8 @@ namespace LTE {
       locals->push(name);
       return Expression_DeclareReference(value, name);
     } else {
-      Log_Error("'ref' -- initialization expression is not an l-value or pointer");
+      env.ReportError(list,
+        "'ref' target must be an l-value (variable) or a pointer");
       return nullptr;
     }
   }
@@ -210,15 +213,15 @@ namespace LTE {
     Vector<String>* locals)
   {
     if (list->GetSize() != 3) {
-      Log_Error(Stringize()
-        | "'static' expects 2 arguments, but got "
+      env.ReportError(list, Stringize()
+        | "'static' expects 2 arguments (name, value), but got "
         | (list->GetSize() - 1));
       return nullptr;
     }
 
     if (!locals) {
-      Log_Error(Stringize()
-        | "'static' used in a scope that is not eligible for variable binding.");
+      env.ReportError(list,
+        "'static' used in a scope that does not support variable binding");
       return nullptr;
     }
 

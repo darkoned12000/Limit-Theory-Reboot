@@ -100,7 +100,7 @@ namespace LTE {
     CompileEnvironment& env)
   {
     if (list->GetSize() < 2) {
-      Log_Message(Stringize() | "type -- list does not have 1 argument");
+      env.ReportError(list, "'type' expects a name argument");
       return nullptr;
     }
 
@@ -108,8 +108,8 @@ namespace LTE {
     ScriptType type = env.script->types[name];
 
     if (type) {
-      Log_Message(Stringize()
-        | "type -- type '" | name | "' is already defined");
+      env.ReportError(list, Stringize()
+        | "type '" | name | "' is already defined");
       return nullptr;
     }
 
@@ -132,8 +132,8 @@ namespace LTE {
         if (sub->GetSize() < 2 ||
             sub->GetSize() > 3)
         {
-          Log_Message(Stringize() |
-            "type -- field does not have 1 or 2 arguments");
+          env.ReportError(sub,
+            "type field must have 1 or 2 arguments (type name, [initializer])");
           return nullptr;
         }
 
@@ -141,16 +141,16 @@ namespace LTE {
         Type fieldType = env.script->ResolveType(typeName);
 
         if (!fieldType) {
-          Log_Message(Stringize() |
-            "type -- field type '" | typeName->GetString() | "' not found");
+          env.ReportError(sub, Stringize()
+            | "unknown type '" | typeName->GetString() | "' for field");
           return nullptr;
         }
 
         String const& fieldName = sub->Get(1)->GetValue();
         for (size_t j = 0; j < type->fields.size(); ++j) {
           if (fieldName == type->fields[j].name) {
-            Log_Message(Stringize() |
-              "type -- field name '" | fieldName | "' already used");
+            env.ReportError(sub, Stringize()
+              | "duplicate field name '" | fieldName | "' in type '" | name | "'");
             return nullptr;
           }
         }
@@ -162,17 +162,17 @@ namespace LTE {
 
           initializer = Expression_Compile(sub->Get(2), subEnv);
           if (!initializer) {
-            Log_Message(Stringize()
-              | "type -- initializer for field '" | fieldName
-              | "' did not compile");
+            env.ReportError(sub, Stringize()
+              | "initializer for field '" | fieldName
+              | "' failed to compile");
             return nullptr;
           }
 
           initializer = Expression_Conversion(initializer, fieldType);
           if (!initializer) {
-            Log_Message(Stringize()
-              | "type -- initializer for field '" | fieldName
-              | "' could not be converted to type '" | fieldType->name | "'");
+            env.ReportError(sub, Stringize()
+              | "initializer for field '" | fieldName
+              | "' cannot convert to type '" | fieldType->name | "'");
             return nullptr;
           }
         }

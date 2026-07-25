@@ -63,9 +63,17 @@ namespace LTE {
       return Expression_Reference(var.registerIndex, var.type, var.name);
     }
 
-    if (env.detail)
-      Log_Message(Stringize() | "reference -- variable name '"
-        | name | "' not found");
+    /* Reference not found — try to suggest a similar name. */
+    Vector<String> candidates;
+    env.CollectVariableNames(candidates);
+    String suggestion = BestMatch(name, candidates);
+    if (suggestion.size() > 0)
+      env.ReportError(list, Stringize()
+        | "unknown reference '" | name
+        | "' (did you mean '" | suggestion | "'?)");
+    else
+      env.ReportError(list, Stringize()
+        | "unknown reference '" | name | "'");
     return nullptr;
   }
 }

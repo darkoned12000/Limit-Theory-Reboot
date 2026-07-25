@@ -51,18 +51,18 @@ namespace LTE {
     CompileEnvironment& env)
   {
     if (list->GetSize() != 2) {
-      Log_Message("address -- list does not have 2 arguments");
+      env.ReportError(list, "'address' expects 1 argument (l-value)");
       return nullptr;
     }
 
     Expression location = Expression_Compile(list->Get(1), env);
     if (!location) {
-      Log_Message("address -- arg 1 (location) did not compile");
+      env.ReportError(list, "'address' -- expression failed to compile");
       return nullptr;
     }
 
     if (!location->IsLValue()) {
-      Log_Message("address -- location is not an l-value");
+      env.ReportError(list, "'address' target must be an l-value (assignable location)");
       return nullptr;
     }
 

@@ -69,32 +69,29 @@ namespace LTE {
     CompileEnvironment& env)
   {
     if (list->GetSize() != 2) {
-      if (env.detail)
-        Log_Message("access -- list does not have 1 argument");
+      env.ReportError(list, "'.' field access expects 1 argument (object)");
       return nullptr;
     }
 
     Expression location = Expression_Compile(list->Get(1), env);
     if (!location) {
-      if (env.detail)
-        Log_Message("access -- arg 1 (location) did not compile");
+      env.ReportError(list, "'.' -- object expression failed to compile");
       return nullptr;
     }
 
     Type const& type = location->GetType();
     if (type->GetPointeeType()) {
-      if (env.detail)
-        Log_Message("access -- arg 1 (location) is a pointer");
+      env.ReportError(list, Stringize()
+        | "'.' cannot dereference pointer type '" | type->name
+        | "' — use '->' instead");
       return nullptr;
     }
 
     String const& fieldName = list->Get(0)->GetValue();
     FieldType field = type->FindField(0, fieldName);
     if (!field.type) {
-      if (env.detail)
-        Log_Message(Stringize()
-          | "access -- location type '" | type->name
-          | "' has no field '" | fieldName | "'");
+      env.ReportError(list, Stringize()
+        | "type '" | type->name | "' has no field named '" | fieldName | "'");
       return nullptr;
     }
 

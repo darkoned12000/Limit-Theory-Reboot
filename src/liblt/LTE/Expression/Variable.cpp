@@ -4,6 +4,7 @@
 #include "LTE/Environment.h"
 #include "LTE/Pool.h"
 #include "LTE/ProgramLog.h"
+#include "LTE/Script.h"
 #include "LTE/StringList.h"
 
 namespace {
@@ -67,9 +68,21 @@ namespace LTE {
         : new ExpressionVariable(var.registerIndex, var.offset, var.type, var.name);
     }
 
-    if (env.detail)
-      Log_Message(Stringize() | "variable -- variable name '"
-        | name | "' not found");
+    /* Variable not found — try to suggest a similar name. */
+    Vector<String> candidates;
+    env.CollectVariableNames(candidates);
+    if (env.script) {
+      for (auto it = env.script->functions.begin(); it != env.script->functions.end(); ++it)
+        candidates.push(it->first);
+    }
+    String suggestion = BestMatch(name, candidates);
+    if (suggestion.size() > 0)
+      env.ReportError(list, Stringize()
+        | "unknown variable '" | name
+        | "' (did you mean '" | suggestion | "'?)");
+    else
+      env.ReportError(list, Stringize()
+        | "unknown variable '" | name | "'");
     return nullptr;
   }
 }

@@ -134,25 +134,25 @@ namespace LTE {
     CompileEnvironment& env)
   {
     if (list->GetSize() < 3) {
-      Log_Message("dynamicdispatch -- list does not have at least 2 arguments");
+      env.ReportError(list, "'call' expects at least 2 arguments (object, method)");
       return nullptr;
     }
 
     Expression object = Expression_Compile(list->Get(1), env);
     if (!object) {
-      Log_Message("dynamicdispatch -- arg 1 (object) did not compile");
+      env.ReportError(list, "'call' -- object expression failed to compile");
       return nullptr;
     }
 
     Type const& type = object->GetType();
     if (type != Type_Get<Data>()) {
-      Log_Message(Stringize()
-        | "dynamicdispatch -- arg 1 (object) expected 'Data' type but got '" | type->name | "'");
+      env.ReportError(list, Stringize()
+        | "'call' object must be of type 'Data', but got '" | type->name | "'");
       return nullptr;
     }
 
     if (!list->Get(2)->IsAtom()) {
-      Log_Message("dynamicdispatch -- expected method name for arg 2");
+      env.ReportError(list, "'call' -- method name (argument 2) must be a plain name");
       return nullptr;
     }
 
@@ -162,7 +162,9 @@ namespace LTE {
     for (size_t i = 3; i < list->GetSize(); i++) {
       Expression e = Expression_Compile(list->Get(i), env);
       if (!e) {
-        Log_Message(Stringize() | "dynamicdispatch -- bad argument");
+        env.ReportError(list, Stringize()
+          | "'call' -- argument " | (i - 2) | " to method '" | name
+          | "' failed to compile");
         return nullptr;
       }
       args.push(e);

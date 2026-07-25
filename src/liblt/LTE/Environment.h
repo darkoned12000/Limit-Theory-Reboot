@@ -1,3 +1,8 @@
+// Copyright (C) 2025  darkoned12000
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Part of the ltheory-old-test modernization effort (Revamp Work).
+// See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
+
 #ifndef LTE_Environment_h__
 #define LTE_Environment_h__
 
@@ -7,7 +12,12 @@
 #include "Map.h"
 #include "ScriptType.h"
 #include "Stack.h"
+#include "StringList.h"
 #include "Vector.h"
+
+#include <algorithm>
+#include <iostream>
+#include <limits>
 
 namespace LTE {
   struct Environment {
@@ -47,19 +57,81 @@ namespace LTE {
     Variable() = default;
   };
 
+  /* Levenshtein edit distance — used for "did you mean?" suggestions. */
+  inline size_t EditDistance(String const& a, String const& b) {
+    size_t m = a.size();
+    size_t n = b.size();
+    std::vector<size_t> prev(n + 1, 0);
+    std::vector<size_t> curr(n + 1, 0);
+
+    for (size_t j = 0; j <= n; ++j)
+      prev[j] = j;
+
+    for (size_t i = 1; i <= m; ++i) {
+      curr[0] = i;
+      for (size_t j = 1; j <= n; ++j) {
+        size_t cost = (a[i - 1] == b[j - 1]) ? 0 : 1;
+        curr[j] = std::min({
+          prev[j] + 1,
+          curr[j - 1] + 1,
+          prev[j - 1] + cost
+        });
+      }
+      std::swap(prev, curr);
+    }
+    return prev[n];
+  }
+
+  /* Find the closest matching name from a list of candidates. Returns empty
+     string if no candidate is within edit-distance threshold. */
+  inline String BestMatch(
+    String const& target,
+    Vector<String> const& candidates,
+    size_t maxDistance = 3)
+  {
+    String best;
+    size_t bestDist = maxDistance + 1;
+    for (size_t i = 0; i < candidates.size(); ++i) {
+      size_t d = EditDistance(target, candidates[i]);
+      if (d < bestDist) {
+        bestDist = d;
+        best = candidates[i];
+      }
+    }
+    return best;
+  }
+
   struct CompileEnvironment {
     Pointer<ScriptT> script;
     Vector<ScriptType> context;
     Map<String, Stack<Variable> > variables;
     int registers;
     bool hasErrors;
-    bool detail;
+    Vector<String> errors;
 
     CompileEnvironment() :
       registers(0),
-      hasErrors(false),
-      detail(false)
+      hasErrors(false)
       {}
+
+    void ReportError(StringList const& list, String const& message) {
+      uint32_t line = StringList_GetLine(list);
+      String formatted;
+      if (line > 0)
+        formatted = Stringize() | "  line " | line | ": " | message;
+      else
+        formatted = Stringize() | "  " | message;
+      errors.push(formatted);
+      hasErrors = true;
+    }
+
+    void PrintErrors(String const& scriptName) const {
+      if (errors.size() == 0) return;
+      std::cout << "'" << scriptName << "' -- " << errors.size()
+                << " compilation error(s):" << std::endl;
+      for (size_t i = 0; i < errors.size(); ++i)
+        std::cout << errors[i] << std::endl;
+    }
 
     uint Allocate(
       String const& name,
@@ -83,6 +155,14 @@ namespace LTE {
 
     Variable& Get(String const& name) {
       return variables[name].back();
+    }
+
+    /* Collect all visible variable names for "did you mean?" suggestions. */
+    void CollectVariableNames(Vector<String>& names) const {
+      for (auto it = variables.begin(); it != variables.end(); ++it) {
+        if (it->second.size() > 0)
+          names.push(it->first);
+      }
     }
   };
 }

@@ -62,7 +62,8 @@ namespace LTE {
     for (size_t i = 1; i < list->GetSize(); ++i) {
       Expression e = Expression_Compile(list->Get(i), env);
       if (!e) {
-        Log_Message("print -- bad argument");
+        env.ReportError(list, Stringize()
+          | "'@' print -- argument " | i | " failed to compile");
         return nullptr;
       }
 
@@ -70,8 +71,9 @@ namespace LTE {
 
       Type type = e->GetType();
       if (!type->toString) {
-        Log_Message(Stringize()
-          | "print -- type '" | type->name | "' does not support printing");
+        env.ReportError(list, Stringize()
+          | "'@' print -- type '" | type->name
+          | "' does not support string conversion");
         return nullptr;
       }
     }

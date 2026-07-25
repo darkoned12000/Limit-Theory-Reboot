@@ -52,8 +52,10 @@ namespace LTE {
       return Expression_Return(Expression_Noop());
 
     Expression e = Expression_Compile(list->Get(1), env);
-    if (!e)
+    if (!e) {
+      env.ReportError(list, "'return' -- expression failed to compile");
       return nullptr;
+    }
 
     return Expression_Return(e);
   }

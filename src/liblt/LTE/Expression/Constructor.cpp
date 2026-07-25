@@ -88,9 +88,19 @@ namespace LTE {
     }
 
     if (!type) {
-      if (env.detail)
-        Log_Message(Stringize()
-          | "constructor -- could not resolve type '" | list->GetString() | "'");
+      Vector<String> typeNames;
+      if (env.script) {
+        for (auto it = env.script->types.begin(); it != env.script->types.end(); ++it)
+          typeNames.push(it->first);
+      }
+      String suggestion = BestMatch(list->GetString(), typeNames);
+      if (suggestion.size() > 0)
+        env.ReportError(list, Stringize()
+          | "cannot resolve type '" | list->GetString()
+          | "' (did you mean '" | suggestion | "'?)");
+      else
+        env.ReportError(list, Stringize()
+          | "cannot resolve type '" | list->GetString() | "'");
       return nullptr;
     }
 
@@ -129,6 +139,10 @@ namespace LTE {
       return new ExpressionConstructorDefault(type, initializers);
     }
 
+    env.ReportError(list, Stringize()
+      | "constructor for type '" | type->name
+      | "' expects " | (emptyInitializers + 1)
+      | " argument(s), but got " | args->GetSize());
     return nullptr;
   }
 }

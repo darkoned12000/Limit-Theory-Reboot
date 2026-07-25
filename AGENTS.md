@@ -103,8 +103,7 @@ python3 configure.py test       # runs all unit tests (lte_tests target)
 
 | Library      | Version / State           | Role                         | Status / Notes |
 |--------------|---------------------------|------------------------------|----------------|
-| **SFML**     | 3.1.0, system-installed  | Window, GL context, input, audio, graphics | Upgraded from vendored 2.5.0 → 2.6.2 → system 3.0.2 → system 3.1.0. SFML 3 uses C++17, scoped enums, `std::variant` events, miniaudio backend. **No Wayland backend** — X11 only; runs on Wayland via XWayland. |
-| **FMOD**     | 4.44.24 (ex-api), binary  | 3D audio, music, sound       | Closed-source. Prebuilt `.so` in `extbin/linux64`. **Hard to upgrade** (old low-level API). |
+| **SFML**     | 3.1.0, system-installed  | Window, GL context, input, audio, graphics | Upgraded from vendored 2.5.0 → 2.6.2 → system 3.0.2 → system 3.1.0. SFML 3 uses C++17, scoped enums, `std::variant` events, miniaudio backend. **No Wayland backend** — X11 only; runs on Wayland via XWayland. | |
 | **FreeType** | system (`libfreetype-dev`)| Font rasterization           | System freetype; bundled copy removed (conflicted). |
 | **GLEW**     | system (`libglew-dev`)    | OpenGL extension loading     | Link-only. |
 | **OpenAL**   | system (`libopenal-dev`)  | SFML audio backend           | Required for SFML Audio build. |
@@ -132,31 +131,16 @@ python3 configure.py test       # runs all unit tests (lte_tests target)
 
 ---
 
-## 6. LTSL (Limit Theory Scripting Language)
 
-LTSL is a **homegrown scripting language** compiled to an AST and evaluated
-via a **Tree-Walking Interpreter**.
+## 6.1 LTSL Developer Experience & Roadmap
 
-- **Architecture:** 25 expression-node types, each evaluated recursively via
-  `Evaluate(void*, Environment&)`. Pipeline: tokenize →
-  `LTSL_ApplyRewrites` (`.` access + infix operator precedence) →
-  `Expression_Compile` → AST.
-- **`return` keyword:** Added as Revamp Work (`ExpressionReturn` node). Both
-  `return <expr>` and bare `return` are supported. Backward compatible —
-  last-expression return still works.
-- **Benign switch logs:** The `"switch -- case ... did not compile"` messages
-  are gated behind `env.detail` (only print during error-replay, not normal
-  compilation). They were always benign.
-- **C++ bindings:** Functions bound via `Function_Generated.h` macro family
-  (`FreeFunctionN`/`MemberFunctionN`/`VoidFreeFunctionN`, ~894 bind sites).
-- **Performance:** Tree-walking is sufficient for gameplay logic. Optimize
-  C++ `ScriptAPI` bindings before considering a bytecode VM.
+To improve the usability of LTSL for contributors and gameplay designers, the following goals are prioritized:
 
-Proposed improvements (none started):
-- **Data-Driven UI:** Move HUD layout to JSON/XML.
-- **Hot-Reloading:** File-watcher to recompile `.lts` at runtime.
-- **Component-Based Logic:** Scripts attached to objects (e.g. `Ship` has
-  `FlightController` script).
+- **Expressiveness:** Introduce higher-order functions (e.g., `.Filter()`, `.Map()`) and list comprehensions to reduce boilerplate in procedural generation loops.
+- **Error Reporting:** ✅ Complete. `Expression_Compile` now provides descriptive error messages with line numbers, expected types, argument counts, and "did you mean?" suggestions (Levenshtein distance ≤3). The `env.detail` double-compile pattern was removed — errors report on first pass. Silent failures in `Variable`, `FunctionCall`, `Constructor`, `Conversion`, `Array`, `Constant`, and `Function` expression types were replaced with `env.ReportError` calls. Unit tests in `tests/TestScriptCompile.cpp` (21 tests). See Appendix A.8.
+- **Tooling (LSP):** Develop a Language Server Protocol (LSP) implementation for LTSL to provide IDE features like auto-complete, syntax highlighting, and real-time linting in VS Code/JetBrains.
+- **Code Style:** Encourage a "Constants at Top" pattern where all magic numbers and configuration values are declared as local variables at the start of the script.
+- **Data-Driven Logic:** Transition towards moving UI layouts and complex generation parameters into external JSON files, using LTSL primarily for high-level state management and behavior.
 
 ---
 
@@ -208,8 +192,8 @@ apps. All files listed here are **Revamp Work** (GPL-3.0).
 > **LTSL quirks (revamp-work changes noted):**
 > - `return` keyword **now works** (added as Revamp Work). Functions still
 >   return their last expression for backward compat. See docs/ltsl-docs.md.
-> - `switch -- case ... did not compile` lines are **silenced** in normal
->   compilation (gated behind `env.detail`). They were always benign.
+> - `switch -- case ... did not compile` lines now always report a warning.
+>   Previously silenced behind `env.detail` (removed in Revamp Work).
 
 > **PlanetType.cpp (Revamp Work):** `atmoDensity` now `0..2` (was frozen at
 > `1.0`), `atmoTint` is a seeded hue (was always white), color palette widened
@@ -346,12 +330,7 @@ correctness/tooling passes, NOT a ground-up rewrite.
 - [ ] **Git LFS** — Reintroduce if large resources warrant it (add `.gitattributes`).
 
 ### 10.2 Libraries
-- [ ] **FMOD replacement** — Evaluate FMOD Studio API or swap to OpenAL-only
-      (SFML already wraps OpenAL). This is the riskiest dependency to move.
-      New `SoundEngine_OpenAL` implementation possible behind the existing
-      abstract interface. Audit whether game uses FMOD's event/project system
-      (`SoundEvent`/`LoadProject`) — that's the coverage gap.
-- [ ] **UTF8-CPP upgrade** — Update vendored `include/UTF8` to a current release.
+- [ ] **UTF8-CPP upgrade** — Update vendored `include/UTF8` to a current release, library is over 12yrs old.
 
 ### 10.3 Engine Code
 - [ ] **LTSL Hot-Reloading** — File-watcher recompiles `.lts` at runtime.
@@ -668,6 +647,32 @@ documented — not an engine bug)
 
 ---
 
+### A.8 LTSL Error Reporting Enhancement
+
+- [x] **Removed `env.detail` double-compile pattern** — `CompileEnvironment::detail`
+      field removed from `Environment.h`. `Expression_Compile` no longer compiles
+      twice; errors now report on first pass. All `if (env.detail)` guards removed
+      from 12 Expression/*.cpp files.
+- [x] **Added "did you mean?" suggestions** — `EditDistance` (Levenshtein) and
+      `BestMatch` helpers in `Environment.h`. Used in `Variable`, `Reference`,
+      `FunctionCall`, `Constructor`, `Conversion`, `Expression` (unresolved atoms),
+      and `Function` expression types.
+- [x] **Descriptive error messages throughout** — All expression types now call
+      `env.ReportError()` with specific messages (expected arg counts, known types,
+      expression context). Silent failures eliminated in `Constant` (unrecognized
+      literals), `Constructor` (arg count), `Array` (arg count), `Variable`
+      (unknown variable), `FunctionCall` (unknown function), `Conversion`
+      (unknown type).
+- [x] **Script.cpp improvements** — `ScriptFunction_Load`, `ScriptType_Load`,
+      `Script_Load`, and `ScriptT::Reload` now report file paths, function names,
+      and type names in error messages.
+- [x] **Unit tests** — 21 tests in `tests/TestScriptCompile.cpp` covering
+      `EditDistance`, `BestMatch`, `CompileEnvironment` error collection, line
+      number formatting, and `Expression_Compile` error output for `if`/`while`/
+      `set`/`cast`/`var`/`return` arg count, unknown variable, and suggestion.
+
+---
+
 ## Index of Cross-references
 
 | Old § | New Location |
@@ -684,5 +689,6 @@ documented — not an engine bug)
 | §8c.3 | §9.2 |
 | §8d (done) | Appendix A.7 |
 | §8d (not started) | §10.5, §10.6, §10.7 |
+| §6.1 Error Reporting | Appendix A.8 |
 | §9    | §11 (unchanged) |
 | §10   | §12 (unchanged) |

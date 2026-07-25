@@ -63,29 +63,25 @@ namespace LTE {
 
   Expression Expression_If(StringList const& list, CompileEnvironment& env) {
     if (list->GetSize() < 3) {
-      if (env.detail)
-        Log_Message("if -- list does not have at least 2 arguments");
+      env.ReportError(list, "'if' expects at least 2 arguments (predicate, body)");
       return nullptr;
     }
 
     Expression predicate = Expression_Compile(list->Get(1), env);
     if (!predicate) {
-      if (env.detail)
-        Log_Message("if -- predicate did not compile");
+      env.ReportError(list, "'if' -- predicate expression failed to compile");
       return nullptr;
     }
 
     predicate = Expression_Conversion(predicate, Type_Get<bool>());
     if (!predicate) {
-      if (env.detail)
-        Log_Message("if -- predicate could not be converted to bool");
+      env.ReportError(list, "'if' -- predicate must be convertible to 'bool'");
       return nullptr;
     }
 
     Expression statement = Expression_Block(list, env, 2);
     if (!statement) {
-      if (env.detail)
-        Log_Message("if -- statement did not compile");
+      env.ReportError(list, "'if' -- body block failed to compile");
       return nullptr;
     }
 

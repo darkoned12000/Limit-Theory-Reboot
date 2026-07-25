@@ -101,44 +101,39 @@ namespace LTE {
     CompileEnvironment& env)
   {
     if (list->GetSize() != 2) {
-      if (env.detail)
-        Log_Message("dereference -- list does not have 2 arguments");
+      env.ReportError(list, "'->' dereference expects 1 argument (pointer)");
       return nullptr;
     }
 
     Expression location = Expression_Compile(list->Get(1), env);
     if (!location) {
-      if (env.detail)
-        Log_Message("dereference -- arg 1 (location) did not compile");
+      env.ReportError(list, "'->' -- pointer expression failed to compile");
       return nullptr;
     }
 
     Type const& type = location->GetType();
     if (!type->GetPointeeType()) {
-      if (env.detail)
-        Log_Message(Stringize()
-          | "dereference -- location type '" | type->name
-          | "' is not a pointer");
+      env.ReportError(list, Stringize()
+        | "'->' requires a pointer type, but got '" | type->name | "'");
       return nullptr;
     }
 
     Type const& pointeeType = type->GetPointeeType();
     /* TODO : Recursive dereferencing. */
     if (pointeeType->GetPointeeType()) {
-      if (env.detail)
-        Log_Message(Stringize()
-          | "dereference -- location type '" | type->name
-          | "' is a pointer-to-pointer type, this is not yet supported");
+      env.ReportError(list, Stringize()
+        | "'->' on pointer-to-pointer type '" | type->name
+        | "' is not yet supported");
       return nullptr;
     }
 
     String const& fieldName = list->Get(0)->GetValue();
     FieldType field = pointeeType->FindField(0, fieldName);
     if (!field.type) {
-      if (env.detail)
-        Log_Message(Stringize()
-          | "derefrence -- location type '" | type->name
-          | "' has no field '" | fieldName | "'");
+      env.ReportError(list, Stringize()
+        | "type '" | pointeeType->name
+        | "' (pointed-to by '" | type->name
+        | "') has no field named '" | fieldName | "'");
       return nullptr;
     }
 
@@ -156,21 +151,20 @@ namespace LTE {
     CompileEnvironment& env)
   {
     if (list->GetSize() != 2) {
-      Log_Message("dereferencepointer -- list does not have 2 arguments");
+      env.ReportError(list, "'deref' expects 1 argument (pointer)");
       return nullptr;
     }
 
     Expression location = Expression_Compile(list->Get(1), env);
     if (!location) {
-      Log_Message("dereferencepointer -- arg 1 (location) did not compile");
+      env.ReportError(list, "'deref' -- expression failed to compile");
       return nullptr;
     }
 
     Type const& type = location->GetType();
     if (!type->GetPointeeType()) {
-      Log_Message(Stringize()
-        | "dereferencepointer -- location type '" | type->name
-        | "' is not a pointer");
+      env.ReportError(list, Stringize()
+        | "'deref' requires a pointer type, but got '" | type->name | "'");
       return nullptr;
     }
 

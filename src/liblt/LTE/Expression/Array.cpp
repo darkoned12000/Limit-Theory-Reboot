@@ -33,8 +33,7 @@ namespace LTE {
     CompileEnvironment& env)
   {
     if (list->GetSize() != 2) {
-      if (env.detail)
-        Log_Message("array -- list does not have 1 argument");
+      env.ReportError(list, "'array' expects 1 argument (element type)");
       return nullptr;
     }
 

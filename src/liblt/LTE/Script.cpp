@@ -1,18 +1,13 @@
 #include "Script.h"
 
 #include "Environment.h"
-#include "Expressions.h"
-#include "Hash.h"
 #include "Location.h"
 #include "LTSL.h"
 #include "Map.h"
 #include "ProgramLog.h"
-#include "Serializer.h"
 #include "StackFrame.h"
 #include "StringList.h"
 #include "Types.h"
-
-#include "Debug.h"
 
 #define AUTORELOAD 1
 
@@ -35,14 +30,17 @@ namespace LTE {
   void ScriptT::Reload() {
     String scriptPath = name + kScriptExtension;
     Location location = Location_Script(scriptPath);
-    if (!location->Exists())
+    if (!location->Exists()) {
+      Log_Error(Stringize()
+        | "Script file not found: '" | scriptPath | "'");
       return;
+    }
 
     HashT hash = Max((HashT)1, location->GetHash());
     if (hash == this->hash)
       return;
     this->hash = hash;
-    
+
     functions.clear();
     types.clear();
     dependencies.clear();
@@ -55,10 +53,13 @@ namespace LTE {
       env.script = this;
       for (size_t i = 0; i < list->GetSize(); ++i)
         Expression_Compile(list->Get(i), env);
+      if (env.hasErrors)
+        env.PrintErrors(name);
     }
   }
 
   Script ScriptT::ResolveRelativePath(String const& path) const {
+
     Vector<String> pathComponents;
     String_Split(pathComponents, name, '/');
 
@@ -141,9 +142,12 @@ namespace LTE {
 
     String scriptPath = args.name + kScriptExtension;
     Location location = Location_Script(scriptPath);
-    if (!location->Exists())
+    if (!location->Exists()) {
+      Log_Error(Stringize()
+        | "Script file not found: '" | scriptPath | "'");
       return nullptr;
-    
+    }
+
     script = new ScriptT;
     script->name = args.name;
     script->Reload();
@@ -172,7 +176,9 @@ namespace LTE {
     Vector<String> strings;
     String_Split(strings, args.name, ':');
     if (strings.size() != 2) {
-      Log_Error("ScriptFunction_Load received bad path");
+      Log_Error(Stringize()
+        | "ScriptFunction_Load received bad path '" | args.name
+        | "' (expected 'ScriptName:functionName')");
       return nullptr;
     }
 
@@ -181,7 +187,9 @@ namespace LTE {
 
     Script script = Script_Load(scriptName);
     if (!script) {
-      Log_Error(Stringize() | "Failed to load script '" | scriptName | "'");
+      Log_Error(Stringize()
+        | "Failed to load script '" | scriptName
+        | "' (required by function '" | functionName | "')");
       return nullptr;
     }
 
@@ -204,7 +212,9 @@ namespace LTE {
     Vector<String> strings;
     String_Split(strings, args.name, ':');
     if (strings.size() != 2) {
-      Log_Error("ScriptType_Load received bad path");
+      Log_Error(Stringize()
+        | "ScriptType_Load received bad path '" | args.name
+        | "' (expected 'ScriptName:typeName')");
       return nullptr;
     }
 
@@ -213,7 +223,9 @@ namespace LTE {
 
     Script script = Script_Load(scriptName);
     if (!script) {
-      Log_Error(Stringize() | "Failed to load script '" | scriptName | "'");
+      Log_Error(Stringize()
+        | "Failed to load script '" | scriptName
+        | "' (required by type '" | typeName | "')");
       return nullptr;
     }
 

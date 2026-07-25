@@ -1,6 +1,7 @@
 #include "../Expressions.h"
 
 #include "LTE/AutoClass.h"
+#include "LTE/Environment.h"
 #include "LTE/Pool.h"
 #include "LTE/StringList.h"
 
@@ -89,6 +90,9 @@ namespace LTE {
     if (!alpha && digit && decimal == 1)
       return Expression_Constant(FromString<float>(value));
 
+    env.ReportError(list, Stringize()
+      | "unrecognized literal '" | value
+      | "' (expected integer, float, string, or bool)");
     return nullptr;
   }
 }

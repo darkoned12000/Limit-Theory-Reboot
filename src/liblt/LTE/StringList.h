@@ -30,11 +30,16 @@ struct StringListT : public RefCounted {
 };
 
 AutoClassDerived(StringListAtom, StringListT,
-  String, value)
+  String, value,
+  uint32_t, line)
   DERIVED_TYPE_EX(StringListAtom)
   POOLED_TYPE
 
   StringListAtom() = default;
+
+  StringListAtom(String const& value) :
+    value(value),
+    line(0) {}
 
   StringList Clone() const override {
     return new StringListAtom(*this);
@@ -95,5 +100,14 @@ AutoClassDerived(StringListList, StringListT,
 LT_API StringList StringList_Create(String const& data);
 LT_API StringList StringList_Load(Location const& location);
 LT_API void StringList_Print(StringList const& list);
+
+inline uint32_t StringList_GetLine(StringList const& list) {
+  if (!list) return 0;
+  if (list->IsAtom())
+    return ((StringListAtom*)list.t)->line;
+  if (list->GetSize() > 0 && list->Get(0)->IsAtom())
+    return ((StringListAtom*)list->Get(0).t)->line;
+  return 0;
+}
 
 #endif

@@ -2,8 +2,6 @@
 #include "Location.h"
 #include "Tokenizer.h"
 
-#include "Debug.h"
-
 #include <iostream>
 
 namespace {
@@ -13,7 +11,7 @@ namespace {
   const char kScopeOpen = '(';
   const char kScopeClose = ')';
 
-  StringList StringList_ParseLine(String const& line) {
+  StringList StringList_ParseLine(String const& line, uint32_t lineNum) {
     Vector<StringList> elements;
     size_t i = 0;
 
@@ -57,25 +55,28 @@ namespace {
 
       if (token.size()) {
         if (token.front() == kScopeOpen) {
-          elements.push(StringList_ParseLine(token.substr(1)));
+          elements.push(StringList_ParseLine(token.substr(1), lineNum));
         } else
-          elements.push(new StringListAtom(token));
+          elements.push(new StringListAtom(token, lineNum));
       }
     }
 
     return new StringListList(elements);
   }
 
-  StringList StringList_ParseBlock(Tokenizer& tokenizer, uint indent) {
+  StringList StringList_ParseBlock(Tokenizer& tokenizer, uint indent, uint32_t startLine) {
     Vector<StringList> elements;
     Vector<StringList> current;
+    uint32_t currentLine = startLine;
 
     while (tokenizer.HasMore()) {
       current.clear();
       size_t cursor = tokenizer.GetCursor();
       String line = tokenizer.ReadLine();
-      if (line.containsOnly(kWhitespace))
+      if (line.containsOnly(kWhitespace)) {
+        currentLine++;
         continue;
+      }
 
       uint thisIndent = Tokenizer::GetIndent(line, kTab);
       if (thisIndent < indent) {
@@ -83,21 +84,24 @@ namespace {
         break;
       }
 
+      currentLine++;
+
       /* Parse the current line. */ {
-        StringList list = StringList_ParseLine(line);
+        StringList list = StringList_ParseLine(line, currentLine);
         StringListList* l = (StringListList*)list.t;
         for (size_t i = 0; i < l->elements.size(); ++i)
           current.push(l->elements[i]);
       }
 
       /* Parse inner block. */ {
-        size_t cursor = tokenizer.GetCursor();
+        size_t cursor2 = tokenizer.GetCursor();
         String nextLine = tokenizer.ReadLine();
         uint nextIndent = Tokenizer::GetIndent(nextLine, kTab);
-        tokenizer.SetCursor(cursor);
+        tokenizer.SetCursor(cursor2);
 
         if (nextIndent > indent) {
-          StringList list = StringList_ParseBlock(tokenizer, nextIndent);
+          currentLine++;
+          StringList list = StringList_ParseBlock(tokenizer, nextIndent, currentLine);
           StringListList* l = (StringListList*)list.t;
           for (size_t i = 0; i < l->elements.size(); ++i)
             current.push(l->elements[i]);
@@ -115,7 +119,7 @@ namespace {
 
 StringList StringList_Create(String const& source) {
   Tokenizer tokenizer(source);
-  return StringList_ParseBlock(tokenizer, 0);
+  return StringList_ParseBlock(tokenizer, 0, 0);
 }
 
 StringList StringList_Load(Location const& location) {

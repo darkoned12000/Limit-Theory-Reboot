@@ -16,8 +16,8 @@ namespace LTE {
     CompileEnvironment& env)
   {
     if (list->GetSize() < 4) {
-      Log_Error(Stringize()
-        | "'function' expects at least 3 arguments, but got "
+      env.ReportError(list, Stringize()
+        | "'function' expects at least 3 arguments (return-type, name, params), but got "
         | (list->GetSize() - 1));
       return nullptr;
     }
@@ -25,7 +25,8 @@ namespace LTE {
     String const& name = list->Get(2)->GetValue();
     ScriptFunction fn = env.script->functions[name];
     if (fn) {
-      Log_Error(Stringize() | "Function '" | name | "' already exists");
+      env.ReportError(list, Stringize()
+        | "function '" | name | "' is already defined");
       return nullptr;
     }
 
@@ -57,7 +58,21 @@ namespace LTE {
       String varName = params->Get(i + 1)->GetValue();
       Type type = env.script->ResolveType(typeName);
       if (!type) {
-        Log_Error(Stringize() | "Unknown type '" | typeName->GetString() | "'");
+        Vector<String> typeNames;
+        if (env.script) {
+          for (auto it = env.script->types.begin(); it != env.script->types.end(); ++it)
+            typeNames.push(it->first);
+        }
+        String suggestion = BestMatch(typeName->GetString(), typeNames);
+        if (suggestion.size() > 0)
+          env.ReportError(list, Stringize()
+            | "unknown type '" | typeName->GetString()
+            | "' in parameter list of function '" | name
+            | "' (did you mean '" | suggestion | "'?)");
+        else
+          env.ReportError(list, Stringize()
+            | "unknown type '" | typeName->GetString()
+            | "' in parameter list of function '" | name | "'");
         return nullptr;
       }
 

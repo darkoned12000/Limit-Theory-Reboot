@@ -67,15 +67,15 @@ void __MapBase(TypeT* type, void* address, FieldMapper& m, void* aux) {
     return type;                                                               \
   }                                                                            \
                                                                                \
-  Type GetDerivedTypeInfo() const {                                            \
+  Type GetDerivedTypeInfo() const override {                                    \
     return _GetDerivedTypeInfo();                                              \
   }                                                                            \
-                                                                               \
-  int GetTypeGUID() const {                                                    \
+                                                                                \
+  int GetTypeGUID() const override {                                           \
     return _GetDerivedTypeInfo()->GUID;                                        \
   }                                                                            \
-                                                                               \
-  String ToStringDerived() const {                                             \
+                                                                                \
+  String ToStringDerived() const override {                                    \
     return Stringize() | *this;                                                \
   }
 

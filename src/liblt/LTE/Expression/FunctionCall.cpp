@@ -111,7 +111,9 @@ namespace {
   Function OverloadResolution(
     String const& name,
     Vector<Function> const& candidates,
-    Vector<Expression>& expressions)
+    Vector<Expression>& expressions,
+    CompileEnvironment& env,
+    StringList const& list)
   {
     Vector<Type> types;
     for (size_t i = 0; i < expressions.size(); ++i)
@@ -147,7 +149,6 @@ namespace {
     }
 
     if (matches.isEmpty()) {
-#if 0
       String sig = "(";
       for (size_t i = 0; i < types.size(); ++i) {
         if (i) sig += ", ";
@@ -155,12 +156,17 @@ namespace {
       }
       sig += ")";
 
-      Log_Error(Stringize() | "Could not match call to " | name | sig);
+      env.ReportError(list, Stringize()
+        | "no overload of '" | name | sig | "' is compatible with these argument types");
 
-      Log_Error("Candidates are:");
-      for (size_t i = 0; i < candidates.size(); ++i)
-        Log_Error(candidates[i]->GetSignature());
-#endif
+      if (candidates.size() > 0) {
+        String avail = "  candidates: ";
+        for (size_t i = 0; i < candidates.size(); ++i) {
+          if (i) avail += ", ";
+          avail += candidates[i]->GetSignature();
+        }
+        env.ReportError(list, avail);
+      }
 
       return nullptr;
     }
@@ -170,20 +176,16 @@ namespace {
       if (matches[1].order > matches[0].order)
         return matches[0].fn;
 
-#if 0
-      Log_Error(Stringize()
-        | "Ambiguous function call to " | name | " arguments are:");
-      for (size_t i = 0; i < types.size(); ++i)
-        Log_Error(Stringize() | "  " | types[i]->GetAliasName());
+      env.ReportError(list, Stringize()
+        | "ambiguous call to '" | name | "' — multiple overloads match");
 
-      Log_Error("Matching candidates are:");
       for (size_t i = 0; i < matches.size(); ++i) {
         FunctionMatch const& match = matches[i];
-        Log_Error(Stringize()
-          | "(With " | match.order | " implicit conversions) "
-          | match.fn->GetSignature());
+        env.ReportError(list, Stringize()
+          | "  candidate " | (i + 1) | " (" | match.order
+          | " implicit conversion(s)): " | match.fn->GetSignature());
       }
-#endif
+
       return nullptr;
     }
   }
@@ -218,9 +220,20 @@ namespace LTE {
 
     Vector<Function> candidates = Function_Find(name);
     if (!candidates.size()) {
-      if (env.detail)
-        Log_Message(Stringize()
-          | "functioncall -- no candidate functions '" | name | "'");
+      /* Unknown function — try to suggest a similar name. */
+      Vector<String> allFunctions;
+      if (env.script) {
+        for (auto it = env.script->functions.begin(); it != env.script->functions.end(); ++it)
+          allFunctions.push(it->first);
+      }
+      String suggestion = BestMatch(name, allFunctions);
+      if (suggestion.size() > 0)
+        env.ReportError(list, Stringize()
+          | "no native function named '" | name
+          | "' (did you mean '" | suggestion | "'?)");
+      else
+        env.ReportError(list, Stringize()
+          | "no native function named '" | name | "'");
       return nullptr;
     }
 
@@ -228,20 +241,16 @@ namespace LTE {
     for (size_t i = 1; i < list->GetSize(); ++i) {
       Expression e = Expression_Compile(list->Get(i), env); 
       if (!e) {
-        if (env.detail)
-          Log_Message(Stringize() | "functioncall -- bad argument");
+        env.ReportError(list, Stringize()
+          | "argument " | i | " to function '" | name | "' failed to compile");
         return nullptr;
       }
       args.push(e);
     }
 
-    Function fn = OverloadResolution(name, candidates, args);
-    if (!fn) {
-      if (env.detail)
-        Log_Message(Stringize()
-          | "functioncall -- no overloads of '" | name | "' were compatible with arguments");
+    Function fn = OverloadResolution(name, candidates, args, env, list);
+    if (!fn)
       return nullptr;
-    }
 
     return Expression_FunctionCall(fn, args);
   }

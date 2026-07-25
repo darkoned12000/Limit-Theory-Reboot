@@ -7,8 +7,8 @@
 namespace LTE {
   Expression Expression_For(StringList const& list, CompileEnvironment& env) {
     if (list->GetSize() < 6) {
-      Log_Error(Stringize()
-        | "'for' expects at least 5 arguments, but got "
+      env.ReportError(list, Stringize()
+        | "'for' expects at least 5 arguments (name, iterable, predicate, body), but got "
         | (list->GetSize() - 1));
       return nullptr;
     }

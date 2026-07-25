@@ -77,30 +77,25 @@ namespace LTE {
     CompileEnvironment& env)
   {
     if (list->GetSize() < 3) {
-      if (env.detail)
-        Log_Message(Stringize() | "'while' -- list does not have 2 arguments");
+      env.ReportError(list, "'while' expects at least 2 arguments (predicate, body)");
       return nullptr;
     }
 
     Expression predicate = Expression_Compile(list->Get(1), env);
     if (!predicate) {
-      if (env.detail)
-        Log_Message(Stringize() | "'while' -- arg 1 (predicate) did not compile");
+      env.ReportError(list, "'while' -- predicate expression failed to compile");
       return nullptr;
     }
 
     predicate = Expression_Conversion(predicate, Type_Get<bool>());
     if (!predicate) {
-      if (env.detail)
-        Log_Message(Stringize()
-          | "'while' -- arg 1 (predicate) could not be converted to type 'bool'");
+      env.ReportError(list, "'while' -- predicate must be convertible to 'bool'");
       return nullptr;
     }
 
     Expression statement = Expression_Block(list, env, 2);
     if (!statement) {
-      if (env.detail)
-        Log_Message(Stringize() | "'while' -- statement failed to compile");
+      env.ReportError(list, "'while' -- body block failed to compile");
       return nullptr;
     }
 

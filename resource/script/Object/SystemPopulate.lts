@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Part of the ltheory-old-test modernization effort (Revamp Work).
 # See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
-#
+
 # Local, self-contained system populator. The upstream Object/System.lts has a
 # degenerate planet placement (Vec3_Cylinder radius 0 -> planet spawns at the
 # origin, inside the camera) and a broken "Orbital rail" block (Object/WarpNode
@@ -35,11 +35,26 @@ function Object Init (Object self)
   # ~1000 rocks in a shell JUST outside the planet's atmosphere so the player
   # (who spawns near the planet) sees a real, dense belt. All positions/scales
   # derive from `rng` (seeded), so the same seed reproduces the same field.
-  for i 0 i < 1000 i.++
+  for i 0 i < 10000 i.++
     var rock (Object_Asteroid (rng.Int))
-    rock.SetScale (150.0 * rng.Exp)
+    rock.SetScale (350.0 * rng.Exp)
     var shellR (radius * (1.6 + 0.7 * rng.Float))
     rock.SetPos (pos + (shellR * rng.Sphere))
     self.AddInterior rock
+
+  for i 0 i < 10000 i.++
+    var rock (Object_Asteroid (rng.Int))
+    rock.SetScale (750.0 * rng.Exp)
+    var shellR (radius * (3.6 + 0.7 * rng.Float))
+    rock.SetPos (pos + (shellR * rng.Sphere))
+    self.AddInterior rock
+
+  for i 0 i < 10000 i.++
+    var rock (Object_Asteroid (rng.Int))
+    rock.SetScale (1050.0 * rng.Exp)
+    var shellR (radius * (5.6 + 0.7 * rng.Float))
+    rock.SetPos (pos + (shellR * rng.Sphere))
+    self.AddInterior rock
+
 
   planet

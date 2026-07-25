@@ -146,8 +146,22 @@ namespace LTE {
       return nullptr;
 
     Type type = env.script->ResolveType(list->Get(0));
-    if (!type)
+    if (!type) {
+      Vector<String> typeNames;
+      if (env.script) {
+        for (auto it = env.script->types.begin(); it != env.script->types.end(); ++it)
+          typeNames.push(it->first);
+      }
+      String suggestion = BestMatch(list->Get(0)->GetString(), typeNames);
+      if (suggestion.size() > 0)
+        env.ReportError(list, Stringize()
+          | "unknown type '" | list->Get(0)->GetString()
+          | "' for cast/conversion (did you mean '" | suggestion | "'?)");
+      else
+        env.ReportError(list, Stringize()
+          | "unknown type '" | list->Get(0)->GetString() | "' for cast/conversion");
       return nullptr;
+    }
 
     Expression e = Expression_Compile(list->Get(1), env);
     if (!e)
