@@ -83,6 +83,7 @@ type HUDLayer
   Widget layerHUD Widget
   Widget layerWorld Widget
   Bool visible true
+  Bool debugFpsVisible false
 
   function List CreateChildren (Widget self)
     var l List

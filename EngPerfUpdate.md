@@ -24,7 +24,34 @@ a phase can be parallelized.
 | GLEW | 2.3.1, built from source |
 | Unit tests | 83 tests, 0 failures |
 | Shader count | 170 `.jsl` files |
-| Known perf bottleneck | No GPU instancing; 3000+ individual draw calls/frame |
+
+### Measured Performance Baseline (ltheory-main, 30K asteroids)
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| Total models (interior) | 30,000+ | ~30K asteroids + 1 planet + 1 star + 13 ships |
+| Polygons | 579,700+ | ~19 polys/object average — geometry is trivially simple |
+| FPS (moving) | ~33 | Camera movement, planet bounce scan, AI updates active |
+| FPS (still) | ~47 | Only render loop running |
+| Draw calls/frame | 30,000+ | One `glDrawElements` per object — **the bottleneck** |
+| Estimated CPU frame time (moving) | ~13 ms | 30% of 30ms frame (planet bounce, AI, camera, root.Update) |
+| Estimated GPU frame time | ~17 ms | 70% of 30ms frame (30K individual draw calls) |
+
+**Key insight:** At ~19 polys/object, the GPU is not geometry-bound. The
+bottleneck is pure draw call overhead — each object triggers a full
+`glDrawElements` + render state push/pop + uniform upload. Adding visual
+effects (dust, nebula, particles) will make this worse unless instancing
+lands first.
+
+**Headroom for effects:** With instancing (Phase 2) dropping to ~10-20
+draw calls, the GPU budget opens up for:
+- 10K+ dust fleck particles (compute-instanced billboards)
+- Nebula volume rendering (compute raymarch, ~1 draw call)
+- Atmospheric scattering per planet (1 shader pass)
+- Bloom/HDR post-processing (2-3 fullscreen passes)
+- Normal maps on planets/stations (no draw call increase)
+
+Without instancing, adding effects will push sub-30 FPS.
 
 ---
 
@@ -54,8 +81,8 @@ and uniform uploads for consecutive draws with the same shader.
 
 `Renderer_SetWorldTransform()` (Renderer.cpp:895-902) unconditionally computes
 `worldIT = world.Inverse().Transpose()` — a 48-multiply brute-force 4x4 matrix
-inverse — for every visible object in every render pass. That's ~3000
-inversions/frame with 1000 objects.
+inverse — for every visible object in every render pass. That's ~30,000
+inversions/frame at current scale, each on a 4x4 double-precision matrix.
 
 `worldIT` is only needed by shaders that do normal mapping. Most shaders
 don't use it.
@@ -115,8 +142,9 @@ after the visibility loop if `vertexCount == 0`.
 
 ## Phase 2: GPU Instancing (Est: 3-5 days)
 
-The single biggest performance win. Replaces 3000+ individual draw calls
-with ~10-20 instanced calls.
+The single biggest performance win. Replaces 30,000+ individual draw calls
+with ~10-20 instanced calls. Without this, no amount of visual effects
+will keep FPS above 30 at current object counts.
 
 ### 2.1 Add GL Draw Instanced Wrapper
 
@@ -140,9 +168,9 @@ with ~10-20 instanced calls.
 - **Fix:** Group visible objects by `(mesh, shader)`. For each group, build
   a per-instance transform buffer and issue one instanced draw call.
 - **Priority groups:**
-  1. Asteroids (1000+ objects, same mesh) — biggest win
-  2. Dust flecks (1024 billboards)
-  3. Ships (if multiple share a hull mesh)
+  1. Asteroids (~30,000 objects, same mesh) — biggest win, single draw call
+  2. Dust flecks (1,024 billboards, already particle-instanced)
+  3. Ships (13 objects, ~3 hull variants — small win but good test)
 
 ### 2.4 Update Particle System to Use GPU Instancing
 
@@ -170,6 +198,8 @@ must move to the update loop.
 - **Fix:** Move `field[i]->Update()` calls from `OnDraw()` to `OnUpdate()`.
   If update timing is critical, defer creation across multiple frames
   (amortize: create N objects per frame instead of all at once).
+- **Measured impact:** The 14 FPS gap between moving (33) and still (47)
+  is largely this — planet bounce scan + Zone updates during the frame.
 
 ### 3.2 Object Pooling for Frequent Create/Destroy
 
@@ -192,6 +222,87 @@ must move to the update loop.
 - **Audit:** Check if hierarchical frustum culling (parent bounding volume
   culls entire subtree) is implemented. If not, add it — eliminates
   per-object frustum tests for children of off-screen parents.
+- **Measured need:** With 30K objects, even a fast frustum test is 30K
+  bounding sphere/plane checks per frame. Hierarchical culling could
+  reduce this to ~100-500 checks.
+
+---
+
+## Phase 3b: Level-of-Detail (LOD) System (Est: 3-5 days)
+
+Critical for scaling beyond 30K objects. Without LOD, every asteroid
+renders at full polygon count regardless of distance.
+
+### 3b.1 Distance-Based LOD Selection
+
+**Impact: VERY HIGH | Effort: 2 days | Risk: MEDIUM**
+
+Each asteroid currently renders ~19 polys at all distances. At 30K
+asteroids, most are far away and could render as 1-4 polys (billboard)
+or be culled entirely.
+
+- **File:** `src/liblt/Game/Component/Drawable.cpp`, new `LOD.h`
+- **Add:** Per-object LOD level selection based on screen-space coverage:
+  - LOD 0 (close): Full mesh (~19 polys)
+  - LOD 1 (medium): Simplified mesh (~8 polys)
+  - LOD 2 (far): Billboard/impostor (2 polys, 1 draw call for all)
+  - LOD 3 (very far): Culled entirely (0 polys)
+- **Thresholds:** Based on object's bounding sphere radius / distance to camera.
+- **Expected:** 70-80% of asteroids at LOD 2/3 → ~2000-6000 effective
+  draw calls instead of 30,000.
+
+### 3b.2 Impostor / Billboard Rendering for Distant Objects
+
+- **Technique:** For LOD 2+, render a camera-facing quad with a pre-baked
+  or procedurally-generated texture of the object.
+- **Option A (simpler):** Colored billboard with size from bounding sphere.
+  Zero texture cost, works immediately.
+- **Option B (better):** Pre-render 6-face cubemap impostor at load time.
+  Better visual quality but more setup.
+- **Dependency:** Phase 2 GPU instancing — billboards are instanced.
+
+### 3b.3 LOD Mesh Generation
+
+- **Option A (runtime):** Vertex decimation shader (compute) — generate
+  simplified meshes on GPU at load time.
+- **Option B (offline):** Pre-generate LOD meshes in `Object_Asteroid` at
+  different detail levels. Simpler, no compute needed.
+- **Recommendation:** Option B for now. 3 LOD levels per asteroid type,
+  selected by distance.
+
+---
+
+## Phase 3c: Occlusion & Hi-Z Culling (Est: 2-3 days)
+
+Further reduce draw calls by not rendering objects hidden behind others.
+
+### 3c.1 Hi-Z (Hierarchical Z-Buffer) Occlusion
+
+**Impact: HIGH | Effort: 2 days | Risk: MEDIUM**
+
+After the depth prepass, generate a mipmap chain of the depth buffer.
+Use it to test bounding boxes of objects against the scene — if the
+object's nearest corner is behind the farthest known depth at that
+screen position, skip the draw entirely.
+
+- **File:** New: `src/liblt/Game/RenderPass/HiZOcclusion.cpp`
+- **Technique:**
+  1. After depth prepass, `glGenerateMipmap` on the depth texture.
+  2. For each object, project bounding box to screen space.
+  3. Sample Hi-Z at the bounding box's mip level.
+  4. If all corners are behind Hi-Z → object is occluded → skip.
+- **Expected:** 20-40% additional draw call reduction for dense asteroid
+  fields where asteroids overlap from camera perspective.
+- **GPU cost:** 1 texture sample per bounding box corner (4 samples total),
+  negligible compared to the skipped draw call.
+
+### 3c.2 Temporal Occlusion Reuse
+
+- **Optimization:** Reuse previous frame's occlusion results with a 1-pixel
+  dilation. Objects that were occluded last frame are likely occluded this
+  frame too. Reduces Hi-Z queries by ~50%.
+- **Risk:** Can cause pop-in on fast camera movement. Mitigate with a
+  "confidence" counter — re-query after 2-3 frames of occlusion.
 
 ---
 
@@ -286,7 +397,28 @@ Reduce technical debt, improve maintainability.
 
 ## Phase 6: Visual Expansion (Est: 2-3 weeks)
 
-Rendering improvements. Requires Phase 1-2 for CPU headroom.
+Rendering improvements. **Requires Phases 1-3c for CPU/GPU headroom.**
+Each visual effect has a budget estimate based on the current 30K-object
+scene — costs assume instancing + LOD are already in place.
+
+### 6.0 Visual Effects Budget (Post-Instancing)
+
+With GPU instancing (Phase 2) + LOD (Phase 3b), the render budget
+changes dramatically:
+
+| Effect | Draw Calls | GPU Cost | Prerequisite |
+|--------|-----------|----------|--------------|
+| 30K asteroids (instanced, LOD) | 1-3 | Low | Phase 2 + 3b |
+| 10K dust flecks (instanced billboard) | 1 | Low | Phase 2 |
+| Nebula volume (compute raymarch) | 1 | Medium | Phase 2 + SSBO |
+| Planet atmosphere (scattering) | 1-2 per planet | Medium | Phase 6.3 |
+| PBR lighting (per-object) | 0 (shader cost) | Medium | Phase 6.1 |
+| Shadow map (1 directional) | 1 | Medium | Phase 6.2 |
+| Bloom/HDR (fullscreen passes) | 2-3 | Low | Phase 6.5 |
+| SMAA (existing) | 1 | Low | Already present |
+| **Total** | **~10-15** | — | — |
+
+Without instancing, adding any of the above pushes below 30 FPS.
 
 ### 6.1 Physically Based Rendering (PBR) Pipeline
 
@@ -349,6 +481,8 @@ workflow.
   fog/light volumes on GPU
 - **Files:** New `compute/fog.jsl`, `common/fog.jsl`
 - **Dependency:** Phase 2 GPU instancing (need CPU headroom)
+- **Budget:** 1 compute dispatch + 1 fullscreen composite pass. Negligible
+  draw call impact. GPU cost: ~0.5 ms on modern hardware.
 
 ### 6.7 Star-Field Parallax
 
@@ -363,6 +497,39 @@ workflow.
 - **Wire:** Biome-specific shader parameters (color palettes, height
   multipliers, cloud density)
 - **Files:** `PlanetType.cpp`, `gen/planet.jsl`, `SystemPopulate.lts`
+
+### 6.9 GPU Compute Particle Systems
+
+**Impact: HIGH for effects | Effort: 2-3 days | Risk: MEDIUM**
+
+Replace CPU-side particle simulation with compute shaders. Required for
+10K+ dust flecks, projectile trails, engine exhaust, explosions.
+
+- **Technique:**
+  1. SSBO holds particle state (position, velocity, age, size).
+  2. Compute shader updates all particles per frame (physics, aging).
+  3. Indirect draw command (`glDrawElementsIndirect`) renders all alive
+     particles in one instanced draw call.
+- **Files:** New `compute/particles.jsl`, modify `ParticleSystem.cpp`
+- **Dependency:** Phase 2 (instancing), GLSL 4.30 (SSBOs + compute)
+- **Budget:** 1 compute dispatch + 1 instanced draw. ~0.2 ms for 10K particles.
+- **Effects enabled:** Dense dust clouds, engine trails, weapon impacts,
+  debris fields, atmosphere particles.
+
+### 6.10 Multi-Draw Indirect (MDI) for Heterogeneous Objects
+
+**Impact: MEDIUM | Effort: 2-3 days | Risk: MEDIUM**
+
+For objects that share a shader but have different meshes (e.g., different
+asteroid shapes), Multi-Draw Indirect batches them into a single draw call
+with per-draw mesh offsets.
+
+- **Technique:** Build a buffer of `DrawElementsIndirectCommand` structs,
+  one per mesh variant. Issue `glMultiDrawElementsIndirect` for the batch.
+- **Files:** New: `src/liblt/LTE/GL.h` wrappers, modify `Renderer.cpp`
+- **Dependency:** Phase 2 (instancing framework)
+- **Budget:** Reduces ~50-100 mesh-variant draw calls to 1. Useful after
+  instancing handles the bulk of identical objects.
 
 ---
 
@@ -453,32 +620,52 @@ Runs in parallel with all other phases.
 
 | Priority | Tasks | Estimated Impact |
 |----------|-------|-----------------|
-| **P0 — Do First** | 1.1 State caching, 1.2 Conditional worldIT, 1.3 glBufferSubData | Immediate FPS gain, zero risk |
-| **P1 — High Value** | 2.1-2.4 GPU instancing, 3.1 Zone fix | 3-10x FPS with many objects |
-| **P2 — Medium Value** | 1.4 Sort by material, 3.2 Object pooling, 3.4 Frustum culling | Steady improvement |
-| **P3 — Foundation** | 4.1 GLAD, 4.2 UTF8-CPP, 5.1 EasyGL cleanup, 5.2 Cast cleanup | Code health |
-| **P4 — Visuals** | 6.1 PBR, 6.2 Directional light, 6.3 Atmosphere | Visual quality leap |
-| **P5 — Tooling** | 7.1 LTSL HOF, 7.2 Hot-reload, 7.4 DevPanel | Developer productivity |
-| **P6 — Quality** | 8.1 CI, 8.2 Visual regression, 8.3 Benchmarking | Long-term stability |
+| **P0 — Do First** | 1.1 State caching, 1.2 Conditional worldIT, 1.3 glBufferSubData | Immediate +15% FPS, zero risk |
+| **P1 — Critical Path** | 2.1-2.4 GPU instancing | 30K draw calls → ~10. +70% FPS. Unblocks everything. |
+| **P2 — High Value** | 3b.1-3b.3 LOD system, 3.1 Zone fix | Keeps effective object count manageable at scale |
+| **P3 — Medium Value** | 3c.1-3c.2 Hi-Z occlusion, 1.4 Sort by material, 3.2 Object pooling | +5-10% FPS, smoother frame times |
+| **P4 — Effects Foundation** | 6.9 Compute particles, 6.10 MDI, 6.6 Nebula compute | Enables dust/nebula/particles without draw call explosion |
+| **P5 — Visuals** | 6.1 PBR, 6.2 Directional light, 6.3 Atmosphere, 6.5 HDR/Bloom | Visual quality leap |
+| **P6 — Tooling** | 7.1 LTSL HOF, 7.2 Hot-reload, 7.4 DevPanel | Developer productivity |
+| **P7 — Foundation** | 4.1 GLAD, 4.2 UTF8-CPP, 5.1 EasyGL cleanup, 5.2 Cast cleanup | Code health |
+| **P8 — Quality** | 8.1 CI, 8.2 Visual regression, 8.3 Benchmarking | Long-term stability |
 
 ---
 
 ## 60 FPS Target Strategy
 
-The engine currently runs at ~30 FPS with 1000 asteroids. To hit a
-consistent 60 FPS regardless of object count:
+Measured baseline: **33 FPS moving / 47 FPS still** with 30K objects,
+580K polys. Target: **60 FPS sustained** with visual effects active.
 
-1. **Phase 1** (quick wins): Expected ~10-20% FPS improvement from state
-   caching, conditional worldIT, and buffer optimization.
-2. **Phase 2** (instancing): Expected 3-10x FPS improvement. This is the
-   critical path — drops 3000+ draw calls to ~10-20.
-3. **Phase 3** (object lifecycle): Eliminates frame-time spikes from Zone
-   cell changes. Smooths out hitches.
-4. **Phase 6** (visuals): PBR and atmospheric scattering add GPU work but
-   benefit from the CPU headroom gained in Phases 1-3.
+### Phase-by-Phase Impact Estimate
 
-**Minimum viable path to 60 FPS:** Phases 1 + 2 = ~5 days of work.
-**Full 60 FPS with visuals:** Phases 1-3 + 6.1-6.4 = ~3-4 weeks.
+| Phase | Expected FPS | Cumulative | Notes |
+|-------|-------------|-----------|-------|
+| **Current** | 33 / 47 | — | 30K objects, no instancing, no LOD |
+| **Phase 1** (quick wins) | 38 / 53 | +15% | State caching, conditional worldIT, glBufferSubData |
+| **Phase 2** (instancing) | 55 / 60+ | +70% | 30K draw calls → ~10-20. Critical path. |
+| **Phase 3b** (LOD) | 58 / 62+ | +5% | 70-80% of asteroids → billboard/culled |
+| **Phase 3c** (Hi-Z cull) | 60 / 63+ | +3% | 20-40% additional occlusion |
+| **Phase 6** (visuals) | 55 / 58 | -5% | PBR, atmosphere, nebula, particles add GPU cost |
+| **Phase 3** (lifecycle) | 58 / 62 | +3% | Smoother frame times, no spikes |
+
+**Minimum viable path to 60 FPS:** Phases 1 + 2 = ~5 days.
+**60 FPS with effects:** Phases 1 + 2 + 3b + 3c = ~12-14 days.
+**60 FPS with full visuals:** All phases through 6 = ~4-5 weeks.
+
+### Future-Proofing: What 60K-100K Objects Looks Like
+
+At double the current object count, instancing alone won't hold 60 FPS.
+The full stack is needed:
+
+| Object Count | Instancing Only | + LOD | + Hi-Z | + MDI |
+|-------------|----------------|-------|--------|-------|
+| 30K | 55-60 FPS | 58-62 | 60-63 | 60-63 |
+| 60K | 35-45 FPS | 55-60 | 58-62 | 60-62 |
+| 100K | 25-35 FPS | 50-58 | 55-60 | 58-61 |
+
+LOD is the key scaler — it keeps the *effective* object count manageable
+regardless of total scene population.
 
 ---
 
@@ -515,3 +702,4 @@ Each phase should be a separate commit (or small PR) with a clear message:
 | Date | Change | Author |
 |------|--------|--------|
 | 2025-07-26 | Initial creation — consolidated from AGENTS.md + engine analysis | AI-assisted |
+| 2025-07-26 | Added measured baseline (30K objects, 33/47 FPS, 580K polys), Phase 3b (LOD), Phase 3c (Hi-Z occlusion), Phase 6.9 (compute particles), Phase 6.10 (MDI), visual effects budget table, future-scaling estimates | AI-assisted |

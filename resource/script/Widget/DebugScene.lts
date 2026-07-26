@@ -3,48 +3,89 @@
 # Part of the ltheory-old-test modernization effort (Revamp Work).
 # See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
 #
-# Debug overlay widget: lists every interior object of a target Object (the
-# system) by name, so we can see at a glance whether the planet / asteroids /
-# ships were actually added to the scene. Created via Widget/DebugScene:Create
-# root and toggled from the app (F3).
+# Debug overlay widget: shows performance stats and key scene info.
+# Created via Widget/DebugScene:Create root and toggled from the app (F3).
+# Displays: FPS, frame time, poly count, draw calls, model count,
+# star/planet locations, ship count, player position.
 
 type DebugScene
   Object target
 
   function Void PostDraw (Widget self)
-    var count 0
-    for it target.GetInteriorObjects it.HasMore it.Advance
-      count = count + 1
-    # Find the player ship so we can show live distance to each object.
+    var bgColor (Vec4 0.05 0.05 0.1 0.85)
+    DrawPanel (Vec2 20 120) (Vec2 520 305) 0.04 1 bgColor 1
+
+    var y 130.0
+    var x 30.0
+
+    # -- Performance stats (top section) --
+    DrawText Fonts:Medium "PERFORMANCE" (Vec2 x y) 16 (Vec3 1.0 1.0 1.0) 1 false
+    y = y + 22.0
+
+    DrawText Fonts:Default ("FPS:        " + (Round 1.0 / FrameTimer_GetEMA01)) (Vec2 x y) 14 (Vec3 0.5 1.0 0.5) 1 false
+    y = y + 18.0
+
+    DrawText Fonts:Default ("Frame:      " + (Round FrameTimer_GetEMA01 * 1000.0) + " ms") (Vec2 x y) 14 (Vec3 0.5 1.0 0.5) 1 false
+    y = y + 18.0
+
+    DrawText Fonts:Default ("Polys:      " + Renderer_GetPolyCount) (Vec2 x y) 14 (Vec3 0.5 1.0 0.5) 1 false
+    y = y + 18.0
+
+    DrawText Fonts:Default ("Draw calls: " + Renderer_GetDrawCallCount) (Vec2 x y) 14 (Vec3 0.5 1.0 0.5) 1 false
+    y = y + 18.0
+
+    # -- Scene info (divider) --
+    DrawText Fonts:Medium "SCENE" (Vec2 x y) 16 (Vec3 1.0 1.0 1.0) 1 false
+    y = y + 22.0
+
+    # Count models, find star/planet/ship in one pass
+    var modelCount 0
+    var shipCount 0
     var playerShip Object
     for it target.GetInteriorObjects it.HasMore it.Advance
       var o it.Get
+      modelCount = modelCount + 1
       if (o.GetType == "Ship")
-        playerShip = o
-    var nearestAsteroidDist 100000000.0
-    var y 360.0
-    DrawText Fonts:Default ("interior count: " + count) (Vec2 20 y) 18 (Vec3 0.4 1.0 0.4) 1 false
-    y = y + 24.0
-    var idx 0
-    for it target.GetInteriorObjects it.HasMore it.Advance
-      if idx < 24
-        var o it.Get
-        var p o.GetPos
-        var line (o.GetName + "  " + (Round p.x) + " " + (Round p.y) + " " + (Round p.z))
-        if playerShip.IsNotNull
-          var d (Length (p - playerShip.GetPos))
-          line = (line + "  d=" + (Round d))
-          if (o.GetType == "Asteroid")
-            if (d < nearestAsteroidDist)
-              nearestAsteroidDist = d
-        var c (Vec3 0.8 0.8 1.0)
-        if (o.GetType == "Planet")
-          c = (Vec3 1.0 0.8 0.2)
-        DrawText Fonts:Default line (Vec2 20 y) 13 c 1 false
-        y = y + 17.0
-      idx = idx + 1
+        shipCount = shipCount + 1
+        if playerShip.IsNotNull.!
+          playerShip = o
+
+    DrawText Fonts:Default ("Models (interior): " + modelCount) (Vec2 x y) 14 (Vec3 0.4 1.0 0.4) 1 false
+    y = y + 18.0
+
+    DrawText Fonts:Default ("Ships:             " + shipCount) (Vec2 x y) 14 (Vec3 0.4 1.0 0.4) 1 false
+    y = y + 18.0
+
+    # Star location
+    var hasStar false
+    for it2 target.GetInteriorObjects it2.HasMore it2.Advance
+      var o2 it2.Get
+      if (o2.GetType == "Star")
+        var p o2.GetPos
+        DrawText Fonts:Default ("Star: " + (Round p.x) + " " + (Round p.y) + " " + (Round p.z)) (Vec2 x y) 14 (Vec3 1.0 0.9 0.3) 1 false
+        hasStar = true
+    if hasStar.!
+      DrawText Fonts:Default ("Star: (not found)") (Vec2 x y) 14 (Vec3 0.5 0.3 0.3) 1 false
+    y = y + 18.0
+
+    # Planet location
+    var hasPlanet false
+    for it3 target.GetInteriorObjects it3.HasMore it3.Advance
+      var o3 it3.Get
+      if (o3.GetType == "Planet")
+        var p o3.GetPos
+        DrawText Fonts:Default ("Planet: " + (Round p.x) + " " + (Round p.y) + " " + (Round p.z)) (Vec2 x y) 14 (Vec3 1.0 0.8 0.2) 1 false
+        hasPlanet = true
+    if hasPlanet.!
+      DrawText Fonts:Default ("Planet: (not found)") (Vec2 x y) 14 (Vec3 0.5 0.3 0.3) 1 false
+    y = y + 18.0
+
+    # Player ship info
     if playerShip.IsNotNull
-      DrawText Fonts:Default ("nearest asteroid: " + (Round nearestAsteroidDist)) (Vec2 20 y) 14 (Vec3 1.0 0.5 0.3) 1 false
+      var pp playerShip.GetPos
+      DrawText Fonts:Default ("Player: " + (Round pp.x) + " " + (Round pp.y) + " " + (Round pp.z)) (Vec2 x y) 14 (Vec3 0.8 0.8 1.0) 1 false
+    else
+      DrawText Fonts:Default ("Player: (no ship)") (Vec2 x y) 14 (Vec3 0.5 0.3 0.3) 1 false
 
 function Widget Create (Object target)
   Components:Expand
