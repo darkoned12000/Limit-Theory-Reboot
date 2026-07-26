@@ -105,7 +105,7 @@ python3 configure.py test       # runs all unit tests (lte_tests target)
 |--------------|---------------------------|------------------------------|----------------|
 | **SFML**     | 3.1.0, system-installed  | Window, GL context, input, audio, graphics | Upgraded from vendored 2.5.0 → 2.6.2 → system 3.0.2 → system 3.1.0. SFML 3 uses C++17, scoped enums, `std::variant` events, miniaudio backend. **No Wayland backend** — X11 only; runs on Wayland via XWayland. | |
 | **FreeType** | system (`libfreetype-dev`)| Font rasterization           | System freetype; bundled copy removed (conflicted). |
-| **GLEW**     | system (`libglew-dev`)    | OpenGL extension loading     | Link-only. |
+| **GLEW**     | 2.3.1, system-installed | OpenGL extension loading     | Upgraded from vendored ~1.x → system 2.2.0 → built from source 2.3.1. Headers at `/usr/include/GL/glew.h`, library at `/usr/lib/x86_64-linux-gnu/libGLEW.so`. |
 | **OpenAL**   | system (`libopenal-dev`)  | SFML audio backend           | Required for SFML Audio build. |
 | **Vorbis/FLAC/Ogg** | system          | SFML audio decoding          | Required for SFML Audio build. |
 | **UTF8-CPP** | vendored `include/UTF8`  | UTF-8 string handling        | Patched `std::iterator` → explicit typedefs. |
@@ -120,9 +120,9 @@ python3 configure.py test       # runs all unit tests (lte_tests target)
 - Rendering via SFML `sf::RenderWindow` + raw OpenGL (programmable pipeline).
 - **Shaders are `.jsl` files** (169 under `resource/shader/`), custom GLSL-ish
   format: `vertex/<name>.jsl` + `fragment/<name>.jsl` pairs.
-- Uses **GLSL 3.30 core** syntax. Engine force-prefixes every shader with
-  `#version 330 core`. `JSLPreprocess` handles `#include` and `#output` directives.
-- OpenGL 3.3+ context (driver serves 4.6 core). Core profile bit intentionally
+- Uses **GLSL 4.60 core** syntax. Engine force-prefixes every shader with
+  `#version 460 core`. `JSLPreprocess` handles `#include` and `#output` directives.
+- OpenGL 4.6 context (driver serves 4.6 core). Core profile bit intentionally
   left off (SFML 2.6 + Mesa crashes on GLX `MakeCurrent` with Core bit set).
 - Draw path is core-compatible: single global VAO bound at init, VBO uploads
   for all geometry (no `glBegin`/immediate mode).
@@ -289,11 +289,12 @@ correctness/tooling passes, NOT a ground-up rewrite.
 - **Reflection:** macro system — `AutoClass`/`AutoClassDerived` (arities 0..32),
   `FIELDS`/`MAPFIELD`, `AUTOMATIC_REFLECTION_PARAMETRIC1/2`, `METADATA`/`REGISTER_TYPE`.
 - **LTSL:** tree-walking interpreter (25 node types, 2,854 LOC). No bytecode/VM/JIT.
-- **Graphics:** GLEW + OpenGL 3.3+ context. Programmable pipeline: FBOs, MRT,
+- **Graphics:** GLEW 2.3.1 + OpenGL 4.6 context. Programmable pipeline: FBOs, MRT,
   VBOs, single global VAO. Fixed-function (`glBegin`) **removed**.
-- **GLSL:** All `.jsl` shaders forced to `#version 330 core`. `JSLPreprocess`
+- **GLSL:** All `.jsl` shaders forced to `#version 460 core`. `JSLPreprocess`
   handles `#include`/`#output`. `texture2D`/`textureCube` → overloaded
-  `texSample()` wrappers.
+  `texSample()` wrappers. SSBOs (`GL_SHADER_STORAGE_BUFFER`) supported for
+  GPU read/write buffers; compute shaders via `GL_COMPUTE_SHADER`.
 - **Audio:** FMOD 4.44 low-level API, **already abstracted** behind
   pure-virtual `SoundEngine` interface (`Fmod` and `Null` implementations,
   selected via `GetSoundEngine()`). New backends possible without touching
@@ -325,8 +326,13 @@ correctness/tooling passes, NOT a ground-up rewrite.
 - [ ] **CI (GitHub Actions)** — Linux (GCC + Clang) and Windows. Reuse
       `configure.py` / CMakePresets. Run `clang-format --dry-run --Werror` +
       build with `-Werror` scoped to project targets.
-- [ ] **GLEW → Glad** — Remove runtime init quirks (`glewExperimental`).
-      Pairs with SFML 3.x upgrade.
+- [x] **GLEW upgrade** — Upgraded from vendored ~1.x to system 2.2.0, then
+      built from source 2.3.1 (Jan 2026). Removed vendored GLEW headers from
+      include path; engine now uses system `<GL/glew.h>`. Supports GL 4.6.
+- [ ] **GLEW → GLAD** — Replace GLEW with GLAD for cleaner init (no
+      `glewExperimental` quirk), smaller binary (generate only needed GL
+      version), and self-contained headers (no system dependency). Low priority;
+      GLEW 2.3.1 works fine. ~1 hour of straightforward work.
 - [ ] **Git LFS** — Reintroduce if large resources warrant it (add `.gitattributes`).
 
 ### 10.2 Libraries
@@ -344,9 +350,19 @@ correctness/tooling passes, NOT a ground-up rewrite.
 - [ ] **Write LTSL grammar/dispatch/type-system notes** — Expand
       `docs/ltsl-docs.md` with parser pipeline, 25 expression-node types,
       conversion/resolution rules, and known gotchas. Low-impact, high-value.
-- [ ] **GLSL 4.30 staged upgrade** — Bump `kVersionDirective` one major at a
-      time (330→400→410→420→430). Stop at 4.30 (compute shaders + SSBOs).
-      Profile first to confirm CPU bottleneck.
+- [x] **GLSL 4.60 staged upgrade** — Bumped `kVersionDirective` through
+      330→400→410→420→430→440→450→460 core. Full GLSL version range covered.
+      Compute shader infrastructure and SSBOs implemented at 4.30. No breaking
+      changes encountered at 4.40–4.60 (zero `gl_VertexID`/`gl_InstanceID`
+      usage). Profile first to confirm CPU bottleneck before adding UBOs.
+- [ ] **Future: Uniform Buffer Objects (UBOs)** — Low priority. Would batch-upload
+      the 5 MVP matrices (WORLD/VIEW/PROJ/WVP/WORLDIT) into a single buffer.
+      Estimated savings: ~400-800 API calls/frame (negligible on modern CPUs).
+      Implement only if profiling shows `glUniformMatrix4fv` calls are a
+      bottleneck. Requires new `GL_UniformBufferTarget` enum, `GL_BindBufferBase`
+      wrapper, `GL_BufferData` for `GL_UNIFORM_BUFFER`, and
+      `GL_GetUniformBlockIndex`/`GL_UniformBlockBinding` wrappers in `GL.h`.
+      Shader interface: `SetUniformBlock(name, bindingIndex)` on `ShaderT`.
 - [ ] **Delete dead EasyGL wrappers** — `GL_Begin`/`GL_End`/`GL_Vertex`/etc.
       in `src/liblt/LTE/GL.h`. Unused after 120→330 migration. Do NOT mark as
       Revamp Work (original code).
@@ -393,7 +409,7 @@ To successfully transition this old engine and slowly build a game out of it, th
       X11-only; runs on Wayland via XWayland.
 
 **Phase 2: Graphics & Rendering Modernization**
-- [ ] **OpenGL 4.30 Upgrade:** Bump GLSL versions to 4.30 to unlock compute shaders (useful for volumetric nebulas and fast asteroid instancing).
+- [x] **OpenGL 4.60 Upgrade:** Bumped GLSL to 4.60 core (full version range: 330→400→410→420→430→440→450→460). SSBO + compute infrastructure at 4.30.
 - [ ] **Physically Based Rendering (PBR):** Update the `.jsl` shaders to support a PBR pipeline (Albedo, Normal, Roughness, Metallic) with directional shadow mapping and atmospheric scattering.
 
 **Phase 3: Gameplay & Procedural Content Tooling**

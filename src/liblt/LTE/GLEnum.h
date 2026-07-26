@@ -1,9 +1,8 @@
 #ifndef GLEnum_h__
 #define GLEnum_h__
 
-#define GLEW_STATIC
 #include "Common.h"
-#include "Glew/GL/glew.h"
+#include <GL/glew.h>
 
 namespace GL_BlendFunction {
   enum Enum {
@@ -37,7 +36,8 @@ namespace GL_BufferTarget {
     Array                      = GL_ARRAY_BUFFER,
     ElementArray               = GL_ELEMENT_ARRAY_BUFFER,
     PixelPack                  = GL_PIXEL_PACK_BUFFER,
-    PixelUnpack                = GL_PIXEL_UNPACK_BUFFER
+    PixelUnpack                = GL_PIXEL_UNPACK_BUFFER,
+    ShaderStorage              = GL_SHADER_STORAGE_BUFFER
   };
 }
 
@@ -266,6 +266,7 @@ namespace GL_ShaderProperty {
 
 namespace GL_ShaderType {
   enum Enum {
+    Compute                    = GL_COMPUTE_SHADER,
     Fragment                   = GL_FRAGMENT_SHADER,
     Vertex                     = GL_VERTEX_SHADER
   };

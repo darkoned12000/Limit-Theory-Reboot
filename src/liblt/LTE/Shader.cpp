@@ -20,7 +20,7 @@
 #include <sstream>
 #include <iostream>
 
-const String kVersionDirective = "#version 420 core\n";
+const String kVersionDirective = "#version 460 core\n";
 const uint kTextureUnits = 16;
 
 namespace {
@@ -594,6 +594,12 @@ namespace {
         gActiveShader = this;
         GL_UseProgram(program->id);
       }
+    }
+
+    void BindSSBO(unsigned int bindingIndex, unsigned int buffer) override {
+      Use();
+      GL_BindBufferBase(GL_BufferTarget::ShaderStorage, bindingIndex,
+                        GL_Buffer(buffer));
     }
   };
 }

@@ -25,9 +25,7 @@
 #ifndef _EasyGL_JP_
 #define _EasyGL_JP_
 
-#define GLEW_STATIC
-
-#include "Glew/GL/glew.h"
+#include <GL/glew.h>
 #include "BuildMode.h"
 
 #include "GLEnum.h"
@@ -84,6 +82,16 @@ inline void GL_BindAttribLocation(
 /* Bind a named buffer object. */
 inline void GL_BindBuffer(GL_BufferTarget::Enum target, GL_Buffer buffer) {
   glBindBuffer(target, (unsigned int)buffer);
+  DEBUG_GL_ERRORS;
+}
+
+/* Bind a buffer object to an indexed buffer binding point (SSBOs, UBOs). */
+inline void GL_BindBufferBase(
+  GL_BufferTarget::Enum target,
+  unsigned int index,
+  GL_Buffer buffer)
+{
+  glBindBufferBase(target, index, (unsigned int)buffer);
   DEBUG_GL_ERRORS;
 }
 
@@ -314,6 +322,16 @@ inline void GL_Disable(GL_Capability::Enum cap) {
 /* Disable the usage of a specific generic vertex attribute array. */
 inline void GL_DisableVertexAttribArray(unsigned int index) {
   glDisableVertexAttribArray(index);
+  DEBUG_GL_ERRORS;
+}
+
+/* Launch a compute shader work group. */
+inline void GL_DispatchCompute(
+  unsigned int numGroupsX,
+  unsigned int numGroupsY,
+  unsigned int numGroupsZ)
+{
+  glDispatchCompute(numGroupsX, numGroupsY, numGroupsZ);
   DEBUG_GL_ERRORS;
 }
 

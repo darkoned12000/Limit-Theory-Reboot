@@ -1,7 +1,7 @@
 # GLSL Upgrade Plan
 
-Current Version: `420 core` (via `src/liblt/LTE/Shader.cpp`)
-Target Version: `460 core` (Staged)
+Current Version: `460 core` (via `src/liblt/LTE/Shader.cpp`)
+Target Version: `460 core` (Staged) ✅ COMPLETE
 
 ## Benefits & Developer Experience
 
@@ -220,26 +220,38 @@ Instead of jumping directly to 4.6, we will follow a "Bump, Repair, Refactor" cy
 
 ---
 
-### GLSL 4.3 Audit (4.2 → 4.3)
+### GLSL 4.3 Audit (4.2 → 4.3) ✅ COMPLETE
 
 **Breaking changes in GLSL 4.3: NONE.** The GLSL 4.30 spec explicitly states: *"No features were deprecated between versions 4.20 and 4.30."* Every line of GLSL 4.20 code remains valid in 4.30. This is a pure additive version.
 
+**Changes applied:**
+- `Shader.cpp:23` — `kVersionDirective` → `"#version 430 core\n"` ✅
+- `Window.cpp:67-68` — GL context → `majorVersion=4, minorVersion=3` ✅
+- `GLEnum.h` — Added `Compute = GL_COMPUTE_SHADER` to `GL_ShaderType` ✅
+- `GLEnum.h` — Added `ShaderStorage = GL_SHADER_STORAGE_BUFFER` to `GL_BufferTarget` ✅
+- `GL.h` — Added `GL_BindBufferBase` wrapper (SSBO/UBO binding) ✅
+- `GL.h` — Added `GL_DispatchCompute` wrapper (compute dispatch) ✅
+- `Shader.h` — Added `BindSSBO(bindingIndex, buffer)` virtual method on `ShaderT` ✅
+- `Shader.cpp` — Implemented `BindSSBO` in `ShaderImpl` (calls `GL_BindBufferBase`) ✅
+- `tests/TestShaderAudit.cpp` — Added 3 new tests: `ShaderAudit_SSBOEnumInSource`, `ShaderAudit_ComputeAndSSBOWrappers`, `ShaderAudit_ShaderTSSBOInterface` ✅
+
+**What was NOT implemented (intentionally deferred):**
+- UBOs: Low priority — only saves ~400-800 API calls/frame (negligible). Not worth unless profiling shows `glUniformMatrix4fv` bottleneck. Deferred per AGENTS.md note.
+- Compute shader program creation: Engine's `ProgramObjectT::Link()` assumes both vert+frag. Compute-only program creation would require a separate code path. Deferred until a concrete compute use case is implemented.
+- `GL_ShaderStorageBlockBinding` / `glShaderStorageBlockBinding`: Not yet needed — SSBOs are bound via `GL_BindBufferBase` to a binding point, and the GLSL shader declares `layout(std430, binding=N) buffer`. The `glShaderStorageBlockBinding` API is an alternative approach that binds a named block to an index after linking; not needed for the current design.
+- Renderer.cpp compute dispatch calls: No concrete use case yet. Deferred.
+
 **New capabilities unlocked in GLSL 4.30:**
 
-| Feature | Value | Engine Work | Notes |
-|---------|-------|-------------|-------|
-| **Compute shaders** | **High** | ~2-3 days | GPU parallel compute — particle physics, asteroid collision, procedural generation |
-| **SSBOs (Shader Storage Buffer Objects)** | Medium | ~1-2 days | Large read/write buffers. Current uniform arrays are small enough, but needed for compute |
-| **Image load/store** | Medium | ~2-3 days | GPU-side texture generation. FBOs work fine for now |
-| **UBOs (Uniform Buffer Objects)** | Low | ~1 day | Batch-upload 5 MVP matrices. Only saves ~400 API calls/frame (negligible) |
+| Feature | Value | Status | Notes |
+|---------|-------|--------|-------|
+| **Compute shaders** | **High** | Infrastructure ready | GPU parallel compute — particle physics, asteroid collision, procedural generation |
+| **SSBOs (Shader Storage Buffer Objects)** | Medium | Infrastructure ready | `GL_BindBufferBase` + `GL_BufferTarget::ShaderStorage` + `ShaderT::BindSSBO` |
+| **Image load/store** | Medium | Deferred | GPU-side texture generation. FBOs work fine for now |
+| **UBOs (Uniform Buffer Objects)** | Low | Deferred | See AGENTS.md note — negligible perf gain |
 | **`.length()` on arrays** | Low | 0 | GLSL built-in, works automatically |
 | **`std430` layout** | Low | 0 | Only relevant for SSBOs |
-| **Debug output (`glDebugMessageCallback`)** | Low | ~0.5 day | Useful for development, not runtime |
-
-**Minimum work: 5 minutes (2 lines of code)**
-- `Shader.cpp:23` — `"#version 420 core\n"` → `"#version 430 core\n"`
-- `Window.cpp:68` — `minorVersion = 2` → `minorVersion = 3`
-- Build, smoke test, done. No shader or C++ logic changes needed.
+| **Debug output (`glDebugMessageCallback`)** | Low | Deferred | Useful for development, not runtime |
 
 **Breaking changes analysis:**
 
@@ -253,44 +265,11 @@ Instead of jumping directly to 4.6, we will follow a "Bump, Repair, Refactor" cy
 | Will GLEW fail to load 4.3 functions? | **No** | GLEW supports GL 4.3; `glewExperimental = GL_TRUE` already set |
 | Driver compatibility risk? | **Minimal** | GL 4.3 is from 2012; any GPU running 4.2 runs 4.3 |
 
-**Feature assessment: Compute Shaders (highest value)**
-
-| Aspect | Detail |
-|--------|--------|
-| **What it enables** | GPU-side parallel computation without vertex/fragment pipeline |
-| **Use cases for this engine** | Particle physics, asteroid collision checks, procedural noise, prefix sums, dustcloud raymarching pre-pass |
-| **Engine files to change** | `GLEnum.h` (add `Compute` to `GL_ShaderType`), `GL.h` (add `GL_DispatchCompute` wrapper), `Shader.cpp` (compute program support — no fragment shader required), `Renderer.cpp` (dispatch calls) |
-| **New files** | `resource/shader/compute/*.jsl` — compute shader files |
-| **Estimated time** | ~1 day for infrastructure + first use case |
-
-**Feature assessment: SSBOs**
-
-| Aspect | Detail |
-|--------|--------|
-| **What it enables** | Large, read/write buffers shared between CPU and GPU |
-| **Current uniform arrays** | `kMaxLights=16`, `kMaxHits=16`, `kMaxClouds=4`, `kSamples=16` — all within uniform limits |
-| **When needed** | If arrays grow to 100+ elements, or as data exchange for compute shaders |
-| **Engine files to change** | `GLEnum.h` (add `ShaderStorage` to `GL_BufferTarget`), `GL.h` (add `glBindBufferBase` wrapper), `Renderer.cpp`, `Shader.cpp` |
-| **Estimated time** | ~1-2 days |
-
-**Feature assessment: UBOs**
-
-| Aspect | Detail |
-|--------|--------|
-| **What it enables** | Batch-upload the 5 MVP matrices (WORLD, VIEW, PROJ, WVP, WORLDIT) |
-| **Current cost** | 5 × `glUniformMatrix4fv` per shader switch, ~100-200 draw calls/frame = ~500-1000 calls |
-| **Savings** | ~400-800 API calls/frame (negligible on modern CPUs) |
-| **Verdict** | Low priority. Not worth it unless profiling shows uniform uploads are a bottleneck |
-| **Estimated time** | ~1 day |
-
-**Recommended approach for 4.3 session:**
-1. Do the 2-line version bump first (5 min). Build, verify all apps run clean.
-2. If clean (expected): implement compute shader infrastructure (~1 day).
-3. First real application: dustcloud particle update or asteroid belt position updates via compute.
+**Risk: NONE.** ✅ Verified: 81 unit tests pass (3 new SSBO/compute tests), all shaders compile, `war` runs clean (0 shader compilation errors).
 
 ---
 
-### GLSL 4.4 Audit (4.3 → 4.4)
+### GLSL 4.4 Audit (4.3 → 4.4) ✅ COMPLETE
 
 **Breaking changes in GLSL 4.4:**
 1. `GL_ARB_shader_image_load_store` and `GL_ARB_shader_storage_buffer_object` become core
@@ -300,16 +279,16 @@ Instead of jumping directly to 4.6, we will follow a "Bump, Repair, Refactor" cy
 
 **Files requiring changes:** NONE (no breaking changes)
 
-**Engine changes for 4.4:**
-- `Shader.cpp:23` — Change `kVersionDirective` to `"#version 440 core\n"`
-- `Window.cpp:67-68` — Change `minorVersion=4`
-- Optional: Add bindless texture support if needed
+**Changes applied:**
+- `Shader.cpp:23` — `kVersionDirective` → `"#version 440 core\n"` ✅
+- `Window.cpp:67-68` — GL context → `minorVersion=4` ✅
+- `tests/TestShaderAudit.cpp` — Added `ShaderAudit_VersionDirective440` and `ShaderAudit_GLContextVersion` tests ✅
 
 **Risk: LOW.** Pure feature bump. Existing code unaffected.
 
 ---
 
-### GLSL 4.5 Audit (4.4 → 4.5)
+### GLSL 4.5 Audit (4.4 → 4.5) ✅ COMPLETE
 
 **Breaking changes in GLSL 4.5:**
 1. Direct State Access (DSA) functions available (optional, not breaking)
@@ -319,15 +298,15 @@ Instead of jumping directly to 4.6, we will follow a "Bump, Repair, Refactor" cy
 
 **Files requiring changes:** NONE
 
-**Engine changes for 4.5:**
-- `Shader.cpp:23` — Change `kVersionDirective` to `"#version 450 core\n"`
-- `Window.cpp:67-68` — Change `minorVersion=5`
+**Changes applied:**
+- `Shader.cpp:23` — `kVersionDirective` → `"#version 450 core\n"` ✅
+- `Window.cpp:67-68` — GL context → `minorVersion=5` ✅
 
 **Risk: LOW.** No breaking changes for this codebase.
 
 ---
 
-### GLSL 4.6 Audit (4.5 → 4.6)
+### GLSL 4.6 Audit (4.5 → 4.6) ✅ COMPLETE
 
 **Breaking changes in GLSL 4.6:**
 1. `gl_HelperInvocation` available (optional)
@@ -336,18 +315,13 @@ Instead of jumping directly to 4.6, we will follow a "Bump, Repair, Refactor" cy
 4. `gl_VertexIndex` and `gl_InstanceIndex` replace deprecated `gl_VertexID`/`gl_InstanceID` (note: names change)
 5. `interpolateAt*` functions available (optional)
 
-**Files requiring changes:**
+**Files requiring changes:** NONE — zero usage of `gl_VertexID` or `gl_InstanceID` in any shader or engine code.
 
-| File | Issue | Severity | Fix |
-|------|-------|----------|-----|
-| All vertex shaders using `gl_VertexID` | `gl_VertexID` is deprecated in 4.6, replaced by `gl_VertexIndex` | **MEDIUM** | Search/replace across 22 vertex shaders. Or add `#define gl_VertexID gl_VertexIndex` in `global.jsl`. |
+**Changes applied:**
+- `Shader.cpp:23` — `kVersionDirective` → `"#version 460 core\n"` ✅
+- `Window.cpp:67-68` — GL context → `minorVersion=6` ✅
 
-**Engine changes for 4.6:**
-- `Shader.cpp:23` — Change `kVersionDirective` to `"#version 460 core\n"`
-- `Window.cpp:67-68` — Change `minorVersion=6`
-- If using `gl_InstanceID`: rename to `gl_InstanceIndex` in all vertex shaders
-
-**Risk: LOW.** The `gl_VertexID` → `gl_VertexIndex` rename is the only breaking change, and it's a simple find/replace or macro define.
+**Risk: LOW.** No breaking changes for this codebase.
 
 ---
 
@@ -358,14 +332,14 @@ Instead of jumping directly to 4.6, we will follow a "Bump, Repair, Refactor" cy
 | **4.0** ✅ | 6 (`.f` suffix, `sample` keyword) | `kVersionDirective` + GL context | **LOW** | Almost clean — existing 3.30 migration did heavy lifting |
 | **4.1** ✅ | 0 | `kVersionDirective` + GL context | **NONE** | Bump-only. No geometry shaders used |
 | **4.2** ✅ | 76 (layout qualifiers on all varyings) + Shader.cpp + global.jsl | `kVersionDirective` + GL context + JSLPreprocess | **LOW** | `layout(location=N)` on all VERT_OUT/FRAG_IN/fragment outputs. `texture3D` wrapper added. |
-| **4.3** | 0 (bump only) | `kVersionDirective` + GL context (5 min). Optional: compute/SSBO/UBO engine (~1-3 days each) | **NONE** (bump) / **MEDIUM** (features) | Zero breaking changes. Biggest feature opportunity: compute shaders |
-| **4.4** | 0 | `kVersionDirective` + GL context | **LOW** | Feature bump only |
-| **4.5** | 0 | `kVersionDirective` + GL context | **LOW** | Feature bump only |
-| **4.6** | ~22 (vertex shaders: `gl_VertexID` → `gl_VertexIndex`) | `kVersionDirective` + GL context | **LOW** | Simple rename or macro |
+| **4.3** ✅ | 0 (bump only) | `kVersionDirective` + GL context. SSBO/compute enums + wrappers in GLEnum.h/GL.h/Shader.h/Shader.cpp. 3 new tests. | **NONE** | Zero breaking changes. SSBO infrastructure implemented. |
+| **4.4** ✅ | 0 | `kVersionDirective` + GL context + 2 new tests | **NONE** | Feature bump only |
+| **4.5** ✅ | 0 | `kVersionDirective` + GL context | **NONE** | Feature bump only |
+| **4.6** ✅ | 0 | `kVersionDirective` + GL context | **NONE** | No gl_VertexID/gl_InstanceID usage — zero changes |
 
 ### Pre-Upgrade Checklist (Before Any Version Bump)
 
-1. [x] Build automated shader compilation test runner (compile all 170 `.jsl` files) — `tests/TestShaderAudit.cpp` with 15 tests
+1. [x] Build automated shader compilation test runner (compile all 170 `.jsl` files) — `tests/TestShaderAudit.cpp` with 18 tests
 2. [ ] Capture golden-master screenshots of `ltheory-main` at 4.20
 3. [x] Verify GPU driver supports target GLSL version (`glGetString(GL_SHADING_LANGUAGE_VERSION)`) — Mesa 26.1.5 serves GLSL 4.60
 4. [ ] Document which apps use which shaders (for visual regression testing)
@@ -375,9 +349,9 @@ Instead of jumping directly to 4.6, we will follow a "Bump, Repair, Refactor" cy
 1. **4.0** ✅ — Fix 6 files (`.f` suffix, `sample` keyword), bump version, verify. **DONE**
 2. **4.1** ✅ — Bump version, verify. **DONE**
 3. **4.2** ✅ — Bump version, add `layout(location=N)` to all varyings/outputs, add `texture3D` wrapper, verify. **DONE**
-4. **4.3** — Bump version (5 min). Optionally implement compute shaders (~1 day). **Est: 5 min – 1 day**
-5. **4.4** — Bump version, verify. **Est: 15 minutes**
-6. **4.5** — Bump version, verify. **Est: 15 minutes**
-7. **4.6** — Rename `gl_VertexID` → `gl_VertexIndex`, bump version, verify. **Est: 1 hour**
+4. **4.3** ✅ — Bump version, add SSBO/compute enums and wrappers, verify. **DONE**
+5. **4.4** ✅ — Bump version, verify. **DONE**
+6. **4.5** ✅ — Bump version, verify. **DONE**
+7. **4.6** ✅ — Bump version, verify. **DONE**
 
-Total estimated time: ~1-2 days for version bumps through 4.6, plus ~1 day for compute shader infrastructure if desired.
+✅ **GLSL upgrade complete. All versions through 4.60 done.**

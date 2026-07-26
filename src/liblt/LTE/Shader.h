@@ -65,7 +65,9 @@ struct ShaderT : public RefCounted {
 
   virtual void Use() = 0;
 
-  ShaderT& operator()(char const* var, CubeMap const& map) {
+  virtual void BindSSBO(unsigned int bindingIndex, unsigned int buffer) = 0;
+
+  virtual ShaderT& operator()(char const* var, CubeMap const& map) {
     return SetCubeMap(var, map);
   }
 

@@ -56,7 +56,7 @@ namespace {
     {
       viewport = Viewport_Create(0, size, 1, true);
       sf::ContextSettings glSettings;
-      // Request a 4.2 context (shaders use #version 420). Leave attributeFlags
+      // Request a 4.6 context (shaders use #version 460). Leave attributeFlags
       // at Default: setting the explicit Core bit makes SFML 2.6 + this Mesa
       // driver crash with a GLX MakeCurrent / oldCtxInfo assertion at first
       // context switch. The engine's draw path is made core-compatible via the
@@ -65,7 +65,7 @@ namespace {
       glSettings.depthBits = 24;
       glSettings.stencilBits = 8;
       glSettings.majorVersion = 4;
-      glSettings.minorVersion = 2;
+      glSettings.minorVersion = 6;
       glSettings.attributeFlags = sf::ContextSettings::Attribute::Default;
       impl.create(
         sf::VideoMode({size.x, size.y}, bpp),

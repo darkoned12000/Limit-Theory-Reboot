@@ -564,7 +564,98 @@ LTE_TEST(ShaderAudit_TextureFunctionCoverage) {
   LTE_CHECK(true);
 }
 
-// ── Pre-Upgrade Snapshot Test ───────────────────────────────────────────
+// ── GLSL 4.30: Compute Shader / SSBO Audit ──────────────────────────────
+
+LTE_TEST(ShaderAudit_SSBOEnumInSource) {
+  // Verify that the engine source declares GL_SHADER_STORAGE_BUFFER and
+  // GL_COMPUTE_SHADER so compute/SSBO infrastructure is present.
+  // Read the GLEnum.h and GL.h headers to verify.
+  std::string enumSrc = ReadFile("src/liblt/LTE/GLEnum.h");
+  std::string glSrc = ReadFile("src/liblt/LTE/GL.h");
+
+  bool hasSSBOEnum =
+    Contains(enumSrc, "ShaderStorage") ||
+    Contains(enumSrc, "GL_SHADER_STORAGE_BUFFER");
+  bool hasComputeType =
+    Contains(enumSrc, "Compute") ||
+    Contains(enumSrc, "GL_COMPUTE_SHADER");
+
+  if (!hasSSBOEnum) {
+    std::fprintf(stderr, "  FAIL: GL_SHADER_STORAGE_BUFFER / ShaderStorage not found in GLEnum.h\n");
+    LTE_CHECK(false);
+    return;
+  }
+  if (!hasComputeType) {
+    std::fprintf(stderr, "  FAIL: GL_COMPUTE_SHADER / Compute not found in GLEnum.h\n");
+    LTE_CHECK(false);
+    return;
+  }
+  LTE_CHECK(true);
+}
+
+LTE_TEST(ShaderAudit_ComputeAndSSBOWrappers) {
+  // Verify that GL.h declares GL_DispatchCompute and GL_BindBufferBase
+  // wrapper functions (required for compute/SSBO infrastructure).
+  std::string glSrc = ReadFile("src/liblt/LTE/GL.h");
+
+  if (!Contains(glSrc, "GL_DispatchCompute")) {
+    std::fprintf(stderr, "  FAIL: GL_DispatchCompute wrapper not found in GL.h\n");
+    LTE_CHECK(false);
+    return;
+  }
+  if (!Contains(glSrc, "GL_BindBufferBase")) {
+    std::fprintf(stderr, "  FAIL: GL_BindBufferBase wrapper not found in GL.h\n");
+    LTE_CHECK(false);
+    return;
+  }
+  LTE_CHECK(true);
+}
+
+LTE_TEST(ShaderAudit_ShaderTSSBOInterface) {
+  // Verify that Shader.h declares BindSSBO on ShaderT so scripts can bind
+  // shader storage buffers.
+  std::string shaderSrc = ReadFile("src/liblt/LTE/Shader.h");
+
+  if (!Contains(shaderSrc, "BindSSBO")) {
+    std::fprintf(stderr, "  FAIL: BindSSBO not found in Shader.h\n");
+    LTE_CHECK(false);
+    return;
+  }
+  LTE_CHECK(true);
+}
+
+// ── GLSL 4.40: Version Directive Audit ──────────────────────────────────
+
+LTE_TEST(ShaderAudit_VersionDirective440) {
+  // Verify the engine is compiled against GLSL 4.40+ core.
+  // Reads Shader.cpp to confirm the kVersionDirective string.
+  std::string shaderSrc = ReadFile("src/liblt/LTE/Shader.cpp");
+
+  bool has440 = Contains(shaderSrc, "#version 440 core");
+  bool has450 = Contains(shaderSrc, "#version 450 core");
+  bool has460 = Contains(shaderSrc, "#version 460 core");
+
+  if (!has440 && !has450 && !has460) {
+    std::fprintf(stderr, "  FAIL: kVersionDirective is not 440/450/460 core in Shader.cpp\n");
+    LTE_CHECK(false);
+    return;
+  }
+  std::printf("    (GLSL version: %s)\n",
+    has460 ? "460" : has450 ? "450" : "440");
+  LTE_CHECK(true);
+}
+
+LTE_TEST(ShaderAudit_GLContextVersion) {
+  // Verify the GL context requests 4.4 in Window.cpp.
+  std::string winSrc = ReadFile("src/liblt/LTE/Window.cpp");
+
+  if (!Contains(winSrc, "minorVersion = 4") && !Contains(winSrc, "minorVersion = 5") && !Contains(winSrc, "minorVersion = 6")) {
+    std::fprintf(stderr, "  FAIL: GL context minorVersion is not >= 4 in Window.cpp\n");
+    LTE_CHECK(false);
+    return;
+  }
+  LTE_CHECK(true);
+}
 
 LTE_TEST(ShaderAudit_KnownComplexShaders) {
   // Verify that the most complex/heavy shaders are present and readable.

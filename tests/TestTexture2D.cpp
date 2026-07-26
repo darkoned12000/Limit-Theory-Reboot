@@ -10,7 +10,7 @@
 
 #include <cstdlib>
 #include <filesystem>
-#include <Glew/GL/glew.h>
+#include <GL/glew.h>
 #include <SFML/Graphics.hpp>
 
 namespace {
