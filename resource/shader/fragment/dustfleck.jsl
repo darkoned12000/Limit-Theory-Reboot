@@ -3,8 +3,8 @@
 #include lighting.jsl
 #include noise.jsl
 
-FRAG_IN vec3 position;
-FRAG_IN float opacity;
+layout(location=13) FRAG_IN vec3 position;
+layout(location=14) FRAG_IN float opacity;
 
 uniform vec2 size;
 

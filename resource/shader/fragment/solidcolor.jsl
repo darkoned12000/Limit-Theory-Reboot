@@ -2,7 +2,7 @@
 
 uniform vec3 color;
 
-FRAG_IN vec3 normal;
+layout(location=15) FRAG_IN vec3 normal;
 
 void main() {
   outputAlbedo(color);

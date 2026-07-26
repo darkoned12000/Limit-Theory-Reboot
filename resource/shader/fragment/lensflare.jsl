@@ -2,7 +2,7 @@
 #include math.jsl
 #include lighting.jsl
 
-FRAG_IN float position;
+layout(location=13) FRAG_IN float position;
 
 uniform vec3 baseColor;
 uniform float depth;

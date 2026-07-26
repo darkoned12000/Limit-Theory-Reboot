@@ -4,8 +4,8 @@
 
 uniform sampler2D texture;
 
-FRAG_IN vec3 attrib;
-FRAG_IN vec3 position;
+layout(location=12) FRAG_IN vec3 attrib;
+layout(location=13) FRAG_IN vec3 position;
 
 void main() {
   vec2 uvp = uv;

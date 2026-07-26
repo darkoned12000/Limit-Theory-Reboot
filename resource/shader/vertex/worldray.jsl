@@ -3,8 +3,8 @@
 uniform mat4 INVVIEW;
 uniform mat4 INVPROJ;
 
-VERT_OUT vec3 worldRayO;
-VERT_OUT vec3 worldRayD;
+layout(location=7) VERT_OUT vec3 worldRayO;
+layout(location=8) VERT_OUT vec3 worldRayD;
 
 void main() {
   uv = vertex_uv;

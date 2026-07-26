@@ -4,9 +4,9 @@
 #include noise.jsl
 #include texturing.jsl
 
-FRAG_IN vec3 blend;
-FRAG_IN vec3 position;
-FRAG_IN vec3 texOffset;
+layout(location=16) FRAG_IN vec3 blend;
+layout(location=13) FRAG_IN vec3 position;
+layout(location=17) FRAG_IN vec3 texOffset;
 
 uniform mat4 WORLDIT;
 uniform sampler2D albedoMap;

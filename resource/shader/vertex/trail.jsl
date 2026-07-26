@@ -1,8 +1,8 @@
 #include vert.jsl
 #include math.jsl
 
-VERT_OUT float alpha;
-VERT_OUT vec3 position;
+layout(location=26) VERT_OUT float alpha;
+layout(location=13) VERT_OUT vec3 position;
 
 uniform vec3 eye;
 uniform float size;

@@ -3,11 +3,11 @@
 #output 0 vec4 fragment_color0
 #output 1 vec4 fragment_color1
 
-FRAG_IN float linearDepth;
-FRAG_IN vec2 uv;
-FRAG_IN vec3 vertpos;
-FRAG_IN vec3 vertnormal;
-FRAG_IN vec3 vertcolor;
+layout(location=0) FRAG_IN float linearDepth;
+layout(location=1) FRAG_IN vec2 uv;
+layout(location=2) FRAG_IN vec3 vertpos;
+layout(location=3) FRAG_IN vec3 vertnormal;
+layout(location=4) FRAG_IN vec3 vertcolor;
 
 uniform int prepass;
 

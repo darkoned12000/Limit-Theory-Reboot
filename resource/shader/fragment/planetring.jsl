@@ -4,9 +4,9 @@
 #include lighting.jsl
 #include scattering.jsl
 
-FRAG_IN vec3 normal;
-FRAG_IN vec3 position;
-FRAG_IN vec3 origin;
+layout(location=15) FRAG_IN vec3 normal;
+layout(location=13) FRAG_IN vec3 position;
+layout(location=19) FRAG_IN vec3 origin;
 
 uniform sampler2D rings;
 

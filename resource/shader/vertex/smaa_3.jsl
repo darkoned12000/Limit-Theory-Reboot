@@ -3,7 +3,7 @@
 #define SMAA_ONLY_COMPILE_VS
 #include smaa.jsl
 
-VERT_OUT vec4 offset[2];
+layout(location=21) VERT_OUT vec4 offset[2];
 
 void main() {
   uv = vertex_uv;

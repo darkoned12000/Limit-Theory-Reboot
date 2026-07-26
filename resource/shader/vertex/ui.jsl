@@ -2,8 +2,8 @@
 
 uniform vec2 size;
 
-VERT_OUT float width;
-VERT_OUT float height;
+layout(location=9) VERT_OUT float width;
+layout(location=10) VERT_OUT float height;
 
 void main() {
   uv = vertex_uv;

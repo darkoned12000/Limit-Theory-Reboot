@@ -3,7 +3,7 @@
 #include math.jsl
 #include noise.jsl
 
-FRAG_IN vec3 position;
+layout(location=13) FRAG_IN vec3 position;
 
 uniform vec3 color;
 uniform float opacity;

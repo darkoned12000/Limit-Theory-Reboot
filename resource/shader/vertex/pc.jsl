@@ -1,7 +1,7 @@
 #include vert.jsl
 
-VERT_OUT vec3 color;
-VERT_OUT vec3 position;
+layout(location=20) VERT_OUT vec3 color;
+layout(location=13) VERT_OUT vec3 position;
 
 void main() {
   VS_PROLOGUE;

@@ -4,7 +4,7 @@
 #include lighting.jsl
 #include raytracing.jsl
 
-FRAG_IN vec3 scale;
+layout(location=5) FRAG_IN vec3 scale;
 
 uniform float atmoDensity;
 uniform vec3 atmoTint;

@@ -5,11 +5,11 @@ VERT_IN vec4 vert_attrib2;
 VERT_IN vec4 vert_attrib3;
 VERT_IN vec4 vert_attrib4;
 
-VERT_OUT vec4 attrib1;
-VERT_OUT vec4 attrib2;
-VERT_OUT vec4 attrib3;
-VERT_OUT vec4 attrib4;
-VERT_OUT vec3 position;
+layout(location=27) VERT_OUT vec4 attrib1;
+layout(location=28) VERT_OUT vec4 attrib2;
+layout(location=29) VERT_OUT vec4 attrib3;
+layout(location=30) VERT_OUT vec4 attrib4;
+layout(location=13) VERT_OUT vec3 position;
 
 void main() {
   attrib1 = vert_attrib1;

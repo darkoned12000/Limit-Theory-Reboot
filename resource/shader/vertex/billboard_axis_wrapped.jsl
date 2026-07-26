@@ -5,9 +5,9 @@ uniform vec3 eye;
 uniform vec3 axis;
 uniform vec2 size;
 
-VERT_OUT float opacity;
-VERT_OUT vec3 attrib;
-VERT_OUT vec3 position;
+layout(location=14) VERT_OUT float opacity;
+layout(location=12) VERT_OUT vec3 attrib;
+layout(location=13) VERT_OUT vec3 position;
 
 const float kWrapDistance = 1024.0;
 

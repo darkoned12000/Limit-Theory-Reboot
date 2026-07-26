@@ -1,6 +1,6 @@
 #include frag.jsl
 
-FRAG_IN vec3 color;
+layout(location=20) FRAG_IN vec3 color;
 
 uniform float glow;
 

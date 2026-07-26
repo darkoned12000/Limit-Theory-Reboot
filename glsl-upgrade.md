@@ -1,6 +1,6 @@
 # GLSL Upgrade Plan
 
-Current Version: `330 core` (via `src/liblt/LTE/Shader.cpp`)
+Current Version: `420 core` (via `src/liblt/LTE/Shader.cpp`)
 Target Version: `460 core` (Staged)
 
 ## Benefits & Developer Experience
@@ -78,3 +78,306 @@ Instead of jumping directly to 4.6, we will follow a "Bump, Repair, Refactor" cy
 ### Milestone C: Compute Offloading (After 4.6 Jump)
 - **Task**: Move heavy per-pixel calculations to Compute Shaders.
 - **Refactoring**: Identify high-cost fragment shaders (e.g., `scattering.jsl`, `raytracing.jsl`) and refactor their logic into compute passes, using SSBOs to pass the results back to the fragment stage.
+
+---
+
+## Shader Audit — Per-Version Breakdown
+
+### Shader Inventory
+
+**170 total `.jsl` files** across 3 directories:
+
+| Directory | Count | Role |
+|-----------|-------|------|
+| `resource/shader/common/` | 22 | Shared utility includes (math, noise, lighting, texturing, SMAA, etc.) |
+| `resource/shader/vertex/` | 22 | Vertex shaders |
+| `resource/shader/fragment/` | 126 | Fragment shaders (includes `gen/`, `post/`, `material/`, `light/`, `ui/`, `cubemap/`, `compute/`) |
+
+**Key infrastructure files:**
+- `common/global.jsl` — `texSample` wrappers (texture2D/textureCube/texture3D), `saturate`, `toGamma`/`toLinear`, version macros
+- `common/vert.jsl` — `VS_PROLOGUE`, `LogDepth`, vertex `in`/`out` declarations with `layout(location=N)`
+- `common/frag.jsl` — `RETURN` macro, material constants, normal encoding, `EARLY_Z`/`PREPASS` macros, `layout(location=N)` fragment inputs
+- `common/smaa.jsl` — Third-party SMAA implementation (1044 lines, ported from HLSL)
+- `Shader.cpp:23` — `kVersionDirective = "#version 420 core\n"`
+- `Window.cpp:67-68` — GL context: `majorVersion=4, minorVersion=2`
+
+**What's already done (GLSL 4.20 migration complete):**
+- `attribute`/`varying` → `in`/`out` via `VERT_IN`/`VERT_OUT`/`FRAG_IN` macros
+- `gl_FragColor`/`gl_FragData` → explicit `out` variables via `#output` directive with `layout(location=N)`
+- `texture2D`/`textureCube`/`texture3D` → `texSample` overloaded wrapper (avoids Mesa builtin collision)
+- `texture2DLod`/`textureCubeLod` → `textureLod` via macro
+- `.f` float suffixes removed (`.2f` → `0.2`, `1e6f` → `1e6`)
+- `sample` keyword reserved in 4.0 → renamed to `samp` in `lighting.jsl`, `irmap.jsl`, `sdffont.jsl`
+- `layout(location=N)` added to all VERT_OUT/FRAG_IN declarations (76 files)
+- Fragment outputs via `#output` directive now emit `layout(location=N) out` (JSLPreprocess)
+- Draw path core-compatible: single global VAO, VBO uploads, no `glBegin`
+
+---
+
+### GLSL 4.0 Audit (3.30 → 4.0) ✅ COMPLETE
+
+**Breaking changes in GLSL 4.0:**
+1. Implicit int↔float conversions become compile errors
+2. Implicit int→bool conversions become compile errors
+3. `gl_FragColor`/`gl_FragData` removed (already done)
+4. `texture2D`/`textureCube` removed as builtins (already handled by `texSample`)
+5. `varying`/`attribute` removed (already done)
+6. `sample` reserved keyword (interpolation qualifier) — broke 3 shaders
+7. `.f` suffix is C/C++ syntax, not valid GLSL
+
+**Changes applied:**
+- `fragment/shield_explosion.jsl:13` — `.2f` → `0.2` ✅
+- `fragment/explosion.jsl:11` — `.2f` → `0.2` ✅
+- `fragment/compute/sdffont.jsl:10` — `1e6f` → `1e6` ✅
+- `common/lighting.jsl:55` — `vec3 sample` → `vec3 samp` (reserved keyword) ✅
+- `fragment/cubemap/irmap.jsl:19-22` — `vec3 sample` → `vec3 samp` ✅
+- `fragment/compute/sdffont.jsl:18-19` — `float sample` → `float samp` ✅
+- `Shader.cpp:23` — `kVersionDirective` → `"#version 400 core\n"` ✅
+- `Window.cpp:67-68` — GL context → `majorVersion=4, minorVersion=0` ✅
+
+**Risk: LOW.** ✅ Verified: 78 unit tests pass, all shaders compile, `war` runs clean.
+
+---
+
+### GLSL 4.1 Audit (4.0 → 4.1) ✅ COMPLETE
+
+**Breaking changes in GLSL 4.1:**
+1. Geometry shaders removed from core profile (not used — no impact)
+2. `gl_PerVertex` block changes (not used — no impact)
+3. Transform feedback layout qualifiers on outputs (optional, not used yet)
+4. `layout` qualifiers on fragment outputs become available (optional, not required)
+
+**Changes applied:**
+- `Shader.cpp:23` — `kVersionDirective` → `"#version 410 core\n"` ✅
+- `Window.cpp:67-68` — GL context → `minorVersion=1` ✅
+
+**Risk: NONE.** ✅ Verified: 78 unit tests pass, all shaders compile, `war` runs clean.
+
+---
+
+### GLSL 4.2 Audit (4.1 → 4.2) ✅ COMPLETE
+
+**Breaking changes in GLSL 4.2:**
+1. `layout(binding = N)` for uniform samplers becomes available (optional but recommended)
+2. `layout(early_fragment_tests) in;` available for depth pre-pass optimization
+3. `image load/store` available (new feature, not breaking — not used)
+4. `gl_FragCoord` layout qualifiers: `layout(PIXEL_CENTER_INTEGER)`, `layout(PIXEL_CENTER_HALF_INTEGER)`
+5. `gl_FragDepth` layout qualifiers: `layout(any)`, `layout(greater)`, `layout(less)`, `layout(depth_unchanged)`
+
+**Changes applied:**
+- `Shader.cpp:23` — `kVersionDirective` → `"#version 420 core\n"` ✅
+- `Window.cpp:67-68` — GL context → `minorVersion=2` ✅
+- `Shader.cpp:89` — `JSLPreprocess` now emits `layout(location=N) out TYPE NAME;` for `#output` directives ✅
+- `common/vert.jsl` — `layout(location=0-4)` on all 5 standard VERT_OUT declarations ✅
+- `common/frag.jsl` — `layout(location=0-4)` on all 5 standard FRAG_IN declarations ✅
+- `common/scattering.jsl` — `layout(location=5)` on `FRAG_IN vec3 scale` ✅
+- `common/softparticle.jsl` — `layout(location=6)` on `FRAG_IN vec4 ndcPos` ✅
+- `common/deferred.jsl` — `layout(location=7,8)` on `FRAG_IN vec3 worldRayO/worldRayD` ✅
+- `common/ui.jsl` — `layout(location=9,10)` on `FRAG_IN float width/height` ✅
+- All 22 vertex shaders — `layout(location=N)` on all VERT_OUT declarations ✅
+- All 76 fragment shaders (incl. gen/, post/, material/, light/, ui/) — `layout(location=N)` on all FRAG_IN declarations ✅
+- `global.jsl` — Added `texture3D` → `texSample` wrapper (legacy 3D texture sampling) ✅
+- `global.jsl` — Updated comments to reference GLSL 4.20 ✅
+- `tests/TestShaderAudit.cpp` — `ShaderAudit_NoLayoutQualifiers` flipped to verify layout qualifiers ARE present ✅
+
+**Varying location map (global, 76 files):**
+| Varying | Location | Type |
+|---------|----------|------|
+| linearDepth | 0 | float |
+| uv | 1 | vec2 |
+| vertpos | 2 | vec3 |
+| vertnormal | 3 | vec3 |
+| vertcolor | 4 | vec3 |
+| scale | 5 | vec3 |
+| ndcPos | 6 | vec4 |
+| worldRayO | 7 | vec3 |
+| worldRayD | 8 | vec3 |
+| width | 9 | float |
+| height | 10 | float |
+| opacityMult | 11 | float |
+| attrib | 12 | vec3 |
+| position | 13 | vec3 |
+| opacity | 14 | float |
+| normal | 15 | vec3 |
+| blend | 16 | vec3 |
+| texOffset | 17 | vec3 |
+| vertposscaled | 18 | vec3 |
+| origin | 19 | vec3 |
+| color | 20 | vec3 |
+| offset | 21 | vec4[3] |
+| pixcoord | 24 | vec2 |
+| glareFactor | 25 | float |
+| alpha | 26 | float |
+| attrib1-4 | 27-30 | vec4 |
+| colorMask | 31 | vec4 |
+
+**Design decisions:**
+- Vertex `in` declarations: NO `layout(location=N)` added. The engine uses `glBindAttribLocation()` which overrides layout qualifiers. Also, `vert.jsl` is `#include`d by `widget.jsl` which adds `vert_attrib1-4` at overlapping locations — adding layout qualifiers would cause GLSL compile errors.
+- Uniform `layout(location=N)`: NOT added. The engine binds all uniforms by name via `glGetUniformLocation()`. The `#include` system makes global location numbering impractical (two included files could both assign `location=0` to different uniforms, creating conflicts in the preprocessed source). This can be addressed when UBOs are implemented in the 4.3 phase.
+- Fragment outputs: `layout(location=N)` added via `JSLPreprocess` (the `#output` directive already specifies the location number).
+
+**Risk: LOW.** ✅ Verified: 78 unit tests pass, all shaders compile, `war` runs clean (0 shader compilation errors).
+
+---
+
+### GLSL 4.3 Audit (4.2 → 4.3)
+
+**Breaking changes in GLSL 4.3: NONE.** The GLSL 4.30 spec explicitly states: *"No features were deprecated between versions 4.20 and 4.30."* Every line of GLSL 4.20 code remains valid in 4.30. This is a pure additive version.
+
+**New capabilities unlocked in GLSL 4.30:**
+
+| Feature | Value | Engine Work | Notes |
+|---------|-------|-------------|-------|
+| **Compute shaders** | **High** | ~2-3 days | GPU parallel compute — particle physics, asteroid collision, procedural generation |
+| **SSBOs (Shader Storage Buffer Objects)** | Medium | ~1-2 days | Large read/write buffers. Current uniform arrays are small enough, but needed for compute |
+| **Image load/store** | Medium | ~2-3 days | GPU-side texture generation. FBOs work fine for now |
+| **UBOs (Uniform Buffer Objects)** | Low | ~1 day | Batch-upload 5 MVP matrices. Only saves ~400 API calls/frame (negligible) |
+| **`.length()` on arrays** | Low | 0 | GLSL built-in, works automatically |
+| **`std430` layout** | Low | 0 | Only relevant for SSBOs |
+| **Debug output (`glDebugMessageCallback`)** | Low | ~0.5 day | Useful for development, not runtime |
+
+**Minimum work: 5 minutes (2 lines of code)**
+- `Shader.cpp:23` — `"#version 420 core\n"` → `"#version 430 core\n"`
+- `Window.cpp:68` — `minorVersion = 2` → `minorVersion = 3`
+- Build, smoke test, done. No shader or C++ logic changes needed.
+
+**Breaking changes analysis:**
+
+| Question | Answer | Evidence |
+|----------|--------|----------|
+| Any GLSL 4.20 features removed/deprecated? | **NO** | Spec explicitly states no deprecations |
+| Any GLSL syntax changes that break existing code? | **NO** | Only additions (`buffer`, `image*`, compute layout) |
+| Will existing `#version 420 core` shaders fail? | **NO** | All 4.20 syntax remains valid in 4.30 |
+| Will existing C++ uniform-binding code break? | **NO** | `glUniform*()` / `glGetUniformLocation()` unchanged |
+| Will existing VBO/VAO code break? | **NO** | Buffer API unchanged |
+| Will GLEW fail to load 4.3 functions? | **No** | GLEW supports GL 4.3; `glewExperimental = GL_TRUE` already set |
+| Driver compatibility risk? | **Minimal** | GL 4.3 is from 2012; any GPU running 4.2 runs 4.3 |
+
+**Feature assessment: Compute Shaders (highest value)**
+
+| Aspect | Detail |
+|--------|--------|
+| **What it enables** | GPU-side parallel computation without vertex/fragment pipeline |
+| **Use cases for this engine** | Particle physics, asteroid collision checks, procedural noise, prefix sums, dustcloud raymarching pre-pass |
+| **Engine files to change** | `GLEnum.h` (add `Compute` to `GL_ShaderType`), `GL.h` (add `GL_DispatchCompute` wrapper), `Shader.cpp` (compute program support — no fragment shader required), `Renderer.cpp` (dispatch calls) |
+| **New files** | `resource/shader/compute/*.jsl` — compute shader files |
+| **Estimated time** | ~1 day for infrastructure + first use case |
+
+**Feature assessment: SSBOs**
+
+| Aspect | Detail |
+|--------|--------|
+| **What it enables** | Large, read/write buffers shared between CPU and GPU |
+| **Current uniform arrays** | `kMaxLights=16`, `kMaxHits=16`, `kMaxClouds=4`, `kSamples=16` — all within uniform limits |
+| **When needed** | If arrays grow to 100+ elements, or as data exchange for compute shaders |
+| **Engine files to change** | `GLEnum.h` (add `ShaderStorage` to `GL_BufferTarget`), `GL.h` (add `glBindBufferBase` wrapper), `Renderer.cpp`, `Shader.cpp` |
+| **Estimated time** | ~1-2 days |
+
+**Feature assessment: UBOs**
+
+| Aspect | Detail |
+|--------|--------|
+| **What it enables** | Batch-upload the 5 MVP matrices (WORLD, VIEW, PROJ, WVP, WORLDIT) |
+| **Current cost** | 5 × `glUniformMatrix4fv` per shader switch, ~100-200 draw calls/frame = ~500-1000 calls |
+| **Savings** | ~400-800 API calls/frame (negligible on modern CPUs) |
+| **Verdict** | Low priority. Not worth it unless profiling shows uniform uploads are a bottleneck |
+| **Estimated time** | ~1 day |
+
+**Recommended approach for 4.3 session:**
+1. Do the 2-line version bump first (5 min). Build, verify all apps run clean.
+2. If clean (expected): implement compute shader infrastructure (~1 day).
+3. First real application: dustcloud particle update or asteroid belt position updates via compute.
+
+---
+
+### GLSL 4.4 Audit (4.3 → 4.4)
+
+**Breaking changes in GLSL 4.4:**
+1. `GL_ARB_shader_image_load_store` and `GL_ARB_shader_storage_buffer_object` become core
+2. Bindless textures: `GL_ARB_bindless_texture` (NV/ARB extension, optional)
+3. Atomic counters (optional)
+4. `gl_ShadingRate` for variable rate shading (optional)
+
+**Files requiring changes:** NONE (no breaking changes)
+
+**Engine changes for 4.4:**
+- `Shader.cpp:23` — Change `kVersionDirective` to `"#version 440 core\n"`
+- `Window.cpp:67-68` — Change `minorVersion=4`
+- Optional: Add bindless texture support if needed
+
+**Risk: LOW.** Pure feature bump. Existing code unaffected.
+
+---
+
+### GLSL 4.5 Audit (4.4 → 4.5)
+
+**Breaking changes in GLSL 4.5:**
+1. Direct State Access (DSA) functions available (optional, not breaking)
+2. `gl_ClipDistance` array changes (not used)
+3. Robust buffer access: `layout(binding = N, binding = N)` for SSBOs
+4. `GL_KHR_vulkan_glsl` compatibility (optional)
+
+**Files requiring changes:** NONE
+
+**Engine changes for 4.5:**
+- `Shader.cpp:23` — Change `kVersionDirective` to `"#version 450 core\n"`
+- `Window.cpp:67-68` — Change `minorVersion=5`
+
+**Risk: LOW.** No breaking changes for this codebase.
+
+---
+
+### GLSL 4.6 Audit (4.5 → 4.6)
+
+**Breaking changes in GLSL 4.6:**
+1. `gl_HelperInvocation` available (optional)
+2. `gl_FragDepth` layout qualifiers refined (optional)
+3. Enhanced integer functions: `bitfieldExtract`, `bitfieldInsert`, `bitfieldReverse`, `bitCount`, `findLSB`, `findMSB`
+4. `gl_VertexIndex` and `gl_InstanceIndex` replace deprecated `gl_VertexID`/`gl_InstanceID` (note: names change)
+5. `interpolateAt*` functions available (optional)
+
+**Files requiring changes:**
+
+| File | Issue | Severity | Fix |
+|------|-------|----------|-----|
+| All vertex shaders using `gl_VertexID` | `gl_VertexID` is deprecated in 4.6, replaced by `gl_VertexIndex` | **MEDIUM** | Search/replace across 22 vertex shaders. Or add `#define gl_VertexID gl_VertexIndex` in `global.jsl`. |
+
+**Engine changes for 4.6:**
+- `Shader.cpp:23` — Change `kVersionDirective` to `"#version 460 core\n"`
+- `Window.cpp:67-68` — Change `minorVersion=6`
+- If using `gl_InstanceID`: rename to `gl_InstanceIndex` in all vertex shaders
+
+**Risk: LOW.** The `gl_VertexID` → `gl_VertexIndex` rename is the only breaking change, and it's a simple find/replace or macro define.
+
+---
+
+### Audit Summary
+
+| Version | Files Changed | Engine Changes | Risk | Notes |
+|---------|---------------|----------------|------|-------|
+| **4.0** ✅ | 6 (`.f` suffix, `sample` keyword) | `kVersionDirective` + GL context | **LOW** | Almost clean — existing 3.30 migration did heavy lifting |
+| **4.1** ✅ | 0 | `kVersionDirective` + GL context | **NONE** | Bump-only. No geometry shaders used |
+| **4.2** ✅ | 76 (layout qualifiers on all varyings) + Shader.cpp + global.jsl | `kVersionDirective` + GL context + JSLPreprocess | **LOW** | `layout(location=N)` on all VERT_OUT/FRAG_IN/fragment outputs. `texture3D` wrapper added. |
+| **4.3** | 0 (bump only) | `kVersionDirective` + GL context (5 min). Optional: compute/SSBO/UBO engine (~1-3 days each) | **NONE** (bump) / **MEDIUM** (features) | Zero breaking changes. Biggest feature opportunity: compute shaders |
+| **4.4** | 0 | `kVersionDirective` + GL context | **LOW** | Feature bump only |
+| **4.5** | 0 | `kVersionDirective` + GL context | **LOW** | Feature bump only |
+| **4.6** | ~22 (vertex shaders: `gl_VertexID` → `gl_VertexIndex`) | `kVersionDirective` + GL context | **LOW** | Simple rename or macro |
+
+### Pre-Upgrade Checklist (Before Any Version Bump)
+
+1. [x] Build automated shader compilation test runner (compile all 170 `.jsl` files) — `tests/TestShaderAudit.cpp` with 15 tests
+2. [ ] Capture golden-master screenshots of `ltheory-main` at 4.20
+3. [x] Verify GPU driver supports target GLSL version (`glGetString(GL_SHADING_LANGUAGE_VERSION)`) — Mesa 26.1.5 serves GLSL 4.60
+4. [ ] Document which apps use which shaders (for visual regression testing)
+
+### Recommended Upgrade Order
+
+1. **4.0** ✅ — Fix 6 files (`.f` suffix, `sample` keyword), bump version, verify. **DONE**
+2. **4.1** ✅ — Bump version, verify. **DONE**
+3. **4.2** ✅ — Bump version, add `layout(location=N)` to all varyings/outputs, add `texture3D` wrapper, verify. **DONE**
+4. **4.3** — Bump version (5 min). Optionally implement compute shaders (~1 day). **Est: 5 min – 1 day**
+5. **4.4** — Bump version, verify. **Est: 15 minutes**
+6. **4.5** — Bump version, verify. **Est: 15 minutes**
+7. **4.6** — Rename `gl_VertexID` → `gl_VertexIndex`, bump version, verify. **Est: 1 hour**
+
+Total estimated time: ~1-2 days for version bumps through 4.6, plus ~1 day for compute shader infrastructure if desired.

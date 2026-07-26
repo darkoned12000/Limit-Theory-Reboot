@@ -1,9 +1,9 @@
 #include ui.jsl
 
-FRAG_IN vec4 attrib1;
-FRAG_IN vec4 attrib2;
-FRAG_IN vec4 attrib3;
-FRAG_IN vec3 position;
+layout(location=27) FRAG_IN vec4 attrib1;
+layout(location=28) FRAG_IN vec4 attrib2;
+layout(location=29) FRAG_IN vec4 attrib3;
+layout(location=13) FRAG_IN vec3 position;
 
 const float kRadius = 1.5;
 

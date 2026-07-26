@@ -4,9 +4,9 @@
 uniform vec3 eye;
 uniform vec3 camUp;
 
-VERT_OUT vec3 blend;
-VERT_OUT vec3 position;
-VERT_OUT vec3 texOffset;
+layout(location=16) VERT_OUT vec3 blend;
+layout(location=13) VERT_OUT vec3 position;
+layout(location=17) VERT_OUT vec3 texOffset;
 
 vec3 invDir(vec3 dir, vec3 R, vec3 U, vec3 L) {
   return normalize(vec3(dot(dir, R), dot(dir, U), dot(dir, L)));

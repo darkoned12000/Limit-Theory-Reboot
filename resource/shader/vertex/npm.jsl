@@ -1,12 +1,12 @@
 #include vert.jsl
 
-VERT_OUT vec3 normal;
-VERT_OUT vec3 position;
-VERT_OUT vec4 ndcPos;
+layout(location=15) VERT_OUT vec3 normal;
+layout(location=13) VERT_OUT vec3 position;
+layout(location=6) VERT_OUT vec4 ndcPos;
 
-VERT_OUT vec3 vertposscaled;
-VERT_OUT vec3 origin;
-VERT_OUT vec3 scale;
+layout(location=18) VERT_OUT vec3 vertposscaled;
+layout(location=19) VERT_OUT vec3 origin;
+layout(location=5) VERT_OUT vec3 scale;
 
 void main() {
   VS_PROLOGUE;

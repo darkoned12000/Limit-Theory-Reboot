@@ -20,7 +20,7 @@
 #include <sstream>
 #include <iostream>
 
-const String kVersionDirective = "#version 330 core\n";
+const String kVersionDirective = "#version 420 core\n";
 const uint kTextureUnits = 16;
 
 namespace {
@@ -75,9 +75,10 @@ namespace {
 
         else if (tokens[0] == "output") {
           LTE_ASSERT(tokens.size() == 4);
+          int location = std::stoi(tokens[1].c_str());
           String const& varName = tokens[3];
 
-          // GLSL 3.30 core: declare an explicit output variable (no gl_FragData).
+          // GLSL 4.20: declare fragment outputs with explicit layout locations.
           // The engine binds these by name via GL_BindFragDataLocation, so the
           // declared name must match what BindGlobalAttributes() expects
           // (fragment_color0 / fragment_color1 / fragment_linearDepth).
@@ -86,7 +87,8 @@ namespace {
           if (!declaredOutputs->contains(varName)) {
             (*declaredOutputs)[varName] = true;
             String const& varType = tokens[2];
-            parsed << "out " << varType << " " << varName << ";\n";
+            parsed << "layout(location=" << location << ") out "
+                   << varType << " " << varName << ";\n";
           }
         }
 

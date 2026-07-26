@@ -3,8 +3,8 @@
 #include math.jsl
 #include noise.jsl
 
-FRAG_IN float alpha;
-FRAG_IN vec3 position;
+layout(location=26) FRAG_IN float alpha;
+layout(location=13) FRAG_IN vec3 position;
 
 uniform vec3 color;
 uniform float maxAlpha;

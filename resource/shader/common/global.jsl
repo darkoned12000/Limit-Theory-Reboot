@@ -6,14 +6,15 @@
 #define V2 vec2
 #define tex2D texture2D
 
-// GLSL 3.30 (selected via #version 330 core in Shader.cpp). Vertex inputs use
-// `in`, fragment outputs are explicit `out` variables, and the legacy
+// GLSL 4.20 (selected via #version 420 core in Shader.cpp). Vertex inputs use
+// `in`, fragment outputs are explicit `out` variables with layout locations,
+// varyings use layout locations for explicit linkage, and the legacy
 // texture2D/textureCube builtins are aliased below.
 #define VERT_IN in
 #define VERT_OUT out
 #define FRAG_IN in
 
-// GLSL 3.30 removed the legacy texture2D/textureCube/texture2DLod/
+// GLSL 4.20 removed the legacy texture2D/textureCube/texture2DLod/
 // textureCubeLod builtins. We cannot simply `#define texture2D texture`,
 // because Mesa's GLSL preprocessor mis-resolves the builtin `texture` when it
 // appears as a macro value (it reports "no matching function for call to
@@ -28,6 +29,7 @@ vec4 texSample(sampler2DArray s, vec3 c) { return texture(s, c); }
 
 #define texture2D texSample
 #define textureCube texSample
+#define texture3D texSample
 #define texture2DLod(s, c, l) textureLod(s, c, l)
 #define textureCubeLod(s, c, l) textureLod(s, c, l)
 

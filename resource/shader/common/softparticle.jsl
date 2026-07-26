@@ -1,5 +1,5 @@
 uniform sampler2D depthBuffer;
-FRAG_IN vec4 ndcPos;
+layout(location=6) FRAG_IN vec4 ndcPos;
 
 V2 GetSSPosition() {
   return 0.5 * (ndcPos.xy / ndcPos.w) + 0.5;

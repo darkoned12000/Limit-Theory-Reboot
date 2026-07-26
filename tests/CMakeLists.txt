@@ -18,6 +18,7 @@ set(TEST_SRC
   TestVectorArray.cpp
   TestType.cpp
   TestScriptCompile.cpp
+  TestShaderAudit.cpp
   TestSFML.cpp
   TestSound.cpp
   TestTexture2D.cpp

@@ -7,8 +7,8 @@ uniform sampler2D edgeBuffer;
 uniform sampler2D areaBuffer;
 uniform sampler2D searchBuffer;
 
-FRAG_IN vec2 pixcoord;
-FRAG_IN vec4 offset[3];
+layout(location=24) FRAG_IN vec2 pixcoord;
+layout(location=21) FRAG_IN vec4 offset[3];
 
 void main() {
   vec4 c = SMAABlendingWeightCalculationPS(uv, pixcoord, offset,

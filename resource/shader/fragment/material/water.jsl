@@ -8,8 +8,8 @@
 uniform sampler2D normalMap;
 uniform float time;
 
-FRAG_IN vec3 normal;
-FRAG_IN vec3 position;
+layout(location=15) FRAG_IN vec3 normal;
+layout(location=13) FRAG_IN vec3 position;
 
 #include fdm.jsl
 

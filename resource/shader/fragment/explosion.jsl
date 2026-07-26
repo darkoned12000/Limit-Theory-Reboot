@@ -8,7 +8,7 @@ uniform vec3 color2;
 uniform float opacity;
 uniform float age;
 
-const float animSpeed = .2f;
+const float animSpeed = 0.2;
 
 void main() {
   float dx = uv.x;

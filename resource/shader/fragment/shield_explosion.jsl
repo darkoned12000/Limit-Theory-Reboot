@@ -10,9 +10,9 @@ uniform float opacity;
 uniform float age;
 uniform float ring;
 
-const float animSpeed = .2f;
+const float animSpeed = 0.2;
 
-FRAG_IN vec4 colorMask;
+layout(location=31) FRAG_IN vec4 colorMask;
 
 void main() {
   float dx = uv.x; float dy = uv.y;

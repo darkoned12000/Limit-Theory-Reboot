@@ -3,9 +3,9 @@
 #include noise.jsl
 #include texturing.jsl
 
-FRAG_IN vec3 normal;
-FRAG_IN vec3 position;
-FRAG_IN vec3 scale;
+layout(location=15) FRAG_IN vec3 normal;
+layout(location=13) FRAG_IN vec3 position;
+layout(location=5) FRAG_IN vec3 scale;
 
 uniform float seed;
 uniform vec3 baseColor;

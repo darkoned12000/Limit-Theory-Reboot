@@ -6,8 +6,8 @@ uniform vec3 up;
 uniform float billboardSize;
 uniform float zOffset;
 
-VERT_OUT float glareFactor;
-VERT_OUT vec4 ndcPos;
+layout(location=25) VERT_OUT float glareFactor;
+layout(location=6) VERT_OUT vec4 ndcPos;
 
 void main() {
   VS_PROLOGUE;

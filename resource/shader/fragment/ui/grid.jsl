@@ -1,9 +1,9 @@
 #include ui.jsl
 #include noise.jsl
 
-FRAG_IN vec4 attrib1;
-FRAG_IN vec4 attrib2;
-FRAG_IN vec4 attrib3;
+layout(location=27) FRAG_IN vec4 attrib1;
+layout(location=28) FRAG_IN vec4 attrib2;
+layout(location=29) FRAG_IN vec4 attrib3;
 
 float dfield(float d) {
   return exp(-2.0 * d * d) + 0.2 * exp(-pow(0.2 * d, 0.75));

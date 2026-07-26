@@ -6,8 +6,8 @@ uniform vec3 baseColor;
 uniform float opacity;
 uniform float falloff;
 
-FRAG_IN float opacityMult;
-FRAG_IN vec3 attrib;
+layout(location=11) FRAG_IN float opacityMult;
+layout(location=12) FRAG_IN vec3 attrib;
 
 void main() {
   float r = falloff * length(uv);

@@ -1,6 +1,6 @@
 #include vert.jsl
 
-VERT_OUT vec3 position;
+layout(location=13) VERT_OUT vec3 position;
 
 uniform vec3 eye;
 

@@ -5,10 +5,10 @@ uniform vec3 eye;
 uniform float billboardSize;
 uniform float zOffset;
 
-VERT_OUT float opacityMult;
-VERT_OUT vec3 attrib;
-VERT_OUT vec3 position;
-VERT_OUT vec4 ndcPos;
+layout(location=11) VERT_OUT float opacityMult;
+layout(location=12) VERT_OUT vec3 attrib;
+layout(location=13) VERT_OUT vec3 position;
+layout(location=6) VERT_OUT vec4 ndcPos;
 
 void main() {
   VS_PROLOGUE;

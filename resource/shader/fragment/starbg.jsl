@@ -2,7 +2,7 @@
 #include color.jsl
 #include lighting.jsl
 
-FRAG_IN vec3 position;
+layout(location=13) FRAG_IN vec3 position;
 
 void main() {
 #if 0

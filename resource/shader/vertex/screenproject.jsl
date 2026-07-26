@@ -6,8 +6,8 @@ uniform vec3 camUp;
 uniform float size;
 uniform sampler2D depthBuffer;
 
-VERT_OUT vec3 attrib;
-VERT_OUT float opacity;
+layout(location=12) VERT_OUT vec3 attrib;
+layout(location=14) VERT_OUT float opacity;
 
 void main() {
   VS_PROLOGUE;

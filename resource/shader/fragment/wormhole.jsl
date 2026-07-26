@@ -2,8 +2,8 @@
 #include lighting.jsl
 #include raytracing.jsl
 
-FRAG_IN vec3 normal;
-FRAG_IN vec3 position;
+layout(location=15) FRAG_IN vec3 normal;
+layout(location=13) FRAG_IN vec3 position;
 
 uniform float time;
 

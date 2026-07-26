@@ -2,9 +2,9 @@
 #include lighting.jsl
 #include math.jsl
 
-FRAG_IN vec3 normal;
-FRAG_IN vec3 position;
-FRAG_IN vec3 vertposscaled;
+layout(location=15) FRAG_IN vec3 normal;
+layout(location=13) FRAG_IN vec3 position;
+layout(location=18) FRAG_IN vec3 vertposscaled;
 
 uniform sampler2D depthBuffer;
 

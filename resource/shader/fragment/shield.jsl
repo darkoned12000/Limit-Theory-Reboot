@@ -3,8 +3,8 @@
 
 const int kMaxHits = 16;
 
-FRAG_IN vec3 position;
-FRAG_IN vec3 normal;
+layout(location=13) FRAG_IN vec3 position;
+layout(location=15) FRAG_IN vec3 normal;
 
 uniform vec3 hitPos[kMaxHits];
 uniform float hitAge[kMaxHits];

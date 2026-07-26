@@ -3,8 +3,8 @@
 #include quat.jsl
 #include raytracing.jsl
 
-FRAG_IN vec3 worldRayO;
-FRAG_IN vec3 worldRayD;
+layout(location=7) FRAG_IN vec3 worldRayO;
+layout(location=8) FRAG_IN vec3 worldRayD;
 
 uniform sampler2D texture;
 uniform sampler2D depthBuffer;

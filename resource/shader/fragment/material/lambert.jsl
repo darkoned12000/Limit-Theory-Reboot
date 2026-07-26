@@ -4,11 +4,11 @@
 #include noise.jsl
 #include texturing.jsl
 
-FRAG_IN vec3 normal;
-FRAG_IN vec3 origin;
-FRAG_IN vec3 position;
-FRAG_IN vec3 vertposscaled;
-FRAG_IN vec3 scale;
+layout(location=15) FRAG_IN vec3 normal;
+layout(location=19) FRAG_IN vec3 origin;
+layout(location=13) FRAG_IN vec3 position;
+layout(location=18) FRAG_IN vec3 vertposscaled;
+layout(location=5) FRAG_IN vec3 scale;
 
 uniform mat4 WORLDIT;
 uniform sampler2D albedoMap;

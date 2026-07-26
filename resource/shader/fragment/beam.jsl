@@ -2,8 +2,8 @@
 #include math.jsl
 #include noise.jsl
 
-FRAG_IN vec3 position;
-FRAG_IN vec3 normal;
+layout(location=13) FRAG_IN vec3 position;
+layout(location=15) FRAG_IN vec3 normal;
 
 uniform vec3 eye;
 uniform vec3 baseColor;

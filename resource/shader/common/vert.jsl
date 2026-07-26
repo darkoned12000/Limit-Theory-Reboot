@@ -19,11 +19,11 @@ VERT_IN vec3 vertex_color;
   float u = vertex_uv.x;                                                       \
   float v = vertex_uv.y;
 
-VERT_OUT float linearDepth;
-VERT_OUT vec2 uv;
-VERT_OUT vec3 vertpos;
-VERT_OUT vec3 vertnormal;
-VERT_OUT vec3 vertcolor;
+layout(location=0) VERT_OUT float linearDepth;
+layout(location=1) VERT_OUT vec2 uv;
+layout(location=2) VERT_OUT vec3 vertpos;
+layout(location=3) VERT_OUT vec3 vertnormal;
+layout(location=4) VERT_OUT vec3 vertcolor;
 
 #if 1
 float LogDepth(float z, float w) {

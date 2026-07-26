@@ -1,7 +1,7 @@
 #include ui.jsl
 
-FRAG_IN vec4 attrib1;
-FRAG_IN vec4 attrib2;
+layout(location=27) FRAG_IN vec4 attrib1;
+layout(location=28) FRAG_IN vec4 attrib2;
 
 const float kThickness = 1.0;
 
