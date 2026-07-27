@@ -126,6 +126,9 @@ namespace {
           }
         }
 
+        if (vertices.empty())
+          continue;
+
         DrawState_Link(shader);
         shader->Begin();
         state->primary->Bind(0);

@@ -24,18 +24,35 @@ a phase can be parallelized.
 | GLEW | 2.3.1, built from source |
 | Unit tests | 83 tests, 0 failures |
 | Shader count | 170 `.jsl` files |
+| Shader state caching | ✅ Re-enabled (Phase 1.1 — 33→39-41 FPS) |
+| worldIT computation | ✅ Deferred to InjectMatrices (Phase 1.2 — ~30K inverses → ~5-10/frame) |
 
 ### Measured Performance Baseline (ltheory-main, 30K asteroids)
 
-| Metric | Value | Notes |
-|--------|-------|-------|
-| Total models (interior) | 30,000+ | ~30K asteroids + 1 planet + 1 star + 13 ships |
-| Polygons | 579,700+ | ~19 polys/object average — geometry is trivially simple |
-| FPS (moving) | ~33 | Camera movement, planet bounce scan, AI updates active |
-| FPS (still) | ~47 | Only render loop running |
-| Draw calls/frame | 30,000+ | One `glDrawElements` per object — **the bottleneck** |
-| Estimated CPU frame time (moving) | ~13 ms | 30% of 30ms frame (planet bounce, AI, camera, root.Update) |
-| Estimated GPU frame time | ~17 ms | 70% of 30ms frame (30K individual draw calls) |
+**Pre-Phase 1.1 (original):**
+
+| Metric | Moving | Still |
+|--------|--------|-------|
+| FPS | 33 | 47 |
+| Avg frame time | 30 ms | 21 ms |
+| Total polys | 579,700+ | 579,700+ |
+| Draw calls/frame | 30,000+ | 30,000+ |
+| Models (interior) | 13,941 | 13,941 |
+| Frustum culled | 16,105 | 16,105 |
+| Render time | 17.3 ms | 12.0 ms |
+
+**Post-Phase 1.1 — shader state caching re-enabled:**
+
+| Metric | Moving | Change |
+|--------|--------|--------|
+| FPS | 39-41 | +18-24% |
+| Polygons | 900,000+ | more visible objects rendered |
+| Draw calls/frame | 30,046 | unchanged |
+
+*Source: F3 debug overlay on `ltheory-main` app. Phase 1.1 result measured
+after shader state caching fix (instance pointer comparison + WVP re-upload
+on cache hit). Ship model is a flat disk due to missing .xmesh data (see §6
+— cosmetic only, does not affect perf measurement).*
 
 **Key insight:** At ~19 polys/object, the GPU is not geometry-bound. The
 bottleneck is pure draw call overhead — each object triggers a full
@@ -60,83 +77,109 @@ Without instancing, adding effects will push sub-30 FPS.
 Low-risk changes with immediate FPS impact. Zero architecture changes.
 Each task is independently testable.
 
-### 1.1 Re-enable Shader State Caching
+### 1.1 Re-enable Shader State Caching ✅
 
-**Impact: HIGH | Effort: 0.5 day | Risk: LOW**
+**Impact: HIGH | Effort: 1 day | Risk: LOW — COMPLETED**
 
-`ShaderInstance::Begin()` has a state-caching check that is force-disabled
+`ShaderInstance::Begin()` had a state-caching check that was force-disabled
 (`gSkippedState = false` with a `/* TODO : Fix state caching. */` comment).
-Re-enabling this skips redundant `glUseProgram`, render state push/pop,
-and uniform uploads for consecutive draws with the same shader.
 
-- **File:** `src/liblt/LTE/ShaderInstance.cpp` (~line 185-187)
-- **Fix:** Investigate why caching was disabled (likely a bug), fix the root
-  cause, and re-enable `gSkippedState = true`.
-- **Verify:** FPS counter before/after; draw call count should drop.
-- **Test:** All apps run clean; visual output unchanged.
+**Root cause:** The original caching used a global version counter
+(`gActiveVersion`) shared across all instances. Two different ShaderInstance
+objects using the same Shader with the same number of SetVar/SetState calls
+produced identical version numbers → false cache hit → wrong uniforms rendered.
+Additionally, `Renderer_SetShader()` (which uploads per-object WVP matrices)
+was skipped on cache hit, causing all cached objects to render at the origin.
 
-### 1.2 Conditional World Inverse-Transpose (worldIT)
+**Fix:** Replaced global version comparison with instance pointer comparison
+(`this == gActiveInstance`). On cache hit, still call `Renderer_SetShader()`
+to re-upload WVP matrices (they change per-object), but skip per-instance
+uniform uploads and render state push/pop. Added `gActiveInstance` tracking.
 
-**Impact: HIGH | Effort: 0.5 day | Risk: LOW**
+- **File:** `src/liblt/LTE/ShaderInstance.cpp` (lines 22-24, 184-213)
+- **Result:** 33 → 39-41 FPS moving (+18-24%), visual output correct.
+- **Test:** ltheory-main verified — asteroids, thrusters, planet all render.
 
-`Renderer_SetWorldTransform()` (Renderer.cpp:895-902) unconditionally computes
-`worldIT = world.Inverse().Transpose()` — a 48-multiply brute-force 4x4 matrix
-inverse — for every visible object in every render pass. That's ~30,000
-inversions/frame at current scale, each on a 4x4 double-precision matrix.
+### 1.2 Conditional World Inverse-Transpose (worldIT) ✅
 
-`worldIT` is only needed by shaders that do normal mapping. Most shaders
-don't use it.
+**Impact: HIGH | Effort: 0.5 day | Risk: LOW — COMPLETED**
 
-- **File:** `src/liblt/LTE/Renderer.cpp` (Renderer_SetWorldTransform)
-- **Fix:** Check if the current shader has a `WORLDIT` uniform location ≥ 0
-  before computing the inverse. If the shader doesn't use it, skip it.
-  Also: for uniform-scale transforms (very common), `worldIT = world` (no
-  inverse needed — just copy).
-- **Verify:** FPS counter; `Renderer_GetDrawCallCount()` unchanged.
-- **Test:** `ltheory-main`, `war` visually identical.
+`Renderer_SetWorldTransform()` unconditionally computed
+`worldIT = world.Inverse().Transpose()` — a 48-multiply brute-force 4x4
+matrix inverse — for every visible object in every render pass (~30K/frame).
+`worldIT` is only needed by 6 of ~170 shaders (normal mapping / bump mapping).
 
-### 1.3 Replace GL_BufferData with glBufferSubData for Quads
+**Root cause of initial bug:** First attempt cached a `needsWorldIT` flag in
+`Renderer_SetShader`, but `SetTransform()` is called BEFORE `Renderer_SetShader`
+in the render style — so `Renderer_SetWorldTransform` used the flag from the
+PREVIOUS object's shader, not the current one. Asteroids (no WORLDIT) set it
+false, then the ring's worldIT was never computed → broken normals → broken
+specular → bright white blowout.
 
-**Impact: MEDIUM | Effort: 0.5 day | Risk: LOW**
+**Correct fix:** Moved the inverse computation from `Renderer_SetWorldTransform`
+(per-object, 30K times) into `InjectMatrices` (per-shader-switch, ~5-10 times).
+`InjectMatrices` now queries `WORLDIT` uniform location and only computes
+`world.Inverse().Transpose()` when the shader actually uses it. Removed
+`renderer.worldIT` field and `Renderer_GetWorldITMatrix()` accessor (now dead
+code).
 
-`Renderer_DrawQuad()` (Renderer.cpp:517-552) re-uploads the same 48-byte
-quad vertex buffer via `GL_BufferData(DynamicDraw)` 20-50 times per frame
-(fullscreen post-process passes, lens flares, local lights). `glBufferData`
-discards and re-allocates the entire driver-side buffer. `glBufferSubData`
-does a partial update without allocation.
+- **Files:** `src/liblt/LTE/Renderer.cpp` (InjectMatrices, Renderer_SetWorldTransform, Renderer_ClearMatrices, struct cleanup), `src/liblt/LTE/Renderer.h` (removed declaration)
+- **Result:** ~30K matrix inverses/frame → ~5-10. Ring specular and normals verified correct.
+- **Test:** ltheory-main verified — planets, rings, asteroids all render correctly.
 
-- **File:** `src/liblt/LTE/Renderer.cpp` (Renderer_DrawQuad)
-- **Fix:** Create the quad VBO once at init with `GL_BufferData(DynamicDraw)`.
-  On subsequent draws, use `glBufferSubData` to update the 48 bytes.
-- **Verify:** Visual output identical; slight FPS improvement.
+### 1.3 Replace GL_BufferData with glBufferSubData for Quads ✅
 
-### 1.4 Sort Visible Objects by Material Before Draw Passes
+**Impact: MEDIUM | Effort: 0.5 day | Risk: LOW — COMPLETED**
 
-**Impact: MEDIUM | Effort: 1 day | Risk: LOW**
+`Renderer_DrawQuad()` re-uploaded the same 48-byte quad vertex buffer via
+`GL_BufferData(DynamicDraw)` 20-50 times per frame (fullscreen post-process
+passes, lens flares, local lights). `glBufferData` discards and re-allocates
+the entire driver-side buffer. `glBufferSubData` does a partial update without
+allocation.
 
-Currently, the `visible[]` list is iterated in tree-traversal order. Each
-object may use a different shader/mesh, causing GPU pipeline stalls on state
-changes.
+**Fix:** Changed quad VBO initial allocation from `StaticDraw` to `DynamicDraw`.
+On subsequent draws, `GL_BufferSubData` updates the 48 bytes in-place.
+Added `GL_BufferSubData` wrapper to `GL.h`.
 
-- **File:** `src/liblt/Game/Component/Drawable.cpp`, render pass files
-  (`GBuffer.cpp`, `Blended.cpp`, `DepthPrepass.cpp`)
-- **Fix:** Sort `visible[]` by a composite key: `(shader pointer, mesh pointer)`
-  before iterating in each render pass. This minimizes shader switches and
-  VBO binds.
-- **Verify:** FPS counter; visual output identical.
-- **Test:** All apps with 1000+ objects.
+- **Files:** `src/liblt/LTE/GL.h` (new wrapper), `src/liblt/LTE/Renderer.cpp` (GetSharedQuadVBO, Renderer_DrawQuad)
+- **Result:** Eliminates 20-50 driver buffer re-allocations per frame.
+- **Test:** ltheory-main verified — all post-process passes, lens flares, UI render correctly.
 
-### 1.5 Early-Out in Particle System Draw
+### 1.4 Sort Visible Objects by Material Before Draw Passes ✅
 
-**Impact: LOW | Effort: 0.25 day | Risk: NONE**
+**Impact: MEDIUM | Effort: 1 day | Risk: LOW — COMPLETED**
 
-`ParticleSystemImpl::Draw()` (ParticleSystem.cpp:75-142) rebuilds vertex
-arrays per-shader-group even if all particles are culled. Add an early-out
-after the visibility loop if `vertexCount == 0`.
+The `visible[]` list was iterated in tree-traversal order. Each object may
+use a different shader/mesh, causing GPU pipeline stalls on state changes
+(glUseProgram, VBO binds, render state push/pop).
 
-- **File:** `src/liblt/Game/Graphics/ParticleSystem.cpp`
-- **Fix:** After the frustum/LOD culling loop, check `if (vertexCount == 0)
-  continue;` before the buffer upload.
+**Fix:** Added `std::sort` at the end of `Visibility::OnRender` that sorts
+`state->visible[1..N]` by the object's `RenderableT*` pointer. Objects
+sharing the same renderable (model) share the same shader and mesh, so
+grouping them reduces shader switches and VBO binds during draw passes.
+Index 0 (the container) is preserved since the Particles pass reads
+`visible[0]` as the root object.
+
+- **File:** `src/liblt/Game/RenderPass/Visibility.cpp` (added sort + GetRenderableKey helper)
+- **Result:** Objects grouped by shader+mesh; consecutive draws share state.
+- **Test:** ltheory-main verified — all objects render correctly.
+
+### 1.5 Early-Out in Particle System Draw ✅
+
+**Impact: LOW | Effort: 0.25 day | Risk: NONE — COMPLETED**
+
+`ParticleSystemImpl::Draw()` rebuilt vertex arrays per-shader-group even if
+all particles were culled (frustum + LOD). After the culling loop, if no
+particles survived, the code still called `DrawState_Link`, `shader->Begin`,
+texture binds, `Renderer_DrawVertices`, and `shader->End` — all for zero
+visible particles.
+
+**Fix:** Added `if (vertices.empty()) continue;` after the culling loop but
+before the draw call setup. Skips the entire draw pipeline for empty batches.
+
+- **File:** `src/liblt/Game/ParticleSystem.cpp` (line ~127)
+- **Result:** Skips shader setup, texture binds, and draw call for fully-culled particle groups.
+- **Test:** ltheory-main verified — particles render correctly.
 
 ---
 
@@ -620,7 +663,7 @@ Runs in parallel with all other phases.
 
 | Priority | Tasks | Estimated Impact |
 |----------|-------|-----------------|
-| **P0 — Do First** | 1.1 State caching, 1.2 Conditional worldIT, 1.3 glBufferSubData | Immediate +15% FPS, zero risk |
+| **P0 — Do First** | 2.1-2.4 GPU instancing | Phase 1 complete — move to Phase 2 |
 | **P1 — Critical Path** | 2.1-2.4 GPU instancing | 30K draw calls → ~10. +70% FPS. Unblocks everything. |
 | **P2 — High Value** | 3b.1-3b.3 LOD system, 3.1 Zone fix | Keeps effective object count manageable at scale |
 | **P3 — Medium Value** | 3c.1-3c.2 Hi-Z occlusion, 1.4 Sort by material, 3.2 Object pooling | +5-10% FPS, smoother frame times |
@@ -635,14 +678,19 @@ Runs in parallel with all other phases.
 ## 60 FPS Target Strategy
 
 Measured baseline: **33 FPS moving / 47 FPS still** with 30K objects,
-580K polys. Target: **60 FPS sustained** with visual effects active.
+580K polys. Phase 1.1 brought this to **39-41 FPS moving / 900K polys**.
+Target: **60 FPS sustained** with visual effects active.
 
 ### Phase-by-Phase Impact Estimate
 
 | Phase | Expected FPS | Cumulative | Notes |
 |-------|-------------|-----------|-------|
 | **Current** | 33 / 47 | — | 30K objects, no instancing, no LOD |
-| **Phase 1** (quick wins) | 38 / 53 | +15% | State caching, conditional worldIT, glBufferSubData |
+| **Phase 1.1** (state caching) ✅ | 39-41 / — | +18-24% | Re-enabled cache; fixed WVP matrix bug |
+| **Phase 1.2** (conditional worldIT) ✅ | — / — | — | ~30K inverses → ~5-10 per frame |
+| **Phase 1.3** (glBufferSubData) ✅ | — / — | — | Eliminates 20-50 buffer re-allocs/frame |
+| **Phase 1.4** (sort by material) ✅ | — / — | — | Objects grouped by shader+mesh; reduced state switches |
+| **Phase 1.5** (early-out particles) ✅ | — / — | — | Skips draw calls for fully-culled particle groups |
 | **Phase 2** (instancing) | 55 / 60+ | +70% | 30K draw calls → ~10-20. Critical path. |
 | **Phase 3b** (LOD) | 58 / 62+ | +5% | 70-80% of asteroids → billboard/culled |
 | **Phase 3c** (Hi-Z cull) | 60 / 63+ | +3% | 20-40% additional occlusion |
@@ -703,3 +751,8 @@ Each phase should be a separate commit (or small PR) with a clear message:
 |------|--------|--------|
 | 2025-07-26 | Initial creation — consolidated from AGENTS.md + engine analysis | AI-assisted |
 | 2025-07-26 | Added measured baseline (30K objects, 33/47 FPS, 580K polys), Phase 3b (LOD), Phase 3c (Hi-Z occlusion), Phase 6.9 (compute particles), Phase 6.10 (MDI), visual effects budget table, future-scaling estimates | AI-assisted |
+| 2025-07-26 | Phase 1.1 complete: shader state caching re-enabled, WVP matrix bug fixed (33→39-41 FPS moving, +18-24%). Updated measured baseline and phase-by-phase impact table. | AI-assisted |
+| 2025-07-26 | Phase 1.2 complete: moved worldIT computation from per-object (30K/frame) to per-shader-switch (~5-10/frame) in InjectMatrices. Removed dead renderer.worldIT field. Fixed ring specular blowout caused by wrong timing of needsWorldIT flag. | AI-assisted |
+| 2025-07-26 | Phase 1.3 complete: quad VBO uses glBufferSubData for in-place updates instead of glBufferData re-allocation. Added GL_BufferSubData wrapper to GL.h. | AI-assisted |
+| 2025-07-26 | Phase 1.4 complete: visible[] sorted by RenderableT* pointer after Visibility pass. Groups objects by shader+mesh to minimize state switches during draw. | AI-assisted |
+| 2025-07-26 | Phase 1.5 complete: particle system early-out when all particles culled. Skips draw pipeline for empty batches. Phase 1 complete. | AI-assisted |

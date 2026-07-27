@@ -140,7 +140,6 @@ namespace LTE {
   LT_API void Renderer_SetViewTransform(Transform const& view);
 
   LT_API Matrix const& Renderer_GetWorldMatrix();
-  LT_API Matrix const& Renderer_GetWorldITMatrix();
   LT_API Matrix const& Renderer_GetWorldViewProjMatrix();
   LT_API Matrix const& Renderer_GetViewMatrix();
   LT_API Matrix const& Renderer_GetProjMatrix();

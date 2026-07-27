@@ -179,6 +179,19 @@ inline void GL_BufferData(
   DEBUG_GL_ERRORS;
 }
 
+/* Updates a subset of a buffer object's data store without re-allocation.
+   The buffer must already be allocated with GL_BufferData and offset+size
+   must not exceed the allocated size. */
+inline void GL_BufferSubData(
+  GL_BufferTarget::Enum target,
+  int offset,
+  int size,
+  void const* data)
+{
+  glBufferSubData(target, offset, size, data);
+  DEBUG_GL_ERRORS;
+}
+
 inline void GL_CheckFramebuffer() {
 #ifdef BUILD_STRICT
   GL_FramebufferStatus::Enum status = 

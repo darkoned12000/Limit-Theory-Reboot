@@ -31,7 +31,6 @@ namespace {
     Matrix world;
     Matrix view;
     Matrix proj;
-    Matrix worldIT;
     Matrix wvp;
     Transform viewTransform;
     int callCount;
@@ -244,11 +243,18 @@ namespace LTE {
 // ----------------------------------------------------------------------------
 
   static void InjectMatrices(ShaderT& shader) {
+    /* Compute worldIT on demand — only when the shader actually uses it.
+     * Most shaders don't need WORLDIT, so this avoids ~30K matrix inverses
+     * per frame (moved from Renderer_SetWorldTransform). */
+    Matrix worldIT;
+    if (shader.QueryUniformLocation("WORLDIT") >= 0)
+      worldIT = renderer.world.Inverse().Transpose();
+
     shader.BindMatrices(
       Renderer_GetWorldMatrix(),
       Renderer_GetViewMatrix(),
       Renderer_GetProjMatrix(),
-      Renderer_GetWorldITMatrix(),
+      worldIT,
       Renderer_GetWorldViewProjMatrix());
   }
 
@@ -404,7 +410,6 @@ namespace LTE {
     renderer.world =
     renderer.view =
     renderer.proj =
-    renderer.worldIT =
     renderer.wvp =
     Matrix::Identity();
   }
@@ -493,7 +498,7 @@ namespace LTE {
           GL_BufferTarget::Array,
           sizeof(quad),
           quad,
-          GL_BufferUsage::StaticDraw);
+          GL_BufferUsage::DynamicDraw);
       }
       return quadVBO;
     }
@@ -537,11 +542,11 @@ namespace LTE {
     Renderer_DisableAttribArray(1);
     Renderer_EnableAttribArray(2);
 
-    GL_BufferData(
+    GL_BufferSubData(
       GL_BufferTarget::Array,
+      0,
       sizeof(scratch),
-      scratch,
-      GL_BufferUsage::DynamicDraw);
+      scratch);
 
     GL_VertexAttribPointer(0, 3, GL_DataFormat::Float, false, sizeof(QuadVertex),
                            (void const*)offset_of(QuadVertex, p));
@@ -897,7 +902,6 @@ namespace LTE {
     if (kCameraSpaceRendering)
       newTransform.pos -= renderer.viewTransform.pos;
     renderer.world = newTransform.GetMatrix();
-    renderer.worldIT = renderer.world.Inverse().Transpose();
     renderer.wvp = renderer.proj * (renderer.view * renderer.world);
   }
 
@@ -917,10 +921,6 @@ namespace LTE {
 
   Matrix const& Renderer_GetWorldMatrix() {
     return renderer.world;
-  }
-
-  Matrix const& Renderer_GetWorldITMatrix() {
-    return renderer.worldIT;
   }
 
   Matrix const& Renderer_GetWorldViewProjMatrix() {

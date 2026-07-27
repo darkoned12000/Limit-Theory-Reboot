@@ -21,6 +21,7 @@ namespace {
 
   int gActiveVersion = -1;
   bool gSkippedState = false;
+  ShaderInstanceT* gActiveInstance = nullptr;
 
   struct ShaderVar {
     virtual ~ShaderVar() = default;
@@ -181,14 +182,21 @@ ShaderInstance ShaderInstanceT::Clone() const {
 }
 
 void ShaderInstanceT::Begin() {
-  /* TODO : Fix state caching. */
-  gSkippedState = d->shader == Shader_GetActive() &&
-                  d->version == gActiveVersion;
-  gSkippedState = false;
+  /* State caching: skip re-uploading uniforms and re-applying render state
+     if the exact same ShaderInstance is being drawn again with no changes.
+     Uses an instance pointer (not a global version number) to avoid false
+     cache hits between different instances that share the same Shader and
+     happen to have the same version count.
+
+     Even on a cache hit, we must re-inject the WVP matrices because the
+     world transform changes per-object (set by Renderer_SetWorldTransform
+     before each draw). */
+  gSkippedState = (this == gActiveInstance) && (d->version == gActiveVersion);
 
   if (!gSkippedState) {
     Renderer_SetShader(*d->shader);
     gActiveVersion = d->version;
+    gActiveInstance = this;
 
     for (Cell* curr = d->renderStates.head; curr; curr = curr->next)
       ApplyRenderState(curr->state);
@@ -197,6 +205,10 @@ void ShaderInstanceT::Begin() {
          it != d->varMap.end();
          ++it)
       it->second->Set(it->first, d->shader);
+  } else {
+    /* Cache hit: shader is already bound, but the world matrix may have
+       changed since the last draw. Re-upload WVP matrices. */
+    Renderer_SetShader(*d->shader);
   }
 }
 
