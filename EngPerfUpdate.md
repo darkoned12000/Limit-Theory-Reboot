@@ -426,10 +426,13 @@ Bulk-converted ~530 `typedef` to modern C++ `using`-declarations across 181 file
 - **Verified:** `war`, `rails`, `ltheory-main` all run correctly.
 - **Commit:** `722c536` on `lt-perf` branch.
 
-### 5.5 `-Wmaybe-uninitialized` / Deprecation Audit
+### 5.5 `-Wmaybe-uninitialized` / Deprecation Audit ✅ COMPLETE
 
-- **Scope:** GCC 15 strict warnings
-- **Fix:** Fix at source, not via suppression. Audit one subsystem at a time.
+GCC 15 audit: zero `-Wmaybe-uninitialized` and zero `-Wdeprecated` warnings
+in engine code. Only issue found was C++20 designated initializer syntax
+(`.field = value`) in `TestSFML.cpp`, converted to C++17 compatible syntax.
+- **Result:** Engine code is warning-clean under GCC 15 with `-Wall -Wextra`.
+- **Commit:** `69fe7de` on `lt-perf` branch.
 
 ### 5.6 Delete Vendored ext/SFML/ Directory ✅ COMPLETE
 
@@ -766,3 +769,4 @@ Each phase should be a separate commit (or small PR) with a clear message:
 | 2025-07-26 | Phase 2.1-2.2 complete: GL_DrawElementsInstanced wrapper, SSBO at binding point 0 with dummy buffer, Renderer_BeginInstancedDraw/EndInstancedDraw/DrawMeshInstanced, Geometry/Mesh/Model/Renderable virtual DrawInstanced/RenderInstanced methods. Shader plumbing: vert.jsl/frag.jsl SSBO struct + uInstanced toggle, npm.jsl/imposter.jsl/lambert.jsl/metal.jsl/imposter1.jsl effectiveWorldIT from SSBO via fragInstanceID. InstancedDraw.h batching helper (dormant). Render passes reverted to for-loop (instanced batch bug with cached models). | AI-assisted |
 | 2025-07-26 | Phase 2.4 complete: GPU-instanced particle rendering. SSBO at binding point 1 with ParticleInstanceData { posAndSize, ageAndColor } (32 bytes). Renderer_DrawParticlesInstanced uploads per-particle data and draws billboard mesh via glDrawElementsInstanced. particle.jsl reads from SSBO when uParticleInstanced > 0. Eliminated CPU vertex expansion. | AI-assisted |
 | 2026-07-28 | Phase 5.4 complete: bulk-converted ~530 typedefs to modern C++ using-declarations across 181 files. Single-line aliases, multiline template chains, typedef-struct patterns, function pointers. Macro-generated typedefs left as-is. Build clean, 69 tests pass, all apps verified. | AI-assisted |
+| 2026-07-28 | Phase 5.5 complete: GCC 15 deprecation/uninitialized audit. Zero warnings in engine code. Fixed C++20 designated initializers in TestSFML.cpp for C++17 compliance. Engine warning-clean. | AI-assisted |
