@@ -48,7 +48,7 @@ namespace Children {
     "Return the total number of elements in 'iterator'",
     WidgetChildIterator, iterator)
   {
-    return (int)iterator.widget->children.size();
+    return static_cast<int>(iterator.widget->children.size());
   } FunctionAlias(WidgetChildIterator_Size, Size);
 }
 

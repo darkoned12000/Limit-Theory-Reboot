@@ -89,7 +89,7 @@ DefineFunction(Object_Universe) {
     /* TODO : Factor out generating algorithm */
     for (size_t i = 0; i < self->Resources.elements.size() / 2; ++i) {
       Item ore = self->Resources.elements.entries.getModulo(rg->GetInt()).key;
-      type.resources[ore] += rg->GetFloat() / (float)ore->GetValue();
+      type.resources[ore] += rg->GetFloat() / static_cast<float>(ore->GetValue());
     }
 
     Object region = Object_Region(type);

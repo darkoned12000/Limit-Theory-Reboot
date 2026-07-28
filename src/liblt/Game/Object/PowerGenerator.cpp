@@ -51,7 +51,7 @@ AutoClassDerived(PowerGenerator, PowerGeneratorBaseT,
       Pointer<ComponentPluggable> plug = o->GetPluggable();
       if (plug) {
         double allocated = plug->priority * plug->powerRequest * mult;
-        plug->powerIn = Mix((double)plug->powerIn, allocated, factor);
+        plug->powerIn = Mix(static_cast<double>(plug->powerIn), allocated, factor);
       }
 
       Allocate(o, mult, factor);

@@ -92,7 +92,7 @@ DefineFunction(Object_Region) {
   float maxOverlap = 0.1f * args.radius;
 
   uint childCount = rng->GetInt(1, kMaxChildren);
-  childCount += (uint)(5.0f * rng->GetExp());
+  childCount += static_cast<unsigned int>(5.0f * rng->GetExp());
 
   Vector<ChildElement> children;
 

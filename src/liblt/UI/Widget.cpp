@@ -113,7 +113,7 @@ void WidgetT::PrePosition() {
     }
   }
 
-  for (int i = 0; i < (int)children.size(); ++i) {
+  for (int i = 0; i < static_cast<int>(children.size()); ++i) {
     Widget const& child = children[i];
     child->PrePosition();
     if (child->deleted) {

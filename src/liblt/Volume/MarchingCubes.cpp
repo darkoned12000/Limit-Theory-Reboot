@@ -780,15 +780,15 @@ int MarchingCubes::add_x_MCVertex() {
   real u = _cube[0];
 #endif
 
-  vert->x      = (real)_i+u;
-  vert->y      = (real) _j ;
-  vert->z      = (real) _k ;
+  vert->x      = static_cast<real>(_i)+u;
+  vert->y      = static_cast<real>(_j) ;
+  vert->z      = static_cast<real>(_k) ;
 
   vert->nx = (1-u)*get_x_grad(_i,_j,_k) + u*get_x_grad(_i+1,_j,_k) ;
   vert->ny = (1-u)*get_y_grad(_i,_j,_k) + u*get_y_grad(_i+1,_j,_k) ;
   vert->nz = (1-u)*get_z_grad(_i,_j,_k) + u*get_z_grad(_i+1,_j,_k) ;
 
-  u = (real) Sqrt( vert->nx * vert->nx + vert->ny * vert->ny +vert->nz * vert->nz ) ;
+  u = static_cast<real>(Sqrt( vert->nx * vert->nx + vert->ny * vert->ny + vert->nz * vert->nz ));
   if( u > 0 )
   {
     vert->nx /= u ;
@@ -810,15 +810,15 @@ int MarchingCubes::add_y_MCVertex() {
   real u = _cube[0];
 #endif
 
-  vert->x      = (real) _i ;
-  vert->y      = (real)_j+u;
-  vert->z      = (real) _k ;
+  vert->x      = static_cast<real>(_i) ;
+  vert->y      = static_cast<real>(_j)+u;
+  vert->z      = static_cast<real>(_k) ;
 
   vert->nx = (1-u)*get_x_grad(_i,_j,_k) + u*get_x_grad(_i,_j+1,_k) ;
   vert->ny = (1-u)*get_y_grad(_i,_j,_k) + u*get_y_grad(_i,_j+1,_k) ;
   vert->nz = (1-u)*get_z_grad(_i,_j,_k) + u*get_z_grad(_i,_j+1,_k) ;
 
-  u = (real) Sqrt( vert->nx * vert->nx + vert->ny * vert->ny +vert->nz * vert->nz ) ;
+  u = static_cast<real>(Sqrt( vert->nx * vert->nx + vert->ny * vert->ny + vert->nz * vert->nz ));
   if( u > 0 )
   {
     vert->nx /= u ;
@@ -839,15 +839,15 @@ int MarchingCubes::add_z_MCVertex( ) {
   real u = _cube[0];
 #endif
 
-  vert->x      = (real) _i ;
-  vert->y      = (real) _j ;
-  vert->z      = (real)_k+u;
+  vert->x      = static_cast<real>(_i) ;
+  vert->y      = static_cast<real>(_j) ;
+  vert->z      = static_cast<real>(_k)+u;
 
   vert->nx = (1-u)*get_x_grad(_i,_j,_k) + u*get_x_grad(_i,_j,_k+1) ;
   vert->ny = (1-u)*get_y_grad(_i,_j,_k) + u*get_y_grad(_i,_j,_k+1) ;
   vert->nz = (1-u)*get_z_grad(_i,_j,_k) + u*get_z_grad(_i,_j,_k+1) ;
 
-  u = (real) Sqrt( vert->nx * vert->nx + vert->ny * vert->ny +vert->nz * vert->nz ) ;
+  u = static_cast<real>(Sqrt( vert->nx * vert->nx + vert->ny * vert->ny + vert->nz * vert->nz ));
   if( u > 0 )
   {
     vert->nx /= u ;
@@ -897,7 +897,7 @@ int MarchingCubes::add_c_MCVertex( ) {
   vert->y /= u;
   vert->z /= u;
 
-  u = (real)Sqrt(vert->nx * vert->nx + vert->ny * vert->ny + vert->nz * vert->nz);
+  u = static_cast<real>(Sqrt(vert->nx * vert->nx + vert->ny * vert->ny + vert->nz * vert->nz));;
 
   if (u > 0) {
     vert->nx /= u;

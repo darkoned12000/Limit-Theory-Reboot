@@ -13,7 +13,7 @@ namespace {
   inline double GetSDF(ComponentMotionControl* self, V3 const& p) {
     double sum = 0;
     for (size_t i = 0; i < self->elements.size(); ++i)
-      sum -= (double)self->elements[i]->Evaluate(p);
+      sum -= static_cast<double>(self->elements[i]->Evaluate(p));
     return sum;
   }
 }

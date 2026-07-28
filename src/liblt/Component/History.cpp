@@ -51,6 +51,6 @@ FreeFunction(int, HistoryIterator_Size,
   HistoryIterator, iterator)
 {
   return iterator.object->GetHistory()
-    ? (int)iterator.object->GetHistory()->elements.size()
+    ? static_cast<int>(iterator.object->GetHistory()->elements.size())
     : 0;
 } FunctionAlias(HistoryIterator_Size, Size);

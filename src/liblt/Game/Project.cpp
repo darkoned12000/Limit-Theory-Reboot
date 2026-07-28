@@ -92,11 +92,11 @@ void ProjectT::Update(UpdateState& state) {
     UpdateMarketOrders();
 
   /* Check for cleared sales. */ {
-    for (int i = 0; i < (int)sells.size(); ++i) {
+    for (int i = 0; i < static_cast<int>(sells.size()); ++i) {
       Order& order = sells[i];
       if (order->filledVolume > 0) {
         metrics.revenue += order->filledTotal;
-        wallet.accumulator += (double)settings.feedback * (double)order->filledTotal;
+        wallet.accumulator += static_cast<double>(settings.feedback) * static_cast<double>(order->filledTotal);
         order->filledTotal = 0;
         order->filledVolume = 0;
       }
@@ -109,7 +109,7 @@ void ProjectT::Update(UpdateState& state) {
   }
 
   /* Check for cleared buys. */ {
-    for (int i = 0; i < (int)buys.size(); ++i) {
+    for (int i = 0; i < static_cast<int>(buys.size()); ++i) {
       Order& order = buys[i];
       if (order->filledVolume > 0) {
         metrics.expense += order->filledTotal;
@@ -132,12 +132,12 @@ void ProjectT::Update(UpdateState& state) {
         wallet.credits += amount;
       }
 
-      wallet.accumulator -= (double)amount;
+      wallet.accumulator -= static_cast<double>(amount);
     }
   }
 
   /* Check for lost assets. Remove and update losses metric accordingly. */
-  for (int i = 0; i < (int)allocated.size(); ++i) {
+  for (int i = 0; i < static_cast<int>(allocated.size()); ++i) {
     ProjectAllocation& alloc = allocated[i];
     if (!alloc.object->IsAlive()) {
       metrics.losses += alloc.object->GetValue();
@@ -184,7 +184,7 @@ void ProjectT::UpdateGross() {
   Quantity input = GetInputPrice(owner, task);
   Quantity output = GetOutputPrice(owner, task);
   gross = output - input + task->GetValue();
-  grossRate = (double)gross / task->GetDuration();
+  grossRate = static_cast<double>(gross) / task->GetDuration();
 }
 
 void ProjectT::UpdateMarketOrders() {

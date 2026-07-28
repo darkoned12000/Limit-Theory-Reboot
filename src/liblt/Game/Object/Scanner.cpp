@@ -88,9 +88,9 @@ const float kNoise = 0.25f;
 const float kDistanceScale = 10.0f;
 
 inline void GatherSignal(ScannerOutput& output, Signature const& s) {
-  float invBufferSize = 1.0f / (float)output.bands.size();
+  float invBufferSize = 1.0f / static_cast<float>(output.bands.size());
   for (size_t i = 0; i < output.bands.size(); ++i) {
-    float t = (float)i * invBufferSize;
+    float t = static_cast<float>(i) * invBufferSize;
     float f = Mix(kMinFrequency, kMaxFrequency, t);
     output.bands[i] += 
       s.amplitude * Exp(-Pow(Abs(s.frequency - f) / s.variance, s.power));
@@ -171,7 +171,7 @@ FreeFunction(float, ScannerOutput_AverageAmplitude,
   for (size_t i = 0; i < output.bands.size(); ++i)
     total += output.bands[i];
 
-  return total / (float)output.bands.size();
+  return total / static_cast<float>(output.bands.size());
 } FunctionAlias(ScannerOutput_AverageAmplitude, AverageAmplitude);
 
 FreeFunction(float, ScannerOutput_AverageFrequency,
@@ -181,7 +181,7 @@ FreeFunction(float, ScannerOutput_AverageFrequency,
   float total = 0;
   float totalAmplitude = 0;
   for (size_t i = 0; i < output.bands.size(); ++i) {
-    float f = (float)i / (float)output.bands.size();
+    float f = static_cast<float>(i) / static_cast<float>(output.bands.size());
     totalAmplitude += output.bands[i];
     total += f * output.bands[i];
   }
@@ -214,5 +214,5 @@ FreeFunction(int, ScannerOutput_Size,
   "Return the number of frequency bands in 'output'",
   ScannerOutput, output)
 {
-  return (int)output.bands.size();
+  return static_cast<int>(output.bands.size());
 } FunctionAlias(ScannerOutput_Size, Size);

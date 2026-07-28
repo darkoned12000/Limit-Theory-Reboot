@@ -46,7 +46,7 @@ const Quantity kMinShipCost = 100000 / kDiscount;
 
 namespace {
   Item GetShipType(Object const& self, Quantity value) {
-    value = (Quantity)Pow(10.0, Floor(Log((double)value, 10.0)));
+    value = (Quantity)Pow(10.0, Floor(Log(static_cast<double>(value), 10.0)));
     value *= kDiscount;
     static uint counter = 0;
     static Map<Quantity, Item> types;

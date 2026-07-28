@@ -155,7 +155,7 @@ AutoClassDerived(Trail, TrailBaseT,
     }
 
     bool faded = true;
-    float delta = 1.0f / (float)(length - 1);
+    float delta = 1.0f / static_cast<float>(length - 1);
     for (size_t i = 0; i < length; ++i) {
       SegmentData& segment = trail.GetRelative(i);
       segment.opacity += delta;

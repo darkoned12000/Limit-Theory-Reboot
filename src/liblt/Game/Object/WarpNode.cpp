@@ -98,7 +98,7 @@ namespace {
       innerRadius = 0;
 
       for (int i = 0; i < iterations; ++i) {
-        float t = (float)(i + 1) / (float)(iterations + 1);
+        float t = static_cast<float>(i + 1) / static_cast<float>(iterations + 1);
         float h = radius + t * radiusSize;
         float inner = Min(h - radius, (radius + radiusSize) - h);
         inner = Min(inner, h * angleFactor);
@@ -288,8 +288,8 @@ namespace {
     void Initialize() {
       for (int i = 0; i < kInitialPartitions; ++i) {
         RailSlot slot = new RailSlotT;
-        slot->angle = (float)i / (float)kInitialPartitions;
-        slot->angleSize = 1.0f / (float)kInitialPartitions;
+        slot->angle = (float)i / static_cast<float>(kInitialPartitions);
+        slot->angleSize = 1.0f / static_cast<float>(kInitialPartitions);
         slot->radius = kMinRadius;
         slot->radiusSize = kMaxRadius - kMinRadius;
         slot->allocated = false;
@@ -303,7 +303,7 @@ namespace {
         ScriptFunction_Load("Object/WarpNode:UpdatePassenger");
 
       /* Apply forces to passengers. */
-      for (int i = 0; i < (int)passengers.size(); ++i) {
+      for (int i = 0; i < static_cast<int>(passengers.size()); ++i) {
         Passenger& passenger = passengers[i];
         Object const& object = passenger.object;
         Position pos = object->GetPos();

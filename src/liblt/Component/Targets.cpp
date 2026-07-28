@@ -65,6 +65,6 @@ FreeFunction(int, TargetIterator_Size,
   TargetIterator, iterator)
 {
   return iterator.object->GetTargets()
-    ? (int)iterator.object->GetTargets()->elements.size()
+    ? static_cast<int>(iterator.object->GetTargets()->elements.size())
     : 0;
 } FunctionAlias(TargetIterator_Size, Size);

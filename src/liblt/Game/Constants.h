@@ -83,7 +83,7 @@ inline double Constant_DestructionRatio() {
    *        1/3 assumes mostly solid-volume objects in the game, while 1/2
    *        assumes mostly thin-shell objects. */
   inline float Constant_MassToScale(Mass x) {
-    return (float)(Pow(x / 1000.0f, 1.0f / 2.0f));
+    return static_cast<float>(Pow(x / 1000.0f, 1.0f / 2.0f));
   }
 
 /* RATIO. */

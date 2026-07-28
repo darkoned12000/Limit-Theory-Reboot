@@ -59,7 +59,7 @@ void ComponentInterior::Run(ObjectT* self, UpdateState& state) {
         continue;
 
       Vector<Object>& objects = objectMap[type];
-      for (int i = 0; i < (int)objects.size(); ++i) {
+      for (int i = 0; i < static_cast<int>(objects.size()); ++i) {
         Object object = objects[i];
         if (!object->IsDeleted())
           object->Update(state);
@@ -73,7 +73,7 @@ void ComponentInterior::Run(ObjectT* self, UpdateState& state) {
   }
 
   /* Cleanup deleted objects from global list. */
-  for (int i = 0; i < (int)objects.size(); ++i) {
+  for (int i = 0; i < static_cast<int>(objects.size()); ++i) {
     Object object = objects[i];
     if (object->IsDeleted()) {
       ComponentQueryable* qb = self->GetQueryable();

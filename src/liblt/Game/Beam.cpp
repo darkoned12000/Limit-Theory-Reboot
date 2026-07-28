@@ -102,7 +102,7 @@ AutoClassDerived(BeamImpl, Beam,
         ray, t, Damager.type->range, nullptr, true, RaycastCanCollideBidirectional, this);
 
       targetLength = hitObject ? t : Damager.type->range;
-      tick = (int)(Rand(0.9f, 1.1f) * kUpdatePeriod);
+      tick = static_cast<int>(Rand(0.9f, 1.1f) * kUpdatePeriod);
     }
 
     if (hitObject)

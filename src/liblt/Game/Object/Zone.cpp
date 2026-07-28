@@ -109,7 +109,7 @@ AutoClassDerivedEmpty(Zone, ZoneBaseT)
 
   Zone() {
     for (size_t i = 0; i < kFieldLevels; ++i) {
-      float objectSize = kInitialSize * Pow(2.0f, (float)i);
+      float objectSize = kInitialSize * Pow(2.0f, static_cast<float>(i));
       float cellSize = 512.0f * Pow(objectSize, kCompression);
       field[i] = new DynamicCell(cellSize, objectSize, kAsteroidCount);
     }

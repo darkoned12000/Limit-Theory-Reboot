@@ -128,7 +128,7 @@ void ComponentMarket::Run(ObjectT* self, UpdateState& state) {
     }
 
     /* Remove empty orders. */ {
-      for (int i = 0; i < (int)d.asks.size(); ++i) {
+      for (int i = 0; i < static_cast<int>(d.asks.size()); ++i) {
         if (d.asks[i]->volume <= 0) {
           d.asks[i]->node = nullptr;
           d.asks.removeIndex(i);
@@ -149,10 +149,10 @@ void ComponentMarket::Run(ObjectT* self, UpdateState& state) {
       if (d.intervalVolume)
         d.intervalPrice /= d.intervalVolume;
 
-      double thisPrice = (double)d.intervalPrice;
-      double thisVolume = (double)d.intervalVolume;
-      double thisDemand = (double)d.intervalDemand / (double)timer;
-      double thisSupply = (double)d.intervalSupply / (double)timer;
+      double thisPrice = static_cast<double>(d.intervalPrice);
+      double thisVolume = static_cast<double>(d.intervalVolume);
+      double thisDemand = static_cast<double>(d.intervalDemand) / static_cast<double>(timer);
+      double thisSupply = (double)d.intervalSupply / static_cast<double>(timer);
       double emaPeriod = 1.0;
 
       for (size_t i = 0; i < kMarketHistoryDepth; ++i) {

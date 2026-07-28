@@ -67,7 +67,7 @@ namespace {
     void GetInputs(Vector<ItemDelta>& inputs) const override {
       args.task->GetInputs(inputs);
       /* TODO : Feels...weird. */
-      for (int i = 0; i < (int)inputs.size(); ++i) {
+      for (int i = 0; i < static_cast<int>(inputs.size()); ++i) {
         if (inputs[i].item == args.item) {
           inputs.removeIndex(i);
           i--;

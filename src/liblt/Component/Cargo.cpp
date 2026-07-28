@@ -7,7 +7,7 @@ bool ComponentCargo::Add(Item const& item, Quantity count, bool force) {
     return true;
 
   /* Check if we have enough room. */
-  Mass requiredMass = item->GetMass() * (float)count;
+  Mass requiredMass = item->GetMass() * static_cast<float>(count);
   Mass freeMass = capacity - currentMass;
   if (!force &&
       requiredMass > 0 &&
@@ -25,7 +25,7 @@ bool ComponentCargo::Add(Item const& item, Quantity count, bool force) {
 #else
   currentMass = 0;
   for (CargoIter it = elements.begin(); it != elements.end(); ++it)
-    currentMass += it->first->GetMass() * (float)it->second;
+    currentMass += it->first->GetMass() * static_cast<float>(it->second);
 #endif
 
   return true;

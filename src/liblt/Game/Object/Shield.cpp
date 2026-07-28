@@ -90,7 +90,7 @@ AutoClassDerived(Shield, ShieldBaseT,
     }
 
     size_t GetHash() const override {
-      return (size_t)self->mesh;
+      return static_cast<size_t>(self->mesh);
     }
 
     short GetVersion() const override {

@@ -131,7 +131,7 @@ namespace {
 
       Renderer_SetViewTransform(Transform_LookUp(0, look, up));
       Renderer_SetProjMatrix(
-        MatrixD::Translation(V3(0, 2.0f * (((float)i + 0.5f) / 6.0f) - 1.0f, 0)) *
+        MatrixD::Translation(V3(0, 2.0f * ((static_cast<float>(i) + 0.5f) / 6.0f) - 1.0f, 0)) *
         MatrixD::Scale(V3(1, 1.0f / 6.0f, 1.0f)) *
         MatrixD::Orthographic(1, 1, 0, 1) *
         MatrixD::Translation(V3(0, 0, 1)));
@@ -163,8 +163,8 @@ namespace {
 #if 1
     Mesh mesh = Mesh_Create();
     for (uint i = 0; i < 6; ++i) {
-      float minV = (float)i / 6.0f;
-      float maxV = (float)(i + 1) / 6.0f;
+      float minV = static_cast<float>(i) / 6.0f;
+      float maxV = static_cast<float>(i + 1) / 6.0f;
       V3 look;
       V3 up;
       V3 right;

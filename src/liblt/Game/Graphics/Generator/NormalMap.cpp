@@ -23,8 +23,8 @@ namespace {
       ("cellH", 1.0f)
       ("height", strength)
       ("texture", texture)
-      ("invWidth", 1.0f / (float)texture->GetWidth())
-      ("invHeight", 1.0f / (float)texture->GetHeight());
+      ("invWidth", 1.0f / static_cast<float>(texture->GetWidth()))
+      ("invHeight", 1.0f / static_cast<float>(texture->GetHeight()));
 
     Texture_Generate(normalMap, shader);
     return normalMap;

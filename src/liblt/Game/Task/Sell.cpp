@@ -77,7 +77,7 @@ namespace {
     void GetOutputs(Vector<ItemDelta>& outputs) const override {
       args.task->GetOutputs(outputs);
       /* TODO : Feels...weird. */
-      for (int i = 0; i < (int)outputs.size(); ++i) {
+      for (int i = 0; i < static_cast<int>(outputs.size()); ++i) {
         if (outputs[i].item == args.item) {
           outputs.removeIndex(i);
           i--;

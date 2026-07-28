@@ -151,14 +151,14 @@ namespace {
 
           for (int i = 0; i < MetaprojectType_SIZE; ++i) {
             Metaproject& mp = it.metaprojects[i];
-            mp.walletAccumulator += (double)project->wallet.credits * mp.allocation;
+            mp.walletAccumulator += static_cast<double>(project->wallet.credits) * mp.allocation;
 
             if (mp.walletAccumulator >= 1.0) {
               Quantity amount = (Quantity)Floor(mp.walletAccumulator);
               amount = Min(amount, it.wallet);
               it.wallet -= amount;
               mp.wallet += amount;
-              mp.walletAccumulator -= (double)amount;
+              mp.walletAccumulator -= static_cast<double>(amount);
             }
           }
 

@@ -128,9 +128,9 @@ Object WeaponType::Fire(
 }
 
 float WeaponType::GetDPS() const {
-  float damage = (float)this->damage;
+  float damage = static_cast<float>(this->damage);
   if (uses)
-    damage /= 1.0f / rate + magazineTime / (float)uses;
+    damage /= 1.0f / rate + magazineTime / static_cast<float>(uses);
 
   if (type != WeaponClass_Beam)
     damage *= rate;
@@ -204,7 +204,7 @@ DefineFunction(Item_WeaponType) {
   }
 
   self->uses = rng->GetFloat() < kWeaponMagazineProbability[self->type]
-    ? 4 * (int)(kWeaponMagazineSizeMult[self->type] * rng->GetFloat(1, 2)) : 0;
+    ? 4 * static_cast<int>(kWeaponMagazineSizeMult[self->type] * rng->GetFloat(1, 2)) : 0;
 
   self->icon = kWeaponIcon[self->type];
 
