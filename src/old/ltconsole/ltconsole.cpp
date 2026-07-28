@@ -105,7 +105,6 @@ int main(int argc, char const* argv[]) {
 
   sf::Context c;
   Renderer_Initialize();
-  glewInit();
 
   Module_RegisterGlobal(CreatePhysicsEngine());
   Module_RegisterGlobal(SoundEngine_Null());

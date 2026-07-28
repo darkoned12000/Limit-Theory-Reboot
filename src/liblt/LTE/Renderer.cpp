@@ -15,6 +15,8 @@
 #include "VectorMap.h"
 #include "Window.h"
 
+#include <SFML/Window/Context.hpp>
+
 const bool kAllow16BitIndices = true;
 const bool kCameraSpaceRendering = true;
 const size_t kMaxColorAttachments = 4;
@@ -243,18 +245,13 @@ namespace {
 
 namespace LTE {
   void Renderer_Initialize() {
+    /* Load all OpenGL function pointers via GLAD BEFORE any gl* calls.
+       Uses SFML's sf::Context::getFunction as the loader. */
+    if (!gladLoadGL((GLADloadfunc)sf::Context::getFunction))
+      Log_Critical("GLAD failed to initialize OpenGL");
+
     char const* version = (char const*)glGetString(GL_VERSION);
     Log_Message(Stringize() | "OpenGL Version " | version);
-
-    /* For OS X + Intel drivers, we need to make use of (supported) 3+
-       functions, even though the driver will claim not to support 3. */
-    glewExperimental = GL_TRUE;
-
-    GLenum err = glewInit();
-    if (err != GLEW_OK)
-      Log_Critical("GLEW failed to initialize");
-    if (!GLEW_VERSION_2_1)
-      Log_Critical("GLEW failed to support OpenGL 2.1");
 
     /* Assert every OpenGL extension function that we're going to use, just
        to be safe! May help find compatability errors on older cards. */
@@ -974,7 +971,8 @@ namespace LTE {
   }
 
   void Renderer_SetColor(Color const& color, float alpha) {
-    GL_Color(color.x, color.y, color.z, alpha);
+    /* No-op: glColor is removed in core profile. Shaders read color from
+       uniforms/attributes. Kept for API compatibility. */
   }
 
   void Renderer_SetShader(ShaderT& shader) {

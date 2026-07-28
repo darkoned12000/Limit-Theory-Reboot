@@ -10,7 +10,7 @@
 
 #include <cstdlib>
 #include <filesystem>
-#include <GL/glew.h>
+#include <glad/gl.h>
 #include <SFML/Graphics.hpp>
 
 namespace {
@@ -29,8 +29,7 @@ LTE_TEST(Texture2D_SaveTo) {
   // Ensure an OpenGL context exists for this thread
   sf::Context context;
   (void)context.setActive(true); // Unused return value is fine here
-  glewExperimental = GL_TRUE;
-  glewInit();
+  gladLoadGL((GLADloadfunc)sf::Context::getFunction);
 
   uint w = 32;
   uint h = 32;

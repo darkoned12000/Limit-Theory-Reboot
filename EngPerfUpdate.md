@@ -12,16 +12,16 @@ a phase can be parallelized.
 
 ---
 
-## Current Engine State (as of GLSL 4.60 / GLEW 2.3.1)
+## Current Engine State (as of GLSL 4.60 / GLAD 2.0.8)
 
 | Area | Status |
 |------|--------|
 | C++ standard | C++17, `-fno-exceptions` |
 | GLSL version | 4.60 core (full range: 330→460) |
 | OpenGL context | 4.6 (core profile bit off for Mesa compat) |
-| SSBO / compute infra | Enum + wrappers present; no concrete use yet |
+| SSBO / compute infra | ✅ Model instancing (binding 0) + particle instancing (binding 1) |
 | SFML | 3.1.0 system-installed, C++17, miniaudio |
-| GLEW | 2.3.1, built from source |
+| GL loader | GLAD 2.0.8 (core 4.6, no extensions). Replaced GLEW 2.3.1. |
 | Unit tests | 83 tests, 0 failures |
 | Shader count | 170 `.jsl` files |
 | Shader state caching | ✅ Re-enabled (Phase 1.1 — 33→39-41 FPS) |
@@ -353,25 +353,15 @@ screen position, skip the draw entirely.
 
 Low-risk library upgrades and replacements.
 
-### 4.1 GLEW → GLAD
+### 4.1 GLEW → GLAD ✅ COMPLETE
 
-**Impact: LOW (code cleanliness) | Effort: 1 day | Risk: LOW**
-
-Replace GLEW with GLAD for cleaner init (no `glewExperimental` quirk),
-smaller binary (generate only GL 4.6 core functions), and self-contained
-headers (no system dependency).
-
-- **Generate:** Use GLAD web generator (https://glad.dav1d.de/) for
-  GL 4.6 Core profile, C/C++ language.
-- **Files to change:**
-  - `src/liblt/LTE/GL.h` — `#include <glad/gl.h>` instead of `<GL/glew.h>`
-  - `src/liblt/LTE/GLEnum.h` — same
-  - `tests/TestTexture2D.cpp` — same
-  - `src/launch/launch.cpp` — call `gladLoadGLLoader()` after context creation
-    instead of `glewInit()`
-  - `CMakeLists.txt` — add `glad.c` to sources, remove GLEW link
-  - Remove `#define GLEW_STATIC` from all files
-- **Add to build:** `thirdparty/glad/src/glad.c`, `thirdparty/glad/include/glad/gl.h`
+Replaced GLEW 2.3.1 with GLAD 2.0.8 (core 4.6, no extensions). Used `glad2`
+pip package for generation. `gladLoadGL()` called as first line in
+`Renderer_Initialize`, replacing `glewInit()`. Removed dead EasyGL wrappers
+from `GL.h` and legacy GL enums from `GLEnum.h`. Deleted vendored
+`include/Glew/` directory, `cmake/FindGLEW.cmake`. Removed GLEW from all
+platform `LINK_LIBRARIES` in CMakeLists.txt. Verified with `war`, `rails`,
+`ltheory-main` apps; 69 unit tests pass.
 
 ### 4.2 UTF8-CPP Upgrade
 
@@ -395,15 +385,10 @@ release. Library is 12+ years old.
 
 Reduce technical debt, improve maintainability.
 
-### 5.1 Delete Dead EasyGL Wrappers
+### 5.1 Delete Dead EasyGL Wrappers ✅ COMPLETE
 
-- **File:** `src/liblt/LTE/GL.h`
-- **Remove:** `GL_Begin`, `GL_End`, `GL_Vertex`, `GL_VertexPointer`,
-  `GL_NormalPointer`, `GL_TexCoordPointer`, `GL_Color`, `GL_LoadIdentity`,
-  `GL_LoadMatrix`, `GL_MatrixMode`, `GL_MultMatrix`, `GL_PushMatrix`,
-  `GL_PopMatrix`, `GL_Ortho`, `GL_TexCoord`, `GL_TexBaseLevel`
-- **Verify:** Full build with `-Werror`; grep for any remaining references.
-- **Note:** Do NOT mark as Revamp Work (original code removal).
+Removed as part of Phase 4.1 (GLAD migration). See `GL.h` and `GLEnum.h` diff
+in commit history.
 
 ### 5.2 C++ Cast Cleanup
 
@@ -691,6 +676,9 @@ Target: **60 FPS sustained** with visual effects active.
 | **Phase 1.3** (glBufferSubData) ✅ | — / — | — | Eliminates 20-50 buffer re-allocs/frame |
 | **Phase 1.4** (sort by material) ✅ | — / — | — | Objects grouped by shader+mesh; reduced state switches |
 | **Phase 1.5** (early-out particles) ✅ | — / — | — | Skips draw calls for fully-culled particle groups |
+| **Phase 2.1-2.2** (SSBO + Renderer infra) ✅ | — / — | — | Binding point 0, dummy buffer, Renderer_BeginInstancedDraw |
+| **Phase 2.3** (batching + render pass wiring) ⚠️ | — / — | — | Infrastructure dormant — instanced draw bug with cached models. Render passes reverted to for-loop. |
+| **Phase 2.4** (particle GPU instancing) ✅ | — / — | — | SSBO at binding point 1, eliminated CPU vertex expansion |
 | **Phase 2** (instancing) | 55 / 60+ | +70% | 30K draw calls → ~10-20. Critical path. |
 | **Phase 3b** (LOD) | 58 / 62+ | +5% | 70-80% of asteroids → billboard/culled |
 | **Phase 3c** (Hi-Z cull) | 60 / 63+ | +3% | 20-40% additional occlusion |
@@ -756,3 +744,5 @@ Each phase should be a separate commit (or small PR) with a clear message:
 | 2025-07-26 | Phase 1.3 complete: quad VBO uses glBufferSubData for in-place updates instead of glBufferData re-allocation. Added GL_BufferSubData wrapper to GL.h. | AI-assisted |
 | 2025-07-26 | Phase 1.4 complete: visible[] sorted by RenderableT* pointer after Visibility pass. Groups objects by shader+mesh to minimize state switches during draw. | AI-assisted |
 | 2025-07-26 | Phase 1.5 complete: particle system early-out when all particles culled. Skips draw pipeline for empty batches. Phase 1 complete. | AI-assisted |
+| 2025-07-26 | Phase 2.1-2.2 complete: GL_DrawElementsInstanced wrapper, SSBO at binding point 0 with dummy buffer, Renderer_BeginInstancedDraw/EndInstancedDraw/DrawMeshInstanced, Geometry/Mesh/Model/Renderable virtual DrawInstanced/RenderInstanced methods. Shader plumbing: vert.jsl/frag.jsl SSBO struct + uInstanced toggle, npm.jsl/imposter.jsl/lambert.jsl/metal.jsl/imposter1.jsl effectiveWorldIT from SSBO via fragInstanceID. InstancedDraw.h batching helper (dormant). Render passes reverted to for-loop (instanced batch bug with cached models). | AI-assisted |
+| 2025-07-26 | Phase 2.4 complete: GPU-instanced particle rendering. SSBO at binding point 1 with ParticleInstanceData { posAndSize, ageAndColor } (32 bytes). Renderer_DrawParticlesInstanced uploads per-particle data and draws billboard mesh via glDrawElementsInstanced. particle.jsl reads from SSBO when uParticleInstanced > 0. Eliminated CPU vertex expansion. | AI-assisted |

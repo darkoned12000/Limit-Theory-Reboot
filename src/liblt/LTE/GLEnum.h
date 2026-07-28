@@ -2,7 +2,7 @@
 #define GLEnum_h__
 
 #include "Common.h"
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 namespace GL_BlendFunction {
   enum Enum {
@@ -25,7 +25,6 @@ namespace GL_BlendFunction {
 
 namespace GL_BufferBit {
   typedef unsigned int Mask;
-  const Mask Accum             = GL_ACCUM_BUFFER_BIT;
   const Mask Color             = GL_COLOR_BUFFER_BIT;
   const Mask Depth             = GL_DEPTH_BUFFER_BIT;
   const Mask Stencil           = GL_STENCIL_BUFFER_BIT;
@@ -61,8 +60,7 @@ namespace GL_Capability {
     DepthTest                  = GL_DEPTH_TEST,
     MultiSample                = GL_MULTISAMPLE,
     ScissorTest                = GL_SCISSOR_TEST,
-    StencilTest                = GL_STENCIL_TEST,
-    TextureCoordArray          = GL_TEXTURE_COORD_ARRAY
+    StencilTest                = GL_STENCIL_TEST
   };
 }
 
@@ -92,13 +90,11 @@ namespace GL_DrawMode {
     Lines                      = GL_LINES,
     LineLoop                   = GL_LINE_LOOP,
     LineStrip                  = GL_LINE_STRIP,
-    Polygon                    = GL_POLYGON,
     Points                     = GL_POINTS,
     Triangles                  = GL_TRIANGLES,
     TriangleFan                = GL_TRIANGLE_FAN,
     TriangleStrip              = GL_TRIANGLE_STRIP,
-    Quads                      = GL_QUADS,
-    QuadStrip                  = GL_QUAD_STRIP
+    Quads                      = GL_QUADS
   };
 }
 
@@ -215,21 +211,12 @@ namespace GL_IndexFormat {
   };
 }
 
-namespace GL_Matrix {
-  enum Enum {
-    ModelView                  = GL_MODELVIEW,
-    Projection                 = GL_PROJECTION,
-    Texture                    = GL_TEXTURE
-  };
-}
-
 namespace GL_PixelFormat {
   enum Enum {
     Alpha                      = GL_ALPHA,
     BGR                        = GL_BGR,
     BGRA                       = GL_BGRA,
     Blue                       = GL_BLUE,
-    ColorIndex                 = GL_COLOR_INDEX,
     DepthComponent             = GL_DEPTH_COMPONENT,
     DepthStencil               = GL_DEPTH_STENCIL,
     Green                      = GL_GREEN,
@@ -414,35 +401,15 @@ namespace GL_TextureParameter {
     BaseLevel                  = GL_TEXTURE_BASE_LEVEL,
     CompareMode                = GL_TEXTURE_COMPARE_MODE,
     CompareFunc                = GL_TEXTURE_COMPARE_FUNC,
-    DepthMode                  = GL_DEPTH_TEXTURE_MODE,
-    GenerateMipMap             = GL_GENERATE_MIPMAP,
     LODBias                    = GL_TEXTURE_LOD_BIAS,
     MagFilter                  = GL_TEXTURE_MAG_FILTER,
     MaxLevel                   = GL_TEXTURE_MAX_LEVEL,
     MaxLOD                     = GL_TEXTURE_MAX_LOD,
     MinFilter                  = GL_TEXTURE_MIN_FILTER,
     MinLOD                     = GL_TEXTURE_MIN_LOD,
-    Priority                   = GL_TEXTURE_PRIORITY,
     WrapR                      = GL_TEXTURE_WRAP_R,
     WrapS                      = GL_TEXTURE_WRAP_S,
     WrapT                      = GL_TEXTURE_WRAP_T
-  };
-}
-
-namespace GL_TextureParameterRead {
-  enum Enum {
-    AlphaSize                  = GL_TEXTURE_ALPHA_SIZE,
-    BlueSize                   = GL_TEXTURE_BLUE_SIZE,
-    Border                     = GL_TEXTURE_BORDER,
-    Compressed                 = GL_TEXTURE_COMPRESSED,
-    CompressedImageSize        = GL_TEXTURE_COMPRESSED_IMAGE_SIZE,
-    Depth                      = GL_TEXTURE_DEPTH,
-    DepthSize                  = GL_TEXTURE_DEPTH_SIZE,
-    GreenSize                  = GL_TEXTURE_RED_SIZE,
-    Height                     = GL_TEXTURE_HEIGHT,
-    InternalFormat             = GL_TEXTURE_INTERNAL_FORMAT,
-    RedSize                    = GL_TEXTURE_RED_SIZE,
-    Width                      = GL_TEXTURE_WIDTH
   };
 }
 

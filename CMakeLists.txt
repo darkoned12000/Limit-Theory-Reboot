@@ -72,7 +72,6 @@ if(WINDOWS)
 
   file(GLOB_RECURSE EXTLIB extlib/win32/*.lib)
   set(LINK_LIBRARIES
-      ${GLEW_GLEW_LIBRARY}
       SFML::Graphics
       SFML::Audio
       SFML::Network
@@ -83,7 +82,6 @@ elseif(MAC)
 
   set(LINK_LIBRARIES
       freetype
-      GLEW
       SFML::Graphics
       SFML::Audio
       SFML::Network
@@ -101,8 +99,7 @@ elseif(LINUX)
       SFML::Audio
       SFML::Network
       SFML::System
-      SFML::Window
-      GLEW)
+      SFML::Window)
 
   if(ARCH_32)
 
@@ -123,6 +120,7 @@ set(LINK_LIBRARIES ${LINK_LIBRARIES} ${OPENGL_LIBRARIES})
 # Build shared libary
 file(GLOB_RECURSE LIBLT_SRC src/liblt/*.cpp)
 add_library(lt SHARED ${LIBLT_SRC})
+target_sources(lt PRIVATE src/liblt/ThirdParty/glad.c)
 target_link_libraries(lt ${LINK_LIBRARIES} ${EXTLIB})
 configure_output_dir(lt)
 

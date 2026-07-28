@@ -25,7 +25,7 @@
 #ifndef _EasyGL_JP_
 #define _EasyGL_JP_
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 #include "BuildMode.h"
 
 #include "GLEnum.h"
@@ -61,12 +61,6 @@ inline void GL_ActiveTexture(unsigned int unit) {
 inline void GL_AttachShader(GL_Program program, GL_Shader shader) {
   glAttachShader((unsigned int)program, (unsigned int)shader);
   DEBUG_GL_ERRORS;
-}
-
-/* Delimit the vertices of a primitive or a group of like primitives. */
-inline void GL_Begin(GL_DrawMode::Enum mode) {
-  DEBUG_GL_ERRORS;
-  glBegin(mode);
 }
 
 /* Associates a generic vertex attribute index with a named attribute variable */
@@ -225,16 +219,6 @@ inline void GL_ClearDepth(float depth) {
   DEBUG_GL_ERRORS;
 }
 
-/* Set the current color. */
-inline void GL_Color(float r, float g, float b) {
-  glColor3f(r, g, b);
-}
-
-/* Set the current color. */
-inline void GL_Color(float r, float g, float b, float a) {
-  glColor4f(r, g, b, a);
-}
-
 /* Compile a shader object. */
 inline void GL_CompileShader(GL_Shader shader) {
   glCompileShader((unsigned int)shader);
@@ -384,12 +368,6 @@ inline void GL_Enable(GL_Capability::Enum cap) {
 /* Enable the usage of a specific generic vertex attribute array. */
 inline void GL_EnableVertexAttribArray(unsigned int index) {
   glEnableVertexAttribArray(index);
-  DEBUG_GL_ERRORS;
-}
-
-/* Delimit the vertices of a primitive or a group of like primitives. */
-inline void GL_End() {
-  glEnd();
   DEBUG_GL_ERRORS;
 }
 
@@ -578,32 +556,6 @@ inline void GL_GetTexImage(
   DEBUG_GL_ERRORS;
 }
 
-/* Return texture parameter values for a specific level of detail. */
-inline int GL_GetTexLevelParameterI(
-  GL_TextureTarget::Enum target,
-  int level,
-  GL_TextureParameterRead::Enum parameter)
-{
-  int i;
-  glGetTexLevelParameteriv(target, level, parameter, &i);
-  DEBUG_GL_ERRORS;
-  return i;
-}
-
-/* NONSTANDARD
-   Return the height of the texture bound to the given target. */
-inline int GL_GetTexHeight(GL_TextureTarget::Enum target) {
-  return GL_GetTexLevelParameterI(
-    GL_TextureTarget::T2D, 0, GL_TextureParameterRead::Height);
-}
-
-/* NONSTANDARD
-   Return the width of the texture bound to the given target. */
-inline int GL_GetTexWidth(GL_TextureTarget::Enum target) {
-  return GL_GetTexLevelParameterI(
-    GL_TextureTarget::T2D, 0, GL_TextureParameterRead::Width);
-}
-
 /* Return the location of a uniform variable. */
 inline int GL_GetUniformLocation(GL_Program program, const char* name) {
   int location = glGetUniformLocation((unsigned int)program, name);
@@ -617,68 +569,9 @@ inline void GL_LinkProgram(GL_Program program) {
   DEBUG_GL_ERRORS;
 }
 
-/* Replace the current matrix with the identity matrix. */
-inline void GL_LoadIdentity() {
-  glLoadIdentity();
-  DEBUG_GL_ERRORS;
-}
-
-/* Replace the current matrix with the specified matrix. */
-inline void GL_LoadMatrix(const float* m) {
-  glLoadMatrixf(m);
-  DEBUG_GL_ERRORS;
-}
-
-/* Specify which matrix is the current matrix. */
-inline void GL_MatrixMode(GL_Matrix::Enum mode) {
-  glMatrixMode(mode);
-  DEBUG_GL_ERRORS;
-}
-
-/* Multiply the current matrix with the given matrix. */
-inline void GL_MultMatrix(const float* m) {
-  glMultMatrixf(m);
-  DEBUG_GL_ERRORS;
-}
-
-/* Define an array of normals. */
-inline void GL_NormalPointer(
-  GL_VertexFormat::Enum format,
-  int sizeofVertex,
-  void const* normalData)
-{
-  glNormalPointer(format, sizeofVertex, normalData);
-  DEBUG_GL_ERRORS;
-}
-
-/* Multiply the current matrix with an orthographic matrix. */
-inline void GL_Ortho(
-  float left,
-  float right,
-  float bottom,
-  float top,
-  float nearPlane,
-  float farPlane)
-{
-  glOrtho(left, right, bottom, top, nearPlane, farPlane);
-  DEBUG_GL_ERRORS;
-}
-
 /* Select a polygon rasterization mode. */
 inline void GL_PolygonMode(GL_FaceType::Enum face, GL_FillMode::Enum fillMode) {
   glPolygonMode(face, fillMode);
-  DEBUG_GL_ERRORS;
-}
-
-/* Push the current matrix onto the matrix stack. */
-inline void GL_PushMatrix() {
-  glPushMatrix();
-  DEBUG_GL_ERRORS;
-}
-
-/* Pop a matrix off of the stack, and load it as the current matrix. */
-inline void GL_PopMatrix() {
-  glPopMatrix();
   DEBUG_GL_ERRORS;
 }
 
@@ -709,32 +602,6 @@ inline void GL_ShaderSource(GL_Shader shader, std::string const& source) {
   const int size = (int)source.size();
   const char* src = source.c_str();
   glShaderSource((unsigned int)shader, 1, &src, &size);
-  DEBUG_GL_ERRORS;
-}
-
-/* Set the current texture coordinates. */
-inline void GL_TexCoord(float u) {
-  glTexCoord1f(u);
-}
-
-/* Set the current texture coordinates. */
-inline void GL_TexCoord(float u, float v) {
-  glTexCoord2f(u, v);
-}
-
-/* Set the current texture coordinates. */
-inline void GL_TexCoord(float u, float v, float w) {
-  glTexCoord3f(u, v, w);
-}
-
-/* Define an array of texture coordinates. */
-inline void GL_TexCoordPointer(
-  int componentsPerCoord,
-  GL_VertexFormat::Enum format,
-  size_t sizeofVertex,
-  void const* data)
-{
-  glTexCoordPointer(componentsPerCoord, format, (int)sizeofVertex, data);
   DEBUG_GL_ERRORS;
 }
 
@@ -866,7 +733,7 @@ inline void GL_TexMaxAnisotropy(
 {
   if (!GL_SupportsAnisotropy())
     return;
-  glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropy);
+  glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY, anisotropy);
   DEBUG_GL_ERRORS;
 }
 
@@ -1007,16 +874,6 @@ inline void GL_ValidateProgram(GL_Program program) {
   DEBUG_GL_ERRORS;
 }
 
-/* Specify a vertex of float components. */
-inline void GL_Vertex(float x, float y) {
-  glVertex2f(x, y);
-}
-
-/* Specify a vertex of float components. */
-inline void GL_Vertex(float x, float y, float z) {
-  glVertex3f(x, y, z);
-}
-
 inline void GL_VertexAttrib(unsigned int index, float v0) {
   glVertexAttrib1f(index, v0);
 }
@@ -1046,96 +903,26 @@ inline void GL_VertexAttribPointer(
   DEBUG_GL_ERRORS;
 }
 
-/* Define an array of vertex data. */
-inline void GL_VertexPointer(
-  int componentsPerVertex,
-  GL_VertexFormat::Enum vf,
-  size_t sizeOfVertex,
-  void const* data)
-{
-  glVertexPointer(componentsPerVertex, vf, (int)sizeOfVertex, data);
-  DEBUG_GL_ERRORS;
-}
-
 /* Set the viewport. */
 inline void GL_Viewport(int x, int y, int width, int height) {
   glViewport(x, y, width, height);
   DEBUG_GL_ERRORS;
 }
 
-namespace GLU {
-  /* Loads the identity matrix into both the ModelView and Projection
-     matrix stacks. */
-  inline void ClearMatrices() {
-    GL_MatrixMode(GL_Matrix::ModelView);
-    GL_LoadIdentity();
-    GL_MatrixMode(GL_Matrix::Projection);
-    GL_LoadIdentity();
-  }
-
-  /* Create and initialize a 2D texture of the given specifications.
-     NOTE : The min and mag filters are automatically set to linear.
-     NOTE : The texture unit 0's binding is stomped on.*/
-  inline GL_Texture CreateTexture2D(
-    unsigned int width,
-    unsigned int height,
-    GL_TextureFormat::Enum internalFormat)
-  {
-    GL_Texture texture;
-    GL_GenTextures(1, &texture);
-    GL_BindTexture(GL_TextureTargetBindable::T2D, texture);
-
-    /* Note that these are necessary to make the textures "complete,"
-       since we won't be generating mip-maps. */
-    GL_TexMagFilter(GL_TextureTarget::T2D, GL_TextureFilter::Linear);
-    GL_TexMinFilter(GL_TextureTarget::T2D, GL_TextureFilterMip::LinearMipLinear);
-    return texture;
-  }
-
-  /* Draws a quad spanning [minX, minY] to [maxX, maxY].
-     NOTE : Does NOT modify the matrix stacks, so matrices must be set to
-            identity first if the quad is to be drawn untransformed. */
-  inline void DrawQuad(
-    float minX, float minY,
-    float maxX, float maxY,
-    float z = 0.0f)
-  {
-    GL_Begin(GL_DrawMode::Quads);
-    GL_TexCoord(0.0f, 1.0f);
-    GL_Vertex(minX, minY, z);
-    GL_TexCoord(1.0f, 1.0f);
-    GL_Vertex(maxX, minY, z);
-    GL_TexCoord(1.0f, 0.0f);
-    GL_Vertex(maxX, maxY, z);
-    GL_TexCoord(0.0f, 0.0f);
-    GL_Vertex(minX, maxY, z);
-    GL_End();
-  }
-
-  /* Pushes both the ModelView and Projection matrix stacks. */
-  inline void PushMatrices() {
-    GL_MatrixMode(GL_Matrix::ModelView);
-    GL_PushMatrix();
-    GL_MatrixMode(GL_Matrix::Projection);
-    GL_PushMatrix();
-  }
-
-  /* Pops both the ModelView and Projection matrix stacks. */
-  inline void PopMatrices() {
-    GL_MatrixMode(GL_Matrix::ModelView);
-    GL_PopMatrix();
-    GL_MatrixMode(GL_Matrix::Projection);
-    GL_PopMatrix();
-  }
-
-  /* Loads the given matrices into the ModelView and Projection stacks,
-     respectively. */
-  inline void SetMatrices(float const* modelView, float const* projection) {
-    GL_MatrixMode(GL_Matrix::ModelView);
-    GL_LoadMatrix(modelView);
-    GL_MatrixMode(GL_Matrix::Projection);
-    GL_LoadMatrix(projection);
-  }
+/* Create and initialize a 2D texture of the given specifications.
+   NOTE : The min and mag filters are automatically set to linear.
+   NOTE : The texture unit 0's binding is stomped on. */
+inline GL_Texture GL_CreateTexture2D(
+  unsigned int width,
+  unsigned int height,
+  GL_TextureFormat::Enum internalFormat)
+{
+  GL_Texture texture;
+  GL_GenTextures(1, &texture);
+  GL_BindTexture(GL_TextureTargetBindable::T2D, texture);
+  GL_TexMagFilter(GL_TextureTarget::T2D, GL_TextureFilter::Linear);
+  GL_TexMinFilter(GL_TextureTarget::T2D, GL_TextureFilterMip::LinearMipLinear);
+  return texture;
 }
 
 #endif
