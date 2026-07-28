@@ -103,8 +103,10 @@ namespace {
       buffer->Bind(0);
       Renderer_Clear(V4(state->view->zFar));
       Renderer_ClearDepth();
+
       for (size_t i = 0; i < state->visible.size(); ++i)
         ((ObjectT*)state->visible[i])->OnDraw(state);
+
       Renderer_ClearDepth();
 
       buffer->Unbind();

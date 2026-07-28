@@ -6,6 +6,7 @@
 #include "Matrix.h"
 #include "Mesh.h"
 #include "ProgramLog.h"
+#include "Shader.h"
 #include "ShaderInstance.h"
 #include "Stack.h"
 #include "Texture2D.h"
@@ -157,6 +158,52 @@ namespace {
   }
 }
 
+// ----------------------------------------------------------------------------
+// GPU Instancing Infrastructure
+// ----------------------------------------------------------------------------
+
+namespace {
+  /* Shared SSBO for per-instance world matrices (binding point 0).
+     A dummy 128-byte buffer is bound at init so non-instanced shaders
+     never access an unbound SSBO. The real instance buffer replaces it
+     during instanced draws. */
+  const unsigned int kInstanceBindingPoint = 0;
+  GL_Buffer gDummyInstanceBuffer = GL_NullBuffer;
+  GL_Buffer gInstanceBuffer = GL_NullBuffer;
+  size_t gInstanceBufferCapacity = 0;
+
+  GL_Buffer GetDummyInstanceBuffer() {
+    if (gDummyInstanceBuffer == GL_NullBuffer) {
+      gDummyInstanceBuffer = GL_GenBuffer();
+      /* Must be at least sizeof(mat4) * 2 to match the GLSL InstanceData
+         struct { mat4 world; mat4 worldIT; }. GLSL ternaries don't guarantee
+         short-circuit, so non-instanced shaders may still touch the SSBO. */
+      float zero[32] = {};
+      GL_BindBuffer(GL_BufferTarget::ShaderStorage, gDummyInstanceBuffer);
+      GL_BufferData(GL_BufferTarget::ShaderStorage, sizeof(zero), zero,
+                    GL_BufferUsage::StaticDraw);
+      GL_BindBufferBase(GL_BufferTarget::ShaderStorage,
+                        kInstanceBindingPoint, gDummyInstanceBuffer);
+    }
+    return gDummyInstanceBuffer;
+  }
+
+  GL_Buffer GetInstanceBuffer() {
+    if (gInstanceBuffer == GL_NullBuffer)
+      gInstanceBuffer = GL_GenBuffer();
+    return gInstanceBuffer;
+  }
+
+  void SetInstancedUniform(int instanced) {
+    ShaderT* shader = Shader_GetActive();
+    if (shader) {
+      int loc = shader->QueryUniformLocation("uInstanced");
+      if (loc >= 0)
+        shader->SetInt(loc, instanced);
+    }
+  }
+}
+
 namespace LTE {
   void Renderer_Initialize() {
     char const* version = (char const*)glGetString(GL_VERSION);
@@ -238,6 +285,10 @@ namespace LTE {
      * VAO for the lifetime of the renderer so the engine's attribute setup
      * (which never created VAOs) has somewhere to live. */
     GL_BindVertexArray(GL_GenVertexArray());
+
+    /* Bind a dummy SSBO at binding point 0 so non-instanced shaders
+       never access an unbound buffer object. */
+    GetDummyInstanceBuffer();
   }
 
 // ----------------------------------------------------------------------------
@@ -471,6 +522,75 @@ namespace LTE {
 
     renderer.callCount++;
     renderer.polyCount += mesh->GetIndices() / 3;
+  }
+
+  void Renderer_BeginInstancedDraw(Matrix const* interleavedData, int count) {
+    LTE_ASSERT(count > 0);
+
+    /* Upload interleaved world + worldIT matrices to the SSBO.
+       The caller provides 2 * count matrices: { world, worldIT } per instance,
+       matching the GLSL struct { mat4 world; mat4 worldIT; }. */
+    GL_Buffer buf = GetInstanceBuffer();
+    GL_BindBuffer(GL_BufferTarget::ShaderStorage, buf);
+
+    size_t needed = (size_t)count;
+    if (needed > gInstanceBufferCapacity) {
+      /* Orphan and reallocate (standard streaming pattern).
+         Capacity is in instance count (each instance = 2 mat4 = 128 bytes). */
+      gInstanceBufferCapacity = needed * 2;
+      GL_BufferData(GL_BufferTarget::ShaderStorage,
+                    (int)(sizeof(Matrix) * 2 * gInstanceBufferCapacity),
+                    nullptr, GL_BufferUsage::DynamicDraw);
+    }
+    GL_BufferSubData(GL_BufferTarget::ShaderStorage, 0,
+                     (int)(sizeof(Matrix) * 2 * count), interleavedData);
+
+    GL_BindBufferBase(GL_BufferTarget::ShaderStorage,
+                      kInstanceBindingPoint, buf);
+    /* NOTE: uInstanced is set in Renderer_DrawMeshInstanced, after the
+       model's shader is bound via Begin() -> glUseProgram. Setting it
+       here would apply to the WRONG shader (the one active before this
+       call). */
+  }
+
+  void Renderer_EndInstancedDraw() {
+    SetInstancedUniform(0);
+
+    /* Rebind the dummy SSBO so non-instanced shaders don't touch the
+       instance buffer. */
+    GL_BindBufferBase(GL_BufferTarget::ShaderStorage,
+                      kInstanceBindingPoint, GetDummyInstanceBuffer());
+  }
+
+  void Renderer_DrawMeshInstanced(MeshT const* mesh, int instanceCount) {
+    PrepareMeshForDraw(mesh);
+
+    /* Set uInstanced AFTER the model's shader is bound via Begin()->glUseProgram.
+       This ensures the uniform is set on the correct (currently active) program. */
+    SetInstancedUniform(1);
+
+    Renderer_BindVertexBuffer(mesh->vbo);
+    Renderer_BindIndexBuffer(mesh->ibo);
+
+    Renderer_EnableAttribArray(0);
+    Renderer_EnableAttribArray(1);
+    Renderer_EnableAttribArray(2);
+
+    GL_VertexAttribPointer(0, 3, GL_DataFormat::Float, false, sizeof(Vertex),
+                           (void const*)offset_of(Vertex, p));
+    GL_VertexAttribPointer(1, 3, GL_DataFormat::Float, false, sizeof(Vertex),
+                           (void const*)offset_of(Vertex, n));
+    GL_VertexAttribPointer(2, 2, GL_DataFormat::Float, false, sizeof(Vertex),
+                           (void const*)offset_of(Vertex, u));
+    GL_DrawElementsInstanced(
+      GL_DrawMode::Triangles,
+      mesh->GetIndices(),
+      mesh->indexFormat,
+      nullptr,
+      instanceCount);
+
+    renderer.callCount++;
+    renderer.polyCount += (mesh->GetIndices() / 3) * instanceCount;
   }
 
   namespace {

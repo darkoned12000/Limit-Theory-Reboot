@@ -11,20 +11,27 @@ layout(location=5) VERT_OUT vec3 scale;
 void main() {
   VS_PROLOGUE;
 
-  scale = vec3(length((WORLD * vec4(1, 0, 0, 0)).xyz),
-               length((WORLD * vec4(0, 1, 0, 0)).xyz),
-               length((WORLD * vec4(0, 0, 1, 0)).xyz));
+  mat4 effectiveWorld = (uInstanced > 0)
+    ? instances[gl_InstanceID].world
+    : WORLD;
+  mat4 effectiveWorldIT = (uInstanced > 0)
+    ? instances[gl_InstanceID].worldIT
+    : WORLDIT;
 
-  origin = (WORLD * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+  scale = vec3(length((effectiveWorld * vec4(1, 0, 0, 0)).xyz),
+               length((effectiveWorld * vec4(0, 1, 0, 0)).xyz),
+               length((effectiveWorld * vec4(0, 0, 1, 0)).xyz));
 
-  gl_Position = WVP * vp;
+  origin = (effectiveWorld * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+
+  gl_Position = PROJ * VIEW * worldPos;
   linearDepth = gl_Position.z;
   gl_Position.z = LogDepth(gl_Position.z, gl_Position.w);
 
   position = worldPos.xyz;
   ndcPos = gl_Position;
 
-  normal = normalize((WORLDIT * vn).xyz);
+  normal = normalize((effectiveWorldIT * vn).xyz);
 
   vertpos = vp.xyz;
   vertnormal = vn.xyz;

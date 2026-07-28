@@ -40,6 +40,10 @@ void MeshT::Draw() const {
   Renderer_DrawMesh(this);
 }
 
+void MeshT::DrawInstanced(int count) const {
+  Renderer_DrawMeshInstanced(this, count);
+}
+
 Bound3 MeshT::GetBound() const {
   if (!vertices.size())
     return Bound3(V3(0));

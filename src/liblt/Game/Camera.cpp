@@ -23,56 +23,54 @@ namespace {
     return stack;
   }
 
-  AutoClassDerived(CameraImpl, CameraT,
-    float, fov,
-    Position, relativePos,
-    Position, relativeLookAt,
-    V3, relativeUp,
-    Smooth<Position>, position,
-    Smooth<Position>, lookAt,
-    Smooth<V3>, up,
-    Object, target,
-    float, rigidity)
+    AutoClassDerived(CameraImpl, CameraT,
+      float, fov,
+      Position, relativePos,
+      Position, relativeLookAt,
+      V3, relativeUp,
+      Smooth<Position>, position,
+      Smooth<Position>, lookAt,
+      Smooth<V3>, up,
+      Object, target,
+      float, rigidity)
 
-    DERIVED_TYPE_EX(CameraImpl)
+      DERIVED_TYPE_EX(CameraImpl)
 
-    CameraImpl() :
-      fov(Radians(62.0f)),
-      relativePos(0, 1, -10),
-      relativeLookAt(0, 0, 0),
-      relativeUp(0, 1, 0),
-      position(Position(0, 0, -1)),
-      lookAt(Position(0)),
-      up(V3(0, 1, 0)),
-      rigidity(1)
-    {
-      Motion.mass = 1;
-      Motion.inertia = 1;
-    }
-
-    void OnUpdate(UpdateState& state) override {
-      BaseType::OnUpdate(state);
-
-      if (target && !target->IsDeleted()) {
-        target->GetContainer()->AddInterior(this);
-        //Position offset = target->GetLocalBound().GetCenter();
-        //Transform const& transform = target->GetTransform();
-        position.target = relativePos;// + transform.TransformPoint(offset);
-        lookAt.target = relativeLookAt;// + transform.TransformPoint(offset);
-        up.target = relativeUp;
-
-        Motion.mass = target->GetMass();
-        Motion.velocity = target->GetVelocity();
+      CameraImpl() :
+        fov(Radians(62.0f)),
+        relativePos(0, 1, -10),
+        relativeLookAt(0, 0, 0),
+        relativeUp(0, 1, 0),
+        position(Position(0, 0, -1)),
+        lookAt(Position(0)),
+        up(V3(0, 1, 0)),
+        rigidity(1)
+      {
+        Motion.mass = 1;
+        Motion.inertia = 1;
       }
 
-      position.value += Motion.velocity * state.dt;
-      position.Update(rigidity * state.dt);
-      lookAt.Update(rigidity * state.dt);
-      up.Update(rigidity * state.dt);
+      void OnUpdate(UpdateState& state) override {
+        BaseType::OnUpdate(state);
 
-      V3 newLook = Normalize(lookAt.value - position.value);
-      Orientation.GetTransformW() = Transform_LookUp(position, newLook, up);
-    }
+        if (target && !target->IsDeleted()) {
+          target->GetContainer()->AddInterior(this);
+          position.target = relativePos;
+          lookAt.target = relativeLookAt;
+          up.target = relativeUp;
+
+          Motion.mass = target->GetMass();
+          Motion.velocity = target->GetVelocity();
+        }
+
+        position.value += Motion.velocity * state.dt;
+        position.Update(rigidity * state.dt);
+        lookAt.Update(rigidity * state.dt);
+        up.Update(rigidity * state.dt);
+
+        V3 newLook = Normalize(lookAt.value - position.value);
+        Orientation.GetTransformW() = Transform_LookUp(position, newLook, up);
+      }
 
     Object const& GetTarget() const override {
       return target;

@@ -360,6 +360,21 @@ inline void GL_DrawElements(
   DEBUG_GL_ERRORS;
 }
 
+/* Render primitives from array data by instance count. Each instance has its
+   own world matrix provided via SSBO at binding point 0. */
+inline void GL_DrawElementsInstanced(
+  GL_DrawMode::Enum mode,
+  int indexCount,
+  GL_IndexFormat::Enum indexFormat,
+  void const* indexData,
+  int instanceCount)
+{
+  GL_CheckFramebuffer();
+  glDrawElementsInstanced(mode, indexCount, indexFormat,
+                          (void*)indexData, instanceCount);
+  DEBUG_GL_ERRORS;
+}
+
 /* Enable specific OpenGL capabilities. */
 inline void GL_Enable(GL_Capability::Enum cap) {
   glEnable(cap);

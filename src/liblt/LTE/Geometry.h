@@ -9,6 +9,10 @@ struct GeometryT : public RefCounted {
 
   virtual void Draw() const = 0;
 
+  virtual void DrawInstanced(int count) const {
+    Draw();
+  }
+
   virtual Bound3 GetBound() const = 0;
 
   virtual Mesh GetCollisionMesh() const = 0;

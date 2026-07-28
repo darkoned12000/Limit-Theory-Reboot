@@ -34,6 +34,10 @@ struct RenderableT : public RefCounted {
 
   virtual void Render(DrawState* state) const = 0;
 
+  virtual void RenderInstanced(DrawState* state, int instanceCount) const {
+    Render(state);
+  }
+
   virtual V3 Sample() const {
     return 0;
   }

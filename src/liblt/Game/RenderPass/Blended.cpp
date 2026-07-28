@@ -24,8 +24,10 @@ namespace {
     void OnRender(DrawState* state) override {
       RenderStyle_Push(style);
       state->primary->Bind(0);
+
       for (size_t i = 0; i < state->visible.size(); ++i)
         ((ObjectT*)state->visible[i])->OnDraw(state);
+
       state->primary->Unbind();
       RenderStyle_Pop();
     }

@@ -6,6 +6,18 @@ uniform mat4 PROJ;
 uniform mat4 WVP;
 uniform mat4 WORLDIT;
 
+/* GPU Instancing: per-instance world + worldIT matrices live in an SSBO at
+   binding point 0. The uInstanced uniform is 0 for normal draws and 1 when
+   the renderer is issuing an instanced batch. GLSL ternary guarantees that the
+   SSBO is only accessed when uInstanced > 0, so non-instanced shaders are
+   unaffected even though the SSBO is always bound (a dummy buffer for safety). */
+struct InstanceData {
+  mat4 world;
+  mat4 worldIT;
+};
+layout(std430, binding=0) buffer InstanceBuffer { InstanceData instances[]; };
+uniform int uInstanced;
+
 VERT_IN vec3 vertex_position;
 VERT_IN vec3 vertex_normal;
 VERT_IN vec2 vertex_uv;
@@ -15,7 +27,10 @@ VERT_IN vec3 vertex_color;
   vec4 vp = vec4(vertex_position, 1.0);                                        \
   vec4 vn = vec4(vertex_normal, 0.0);                                          \
   uv = vertex_uv;                                                              \
-  vec4 worldPos = WORLD * vp;                                                  \
+  vec4 worldPos = (uInstanced > 0)                                            \
+    ? (instances[gl_InstanceID].world * vp)                                    \
+    : (WORLD * vp);                                                            \
+  fragInstanceID = gl_InstanceID;                                              \
   float u = vertex_uv.x;                                                       \
   float v = vertex_uv.y;
 
@@ -24,6 +39,7 @@ layout(location=1) VERT_OUT vec2 uv;
 layout(location=2) VERT_OUT vec3 vertpos;
 layout(location=3) VERT_OUT vec3 vertnormal;
 layout(location=4) VERT_OUT vec3 vertcolor;
+layout(location=20) flat VERT_OUT int fragInstanceID;
 
 #if 1
 float LogDepth(float z, float w) {

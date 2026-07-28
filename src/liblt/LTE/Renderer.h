@@ -45,6 +45,18 @@ namespace LTE {
 
   LT_API void Renderer_DrawMesh(MeshT const* mesh);
 
+  /* Draw a mesh with GPU instancing. The per-instance world + worldIT matrices
+     must have been uploaded via Renderer_BeginInstancedDraw beforehand. */
+  LT_API void Renderer_DrawMeshInstanced(MeshT const* mesh, int instanceCount);
+
+  /* Begin an instanced draw batch: upload interleaved world + worldIT matrices
+     (2 * count mat4's) to the shared SSBO at binding point 0. Call
+     Renderer_EndInstancedDraw after the batch. */
+  LT_API void Renderer_BeginInstancedDraw(Matrix const* interleavedData, int count);
+
+  /* End an instanced draw batch: reset uInstanced and unbind the SSBO. */
+  LT_API void Renderer_EndInstancedDraw();
+
   LT_API void Renderer_DrawQuad(
     V2 const& p1 = V2(-1),
     V2 const& p2 = V2(1),

@@ -32,6 +32,8 @@ AutoClassDerived(MeshT, GeometryT,
   /* Geometry. */
   LT_API void Draw() const override;
 
+  LT_API void DrawInstanced(int count) const override;
+
   LT_API Bound3 GetBound() const override;
 
   LT_API Mesh GetCollisionMesh() const override;
