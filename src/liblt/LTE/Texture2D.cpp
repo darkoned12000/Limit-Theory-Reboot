@@ -62,7 +62,7 @@ namespace {
   }
 
   struct Texture2DImpl : public Texture2DT {
-    typedef Texture2DT BaseType;
+    using BaseType = Texture2DT;
     DERIVED_TYPE_EX(Texture2DImpl)
 
     GL_Texture glBuffer;

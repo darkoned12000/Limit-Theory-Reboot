@@ -3,6 +3,6 @@
 
 #include "LTE/Common.h"
 
-typedef Reference<struct CodeBlockT> CodeBlock;
+using CodeBlock = Reference<struct CodeBlockT>;
 
 #endif

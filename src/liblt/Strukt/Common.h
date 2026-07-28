@@ -3,6 +3,6 @@
 
 #include "LTE/Common.h"
 
-typedef Reference<struct CodeObjectT> CodeObject;
+using CodeObject = Reference<struct CodeObjectT>;
 
 #endif

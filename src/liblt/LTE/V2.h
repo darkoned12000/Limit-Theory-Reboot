@@ -11,8 +11,8 @@ AutoClass(V2T,
   T, x,
   T, y)
 
-  typedef T ReturnType;
-  typedef T MetricType;
+  using ReturnType = T;
+  using MetricType = T;
 
   /* Constructors. */
   V2T() = default;

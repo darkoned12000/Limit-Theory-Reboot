@@ -83,7 +83,7 @@ DeclareFunctionArgBind(Object_Region, Object,
   Distribution<Item>, resources,
   uint, seed)
 
-typedef Object_Region_Args RegionType;
+using RegionType = Object_Region_Args;
 
 DeclareFunction(Object_Scanner, Object,
   Item, type)
@@ -112,7 +112,7 @@ DeclareFunctionArgBind(Object_System, Object,
   Position, position,
   uint, seed)
 
-typedef Object_System_Args SystemType;
+using SystemType = Object_System_Args;
 
 DeclareFunction(Object_TechLab, Object,
   Item, type)

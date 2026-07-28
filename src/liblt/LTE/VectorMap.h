@@ -17,8 +17,8 @@ struct VectorMapEntry {
 
 template <class KeyT, class ValueT>
 struct VectorMap : public NullBase<VectorMap<KeyT, ValueT> > {
-  typedef KeyT ArgType;
-  typedef NullBase<VectorMap<KeyT, ValueT> > BaseType;
+  using ArgType = KeyT;
+  using BaseType = NullBase<VectorMap<KeyT, ValueT> >;
 
   Vector<VectorMapEntry<KeyT, ValueT> > entries;
 

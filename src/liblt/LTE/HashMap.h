@@ -8,7 +8,7 @@
 
   template <class KeyT, class ValueT, class HasherT>
   struct HashMapT {
-    typedef std::unordered_map<KeyT, ValueT, HasherT> result;
+    using result = std::unordered_map<KeyT, ValueT, HasherT>;
   };
 
   template <class T>
@@ -24,7 +24,7 @@
 
   template <class KeyT, class ValueT, class HasherT>
   struct HashMapT {
-    typedef std::unordered_map<KeyT, ValueT, HasherT> result;
+    using result = std::unordered_map<KeyT, ValueT, HasherT>;
   };
 
   template <class T>
@@ -40,7 +40,7 @@
 
   template <class KeyT, class ValueT, class HasherT>
   struct HashMapT {
-    typedef std::tr1::unordered_map<KeyT, ValueT, HasherT> result;
+    using result = std::tr1::unordered_map<KeyT, ValueT, HasherT>;
   };
 
   template <class T>
@@ -57,9 +57,9 @@ namespace LTE {
   template <class KeyT, class ValueT, class HasherT = DefaultHasher<KeyT> >
   class HashMap : public HashMapT<KeyT, ValueT, HasherT>::result {
   public:
-    typedef typename HashMapT<KeyT, ValueT, HasherT>::result BaseT;
-    typedef typename BaseT::iterator iterator;
-    typedef typename BaseT::const_iterator const_iterator;
+    using BaseT = typename HashMapT<KeyT, ValueT, HasherT>::result;
+    using iterator = typename BaseT::iterator;
+    using const_iterator = typename BaseT::const_iterator;
 
     bool contains(KeyT const& key) const {
       return this->find(key) != this->end();

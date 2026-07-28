@@ -5,8 +5,8 @@
 #include "Vector.h"
 
 struct SpatialPartition {
-  typedef bool (*AddFn)(Bound3 const& box, void* aux);
-  typedef bool (*QueryFn)(void* object, void* aux);
+  using AddFn   = bool (*)(Bound3 const& box, void* aux);
+  using QueryFn = bool (*)(void* object, void* aux);
 
   virtual ~SpatialPartition() = default;
 

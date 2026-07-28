@@ -29,13 +29,12 @@ namespace {
   }
 }
 
-typedef ObjectWrapper
+using WarpRailBaseT = ObjectWrapper
   < Component_BoundingBox
   < Component_Drawable
   < Component_Orientation
   < ObjectWrapperTail<ObjectType_WarpRail>
-  > > > >
-  WarpRailBaseT;
+  > > > >;
 
 AutoClassDerived(WarpRail, WarpRailBaseT,
   Object, node1,

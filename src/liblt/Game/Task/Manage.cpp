@@ -40,7 +40,7 @@ namespace {
       {}
   };
 
-  typedef StackArray<Metaproject, MetaprojectType_SIZE> MetaprojectsT;
+  using MetaprojectsT = StackArray<Metaproject, MetaprojectType_SIZE>;
 
   AutoClass(TaskManageInstance,
     MetaprojectsT, metaprojects,

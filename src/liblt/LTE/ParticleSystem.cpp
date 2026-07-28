@@ -57,7 +57,7 @@ namespace {
   };
 
   AutoClassDerivedEmpty(ParticleSystemImpl, ParticleSystemT)
-    typedef Map<ShaderInstance, Vector<Particle> > ParticleMapT;
+    using ParticleMapT = Map<ShaderInstance, Vector<Particle> >;
     ParticleMapT particles;
     DERIVED_TYPE_EX(ParticleSystemImpl)
 

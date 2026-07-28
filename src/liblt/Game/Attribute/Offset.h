@@ -6,7 +6,7 @@
 
 template <class T>
 struct Attribute_Offset : public T {
-  typedef Attribute_Offset SelfType;
+  using SelfType = Attribute_Offset;
   ATTRIBUTE_COMMON(offset)
   V3 offset;
 

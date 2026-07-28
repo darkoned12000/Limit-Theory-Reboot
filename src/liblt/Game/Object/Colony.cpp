@@ -124,7 +124,7 @@ void GenerateCity(Object const& container) {
     Object_Static((Renderable)Model_Create()->Add(m, Material_Metal())));
 }
 
-typedef ObjectWrapper
+using ColonyBaseT = ObjectWrapper
   < Attribute_Traits
   < Component_Account
   < Component_Asset
@@ -145,8 +145,7 @@ typedef ObjectWrapper
   < Component_Tasks
   < Component_Zoned
   < ObjectWrapperTail<ObjectType_Colony>
-  > > > > > > > > > > > > > > > > > > > >
-  ColonyBaseT;
+  > > > > > > > > > > > > > > > > > > > >;
 
 AutoClassDerived(Colony, ColonyBaseT,
   Generic<CubeMap>, envMap,

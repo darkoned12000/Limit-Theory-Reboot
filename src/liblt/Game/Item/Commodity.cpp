@@ -4,14 +4,13 @@
 #include "Game/Attribute/Name.h"
 #include "Game/Attribute/Value.h"
 
-typedef
+using CommodityBase = 
     Attribute_Icon
   < Attribute_Mass
   < Attribute_Name
   < Attribute_Value
   < ItemWrapper<ItemType_Commodity>
-  > > > >
-  CommodityBase;
+  > > > >;
 
 AutoClassDerivedEmpty(Commodity, CommodityBase)
   DERIVED_TYPE_EX(Commodity)

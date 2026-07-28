@@ -6,7 +6,7 @@
 namespace LTE {
   template <class T>
   struct ValueT {
-    typedef T ReturnType;
+    using ReturnType = T;
 
     T t;
     

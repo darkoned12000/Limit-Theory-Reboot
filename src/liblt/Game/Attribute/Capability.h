@@ -6,7 +6,7 @@
 
 template <class T>
 struct Attribute_Capability : public T {
-  typedef Attribute_Capability SelfType;
+  using SelfType = Attribute_Capability;
   ATTRIBUTE_COMMON(capability)
   Capability capability;
 

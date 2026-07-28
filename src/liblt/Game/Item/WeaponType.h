@@ -28,7 +28,7 @@
    "barrel" part of the weapon (the part that has full motion) in the model's
    0th mesh. */
 
-typedef
+using WeaponTypeBase = 
     Attribute_Capability
   < Attribute_Color
   < Attribute_Damage
@@ -47,8 +47,7 @@ typedef
   < Attribute_Speed
   < Attribute_Uses
   < ItemWrapper<ItemType_WeaponType>
-  > > > > > > > > > > > > > > > > >
-  WeaponTypeBase;
+  > > > > > > > > > > > > > > > > >;
 
 AutoClassDerived(WeaponType, WeaponTypeBase,
   WeaponClass, type,

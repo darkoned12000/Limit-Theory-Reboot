@@ -42,7 +42,7 @@ namespace {
   }
 }
 
-typedef ObjectWrapper
+using SystemBaseT = ObjectWrapper
   < Attribute_Traits
   < Component_Economy
   < Component_History
@@ -53,8 +53,7 @@ typedef ObjectWrapper
   < Component_Resources
   < Component_Seeded
   < ObjectWrapperTail<ObjectType_System>
-  > > > > > > > > > >
-  SystemBaseT;
+  > > > > > > > > > >;
 
 AutoClassDerived(System, SystemBaseT,
   Object, star)

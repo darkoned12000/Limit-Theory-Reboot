@@ -17,13 +17,12 @@
 #include "LTE/ShaderInstance.h"
 #include "LTE/View.h"
 
-typedef ObjectWrapper
+using ExplosionBaseT = ObjectWrapper
   < Component_Attachable
   < Component_Drawable
   < Component_Orientation
   < ObjectWrapperTail<ObjectType_Explosion>
-  > > > >
-  ExplosionBaseT;
+  > > > >;
 
 AutoClassDerived(Explosion, ExplosionBaseT,
   LightRef, light,

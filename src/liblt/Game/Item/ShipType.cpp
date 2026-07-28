@@ -33,7 +33,7 @@ const uint kThrusterAttempts = 10;
 const uint kTurretAttempts = 100;
 const float kThrusterTolerance = 0.8f;
 
-typedef
+using ShipTypeBase = 
     Attribute_Capability
   < Attribute_Icon
   < Attribute_Integrity
@@ -45,8 +45,7 @@ typedef
   < Attribute_Sockets
   < Attribute_Value
   < ItemWrapper<ItemType_ShipType>
-  > > > > > > > > > >
-  ShipTypeBase;
+  > > > > > > > > > >;
 
 AutoClassDerived(ShipType, ShipTypeBase,
   Item, standardGenerator,

@@ -5,7 +5,7 @@
   #include <unordered_set>
   template <class KeyT>
   struct HashSetT {
-    typedef std::unordered_set<KeyT> result;
+    using result = std::unordered_set<KeyT>;
   };
 
 #elif defined(LIBLT_MACOS)
@@ -14,7 +14,7 @@
 
   template <class KeyT>
   struct HashSetT {
-    typedef std::unordered_set<KeyT> result;
+    using result = std::unordered_set<KeyT>;
   };
 
 #else
@@ -23,7 +23,7 @@
 
   template <class KeyT>
   struct HashSetT {
-    typedef std::tr1::unordered_set<KeyT> result;
+    using result = std::tr1::unordered_set<KeyT>;
   };
 
 

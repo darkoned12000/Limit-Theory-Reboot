@@ -29,8 +29,8 @@ const float kMinRadius = 200;
 const float kMaxRadius = 5000;
 
 namespace {
-  typedef Reference<struct RailSlotT> RailSlot;
-  typedef Reference<struct WarpNodeControllerT> WarpNodeController;
+  using RailSlot = Reference<struct RailSlotT>;
+  using WarpNodeController = Reference<struct WarpNodeControllerT>;
 
   Renderable GetModel() {
 #if 0
@@ -369,7 +369,7 @@ namespace {
   };
 }
 
-typedef ObjectWrapper
+using WarpNodeBaseT = ObjectWrapper
   < Component_BoundingBox
   < Component_Cullable
   < Component_Detectable
@@ -379,8 +379,7 @@ typedef ObjectWrapper
   < Component_Orientation
   < Component_Scriptable
   < ObjectWrapperTail<ObjectType_WarpNode>
-  > > > > > > > > >
-  WarpNodeBaseT;
+  > > > > > > > > >;
 
 AutoClassDerived(WarpNode, WarpNodeBaseT,
   WarpNodeController, controller,

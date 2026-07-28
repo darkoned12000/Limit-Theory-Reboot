@@ -14,8 +14,8 @@ AutoClass(V4T,
   T, z,
   T, w)
 
-  typedef T ReturnType;
-  typedef T MetricType;
+  using ReturnType = T;
+  using MetricType = T;
 
   /* Constructors. */
   V4T() = default;

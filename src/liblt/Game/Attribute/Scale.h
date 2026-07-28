@@ -5,7 +5,7 @@
 
 template <class T>
 struct Attribute_Scale : public T {
-  typedef Attribute_Scale SelfType;
+  using SelfType = Attribute_Scale;
   ATTRIBUTE_COMMON(scale)
   float scale;
 

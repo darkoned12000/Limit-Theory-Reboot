@@ -11,12 +11,12 @@
 
 template <class T>
 struct Vector : public NullBase<Vector<T> > {
-  typedef Vector SelfType;
-  typedef NullBase<Vector<T> > BaseType;
-  typedef size_t ArgType;
-  typedef T ReturnType;
-  typedef typename std::vector<T>::iterator IteratorType;
-  typedef typename std::vector<T>::const_iterator CIteratorType;
+  using SelfType = Vector;
+  using BaseType = NullBase<Vector<T> >;
+  using ArgType = size_t;
+  using ReturnType = T;
+  using IteratorType = typename std::vector<T>::iterator;
+  using CIteratorType = typename std::vector<T>::const_iterator;
 
   std::vector<T> v;
 

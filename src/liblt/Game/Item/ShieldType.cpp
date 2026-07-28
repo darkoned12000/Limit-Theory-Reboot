@@ -20,7 +20,7 @@ const Icon kIcon = Icon_Create()
   ->Add(Glyph_Box(V2(-1, 0), V2(0.1f, 0.05f), 1, 1))
   ->Add(Glyph_Box(V2( 1, 0), V2(0.1f, 0.05f), 1, 1));
 
-typedef
+using ShieldTypeBase = 
     Attribute_Icon
   < Attribute_Integrity
   < Attribute_Mass
@@ -29,8 +29,7 @@ typedef
   < Attribute_Scale
   < Attribute_Value
   < ItemWrapper<ItemType_ShieldType>
-  > > > > > > >
-  ShieldTypeBase;
+  > > > > > > >;
 
 AutoClassDerivedEmpty(ShieldType, ShieldTypeBase)
   DERIVED_TYPE_EX(ShieldType)

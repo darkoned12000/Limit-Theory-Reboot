@@ -13,7 +13,7 @@
 
 #include "UI/Glyphs.h"
 
-typedef
+using ScannerTypeBase = 
     Attribute_Icon
   < Attribute_Metatype
   < Attribute_Name
@@ -21,8 +21,7 @@ typedef
   < Attribute_Range
   < Attribute_Value
   < ItemWrapper<ItemType_ScannerType>
-  > > > > > >
-  ScannerTypeBase;
+  > > > > > >;
 
 AutoClassDerivedEmpty(ScannerType, ScannerTypeBase)
   DERIVED_TYPE_EX(ScannerType)

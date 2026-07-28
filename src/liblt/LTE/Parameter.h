@@ -4,8 +4,8 @@
 #include "String.h"
 
 struct Parameter {
-  typedef NoBase BaseType;
-  typedef Parameter SelfType;
+  using BaseType = NoBase;
+  using SelfType = Parameter;
 
   String name;
   Type type;

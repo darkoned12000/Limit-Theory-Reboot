@@ -7,7 +7,7 @@
 
 /* TODO : Memory issues, opinions are currently permanent. */
 
-typedef Map<ObjectID, float> OpinionMapT;
+using OpinionMapT = Map<ObjectID, float>;
 
 AutoClass(ComponentOpinions,
   OpinionMapT, elements,

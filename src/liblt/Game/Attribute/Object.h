@@ -5,7 +5,7 @@
 
 template <class T>
 struct Attribute_Object : public T {
-  typedef Attribute_Object SelfType;
+  using SelfType = Attribute_Object;
   ATTRIBUTE_COMMON(object)
   Object object;
 

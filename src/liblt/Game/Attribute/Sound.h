@@ -5,7 +5,7 @@
 
 template <class T>
 struct Attribute_Sound : public T {
-  typedef Attribute_Sound SelfType;
+  using SelfType = Attribute_Sound;
   ATTRIBUTE_COMMON(sound)
   String sound;
 

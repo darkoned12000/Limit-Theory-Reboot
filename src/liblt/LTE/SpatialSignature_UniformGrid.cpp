@@ -7,7 +7,7 @@
 
 namespace LTE {
   struct UniformGridSignature : public SpatialSignature {
-    typedef V3T<int> Coord;
+    using Coord = V3T<int>;
 
     std::vector<bool> cellData;
     int cellsX, cellsY, cellsZ, cellsYZ;

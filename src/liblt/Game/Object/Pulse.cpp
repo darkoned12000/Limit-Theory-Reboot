@@ -52,13 +52,12 @@ namespace {
   } bool r = RegisterLoader(OnLoad);
 }
 
-typedef ObjectWrapper
+using PulseBaseT = ObjectWrapper
   < Component_Damager
   < Component_Drawable
   < Component_Orientation
   < ObjectWrapperTail<ObjectType_Pulse>
-  > > > >
-  PulseBaseT;
+  > > > >;
 
 AutoClassDerived(Pulse, PulseBaseT,
   LightRef, light,

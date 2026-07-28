@@ -17,7 +17,7 @@
 #include "Game/Order.h"
 #include "Game/Player.h"
 
-typedef ObjectWrapper
+using PlanetBaseT = ObjectWrapper
   < Component_BoundingBox
   < Component_Collidable
   < Component_Cullable
@@ -29,8 +29,7 @@ typedef ObjectWrapper
   < Component_Seeded
   < Component_Supertyped
   < ObjectWrapperTail<ObjectType_Planet>
-  > > > > > > > > > > >
-  PlanetBaseT;
+  > > > > > > > > > > >;
 
 struct Planet : public PlanetBaseT {
   Object orbitalStation;

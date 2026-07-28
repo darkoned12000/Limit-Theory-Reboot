@@ -6,8 +6,8 @@
 namespace LTE {
   template <class T>
   struct CallT {
-    typedef typename T::ReturnType FnType;
-    typedef typename FnType::ReturnType ReturnType;
+    using FnType = typename T::ReturnType;
+    using ReturnType = typename FnType::ReturnType;
 
     T t;
 

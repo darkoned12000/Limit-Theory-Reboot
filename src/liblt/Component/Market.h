@@ -60,7 +60,7 @@ AutoClass(MarketData,
   }
 };
 
-typedef Map<HashT, MarketData> MarketDataMap;
+using MarketDataMap = Map<HashT, MarketData>;
 
 AutoClass(ComponentMarket,
   MarketDataMap, elements,

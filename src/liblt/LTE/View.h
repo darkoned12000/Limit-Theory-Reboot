@@ -9,8 +9,8 @@
 #include "Transform.h"
 
 struct View {
-  typedef PlaneT<double> PlaneType;
-  typedef RayT<V3D, V3F> RayType;
+  using PlaneType = PlaneT<double>;
+  using RayType = RayT<V3D, V3F>;
 
   Transform transform;
   float fovy;

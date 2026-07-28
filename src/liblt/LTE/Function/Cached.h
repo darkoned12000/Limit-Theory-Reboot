@@ -8,7 +8,7 @@
 namespace LTE {
   template <class T>
   struct CachedT {
-    typedef typename T::ReturnType ReturnType;
+    using ReturnType = typename T::ReturnType;
 
     T t;
     ReturnType result;
@@ -30,7 +30,7 @@ namespace LTE {
 
   template <class T>
   struct DiskCachedT {
-    typedef typename T::ReturnType ReturnType;
+    using ReturnType = typename T::ReturnType;
 
     T t;
     ReturnType result;

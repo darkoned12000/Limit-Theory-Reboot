@@ -18,13 +18,12 @@
 #include "LTE/ShaderInstance.h"
 #include "LTE/View.h"
 
-typedef ObjectWrapper
+using TrailBaseT = ObjectWrapper
   < Component_Attachable
   < Component_Drawable
   < Component_Orientation
   < ObjectWrapperTail<ObjectType_Trail>
-  > > > >
-  TrailBaseT;
+  > > > >;
 
 namespace {
   struct SegmentData {

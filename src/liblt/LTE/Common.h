@@ -21,11 +21,11 @@ template <class T1, class T2, class T3> struct Tuple3;
 template <class T1, char const* (*)(int)> struct Enum;
 template <class T1, int MaxElements> struct Stack;
 
-typedef Reference<struct ListNPT> ListNP;
+using ListNP = Reference<struct ListNPT>;
 
 /* Engine. */
-typedef Reference<struct StringListT> StringList;
-typedef Reference<struct StringTreeT> StringTree;
+using StringList = Reference<struct StringListT>;
+using StringTree = Reference<struct StringTreeT>;
 
 /* Math. */
 struct Capsule;
@@ -36,84 +36,84 @@ struct Sphere;
 struct Transform;
 struct View;
 
-typedef Reference<struct CollisionMeshT> CollisionMesh;
-typedef Reference<struct RNGT> RNG;
-typedef Reference<struct SDFT> SDF;
-typedef Reference<struct WarpT> Warp;
+using CollisionMesh = Reference<struct CollisionMeshT>;
+using RNG = Reference<struct RNGT>;
+using SDF = Reference<struct SDFT>;
+using Warp = Reference<struct WarpT>;
 
 /* Math - Parametric. */
 template <class T1> struct V2T;
-typedef V2T<float> V2;
-typedef V2T<float> V2F;
-typedef V2T<double> V2D;
-typedef V2T<int> V2I;
-typedef V2T<uint> V2U;
+using V2 = V2T<float>;
+using V2F = V2T<float>;
+using V2D = V2T<double>;
+using V2I = V2T<int>;
+using V2U = V2T<uint>;
 
 template <class T1> struct V3T;
-typedef V3T<float> V3;
-typedef V3T<float> V3F;
-typedef V3T<double> V3D;
-typedef V3T<int> V3I;
-typedef V3T<uint> V3U;
+using V3 = V3T<float>;
+using V3F = V3T<float>;
+using V3D = V3T<double>;
+using V3I = V3T<int>;
+using V3U = V3T<uint>;
 
-typedef double DistanceT;
-typedef V3T<DistanceT> PointT;
+using DistanceT = double;
+using PointT = V3T<DistanceT>;
 
 template <class T1> struct V4T;
-typedef V4T<float> V4;
-typedef V4T<float> V4F;
-typedef V4T<double> V4D;
-typedef V4T<int> V4I;
-typedef V4T<uint> V4U;
+using V4 = V4T<float>;
+using V4F = V4T<float>;
+using V4D = V4T<double>;
+using V4I = V4T<int>;
+using V4U = V4T<uint>;
 
 template <class T1, class T2> struct BoundT;
-typedef BoundT<V3, V3>  Bound3;
-typedef BoundT<V3F, V3> Bound3F;
-typedef BoundT<V3D, V3> Bound3D;
+using Bound3 = BoundT<V3, V3>;
+using Bound3F = BoundT<V3F, V3>;
+using Bound3D = BoundT<V3D, V3>;
 
 template <class T1> struct MatrixT;
-typedef MatrixT<float> Matrix;
-typedef MatrixT<float> MatrixF;
-typedef MatrixT<double> MatrixD;
+using Matrix = MatrixT<float>;
+using MatrixF = MatrixT<float>;
+using MatrixD = MatrixT<double>;
 
 template <class T1> struct PlaneT;
-typedef PlaneT<float> Plane;
-typedef PlaneT<float> PlaneF;
-typedef PlaneT<double> PlaneD;
+using Plane = PlaneT<float>;
+using PlaneF = PlaneT<float>;
+using PlaneD = PlaneT<double>;
 
 template <class T1, class T2> struct RayT;
-typedef RayT<V3, V3> Ray;
-typedef RayT<V3F, V3> RayF;
-typedef RayT<V3D, V3> RayD;
+using Ray = RayT<V3, V3>;
+using RayF = RayT<V3F, V3>;
+using RayD = RayT<V3D, V3>;
 
 /* Graphics. */
 struct Color;
 struct Vertex;
 
-typedef Reference<struct CubeMapT> CubeMap;
-typedef Reference<struct FontT> Font;
-typedef Reference<struct GeometryT> Geometry;
-typedef Reference<struct MeshT> Mesh;
-typedef Reference<struct ModelT> Model;
-typedef Reference<struct ParticleSystemT> ParticleSystem;
-typedef Reference<struct PlateMeshT> PlateMesh;
-typedef Reference<struct RenderableT> Renderable;
-typedef Reference<struct RenderPassT> RenderPass;
-typedef Reference<struct RenderStyleT> RenderStyle;
-typedef Reference<struct ShaderT> Shader;
-typedef Reference<struct ShaderInstanceT> ShaderInstance;
-typedef Reference<struct ViewportT> Viewport;
-typedef Reference<struct Texture2DT> Texture2D;
-typedef Reference<struct Texture3DT> Texture3D;
+using CubeMap = Reference<struct CubeMapT>;
+using Font = Reference<struct FontT>;
+using Geometry = Reference<struct GeometryT>;
+using Mesh = Reference<struct MeshT>;
+using Model = Reference<struct ModelT>;
+using ParticleSystem = Reference<struct ParticleSystemT>;
+using PlateMesh = Reference<struct PlateMeshT>;
+using Renderable = Reference<struct RenderableT>;
+using RenderPass = Reference<struct RenderPassT>;
+using RenderStyle = Reference<struct RenderStyleT>;
+using Shader = Reference<struct ShaderT>;
+using ShaderInstance = Reference<struct ShaderInstanceT>;
+using Viewport = Reference<struct ViewportT>;
+using Texture2D = Reference<struct Texture2DT>;
+using Texture3D = Reference<struct Texture3DT>;
 
 /* Program. */
 struct Program;
 struct Timer;
 
-typedef Reference<struct LockT> Lock;
-typedef Reference<struct ModuleT> Module;
-typedef Reference<struct ThreadT> Thread;
-typedef Reference<struct WindowT> Window;
+using Lock = Reference<struct LockT>;
+using Module = Reference<struct ModuleT>;
+using Thread = Reference<struct ThreadT>;
+using Window = Reference<struct WindowT>;
 
 /* Reflection. */
 struct ConversionType;
@@ -124,17 +124,17 @@ struct FunctionDesc;
 struct Type;
 struct TypeT;
 
-typedef Reference<struct FunctionT> Function;
-typedef Reference<struct PackageT> Package;
+using Function = Reference<struct FunctionT>;
+using Package = Reference<struct PackageT>;
 
 /* Misc. */
 struct DrawState;
-typedef Reference<struct ResourceMapT> ResourceMap;
+using ResourceMap = Reference<struct ResourceMapT>;
 
 namespace LTE {
   /* Control. */
-  typedef Reference<struct AxisT> Axis;
-  typedef Reference<struct ButtonT> Button;
+  using Axis = Reference<struct AxisT>;
+  using Button = Reference<struct ButtonT>;
   struct Joystick;
 
   /* Engine. */
@@ -146,29 +146,29 @@ namespace LTE {
   struct Patch;
   struct String;
 
-  typedef Reference<struct ExpressionT> Expression;
-  typedef Reference<struct JobT> Job;
-  typedef Reference<struct LocationT> Location;
-  typedef Reference<struct ScriptT> Script;
-  typedef Reference<struct ScriptFunctionT> ScriptFunction;
-  typedef Reference<struct ScriptTypeT> ScriptType;
+  using Expression = Reference<struct ExpressionT>;
+  using Job = Reference<struct JobT>;
+  using Location = Reference<struct LocationT>;
+  using Script = Reference<struct ScriptT>;
+  using ScriptFunction = Reference<struct ScriptFunctionT>;
+  using ScriptType = Reference<struct ScriptTypeT>;
 
   /* Function. */
   template <class ValueType, class ArgType> struct Generic;
 
-  typedef uint HashT;
+  using HashT = uint;
   #define HASHT_MAX UINT_MAX
 
-  typedef Generic<bool, void> GenericBool;
-  typedef Generic<Color, void> GenericColor;
-  typedef Generic<int, void> GenericInt;
-  typedef Generic<float, void> GenericFloat;
-  typedef Generic<void, void> GenericVoid;
-  typedef Generic<Axis, void> GenericAxis;
-  typedef Generic<Button, void> GenericButton;
-  typedef Generic<V2, void> GenericV2;
-  typedef Generic<V3, void> GenericV3;
-  typedef Generic<V4, void> GenericV4;
+  using GenericBool = Generic<bool, void>;
+  using GenericColor = Generic<Color, void>;
+  using GenericInt = Generic<int, void>;
+  using GenericFloat = Generic<float, void>;
+  using GenericVoid = Generic<void, void>;
+  using GenericAxis = Generic<Axis, void>;
+  using GenericButton = Generic<Button, void>;
+  using GenericV2 = Generic<V2, void>;
+  using GenericV3 = Generic<V3, void>;
+  using GenericV4 = Generic<V4, void>;
 
   /* Enums. */
   namespace CubeFace {
@@ -182,7 +182,7 @@ namespace LTE {
       SIZE
     };
 
-    typedef unsigned char BitField;
+    using BitField = unsigned char;
     const unsigned char PositiveXBit = 0x01;
     const unsigned char NegativeXBit = 0x02;
     const unsigned char PositiveYBit = 0x04;

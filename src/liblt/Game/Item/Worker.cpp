@@ -10,13 +10,12 @@
  * Researcher - Research
  */
 
-typedef
+using WorkerBase = 
     Attribute_Icon
   < Attribute_Name
   < Attribute_Value
   < ItemWrapper<ItemType_Worker>
-  > > >
-  WorkerBase;
+  > > >;
 
 AutoClassDerived(WorkerEngineer, WorkerBase,
   uint, level,

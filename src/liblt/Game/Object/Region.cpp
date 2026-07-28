@@ -20,7 +20,7 @@
 const uint kMaxChildren = 1;//4;
 const uint kPlanetCount = 1;
 
-typedef ObjectWrapper
+using RegionBaseT = ObjectWrapper
   < Attribute_Traits
   < Component_Interior
   < Component_Nameable
@@ -28,8 +28,7 @@ typedef ObjectWrapper
   < Component_Resources
   < Component_Seeded
   < ObjectWrapperTail<ObjectType_Region>
-  > > > > > > >
-  RegionBaseT;
+  > > > > > > >;
 
 AutoClassDerived(Region, RegionBaseT,
   uint, level)

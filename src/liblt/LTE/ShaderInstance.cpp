@@ -29,11 +29,11 @@ namespace {
     virtual void Set(int varIndex, ShaderT* shader) = 0;
   };
 
-  typedef HashMap<int, ShaderVar*> VarMapT;
+  using VarMapT = HashMap<int, ShaderVar*>;
 
   template <class T>
   struct ShaderVarImpl : public ShaderVar {
-    typedef ShaderVarImpl SelfType;
+    using SelfType = ShaderVarImpl;
     Generic<T, void> g;
     POOLED_TYPE
 

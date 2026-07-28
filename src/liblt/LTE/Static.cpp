@@ -2,7 +2,7 @@
 #include "Map.h"
 #include "String.h"
 
-typedef Map<String, Data> StaticMap;
+using StaticMap = Map<String, Data>;
 
 namespace {
   StaticMap& GetMap() {

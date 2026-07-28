@@ -12,8 +12,8 @@
 #include "Debug.h"
 
 namespace {
-  typedef Map<void*, int> IdMapT;
-  typedef Map<int, void*> ResourceMapT;
+  using IdMapT = Map<void*, int>;
+  using ResourceMapT = Map<int, void*>;
 
   struct ResourceMap {
     ResourceMapT resources;

@@ -10,14 +10,14 @@
 
 template <class T>
 struct Array : public NullBase<Array<T> > {
-  typedef size_t ArgType;
-  typedef NullBase<Array<T> > BaseType;
-  typedef T ReturnType;
+  using ArgType = size_t;
+  using BaseType = NullBase<Array<T> >;
+  using ReturnType = T;
 
   T* buffer;
   size_t _size;
 
-  typedef struct Iterator {
+  struct Iterator {
     T* elem;
 
     Iterator(T* elem) :
@@ -46,7 +46,9 @@ struct Array : public NullBase<Array<T> > {
     T* operator->() {
       return elem;
     }
-  } IteratorType;
+  };
+
+  using IteratorType = Iterator;
 
   Array() :
     buffer(0),

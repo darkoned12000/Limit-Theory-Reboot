@@ -6,12 +6,12 @@
 namespace LTE {
   template <class T>
   struct GetDereferenceType {
-    typedef void Result;
+    using Result = void;
   };
 
   template <class T>
   struct GetDereferenceType<T*> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T>
@@ -28,7 +28,7 @@ namespace LTE {
 
   template <class T>
   struct GetReturnType { 
-    typedef typename T::ReturnType Result;
+    using Result = typename T::ReturnType;
   };
 
   template <class T>
@@ -36,122 +36,122 @@ namespace LTE {
 
   template <class T>
   struct GetReturnType<AutoPtr<T> > {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T>
   struct GetReturnType<Pointer<T> > {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T>
   struct GetReturnType<Reference<T> > {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T>
   struct GetReturnType<T(*)()> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T, class A1>
   struct GetReturnType<T(*)(A1)> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T, class A1, class A2>
   struct GetReturnType<T(*)(A1, A2)> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T, class A1, class A2, class A3>
   struct GetReturnType<T(*)(A1, A2, A3)> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T, class A1, class A2, class A3, class A4>
   struct GetReturnType<T(*)(A1, A2, A3, A4)> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T, class S>
   struct GetReturnType<T(S::*)()> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T, class S, class A1>
   struct GetReturnType<T(S::*)(A1)> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T, class S, class A1, class A2>
   struct GetReturnType<T(S::*)(A1, A2)> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T, class S, class A1, class A2, class A3>
   struct GetReturnType<T(S::*)(A1, A2, A3)> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T, class S, class A1, class A2, class A3, class A4>
   struct GetReturnType<T(S::*)(A1, A2, A3, A4)> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T, class S>
   struct GetReturnType<T(S::*)() const> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T, class S, class A1>
   struct GetReturnType<T(S::*)(A1) const> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T, class S, class A1, class A2>
   struct GetReturnType<T(S::*)(A1, A2) const> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T, class S, class A1, class A2, class A3>
   struct GetReturnType<T(S::*)(A1, A2, A3) const> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T, class S, class A1, class A2, class A3, class A4>
   struct GetReturnType<T(S::*)(A1, A2, A3, A4) const> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T>
   struct GetReturnType<T()> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T, class A1>
   struct GetReturnType<T(A1)> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T, class A1, class A2>
   struct GetReturnType<T(A1, A2)> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T, class A1, class A2, class A3>
   struct GetReturnType<T(A1, A2, A3)> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T, class A1, class A2, class A3, class A4>
   struct GetReturnType<T(A1, A2, A3, A4)> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T>
   struct RemoveRef {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T> struct RemoveRef<T&> : public RemoveRef<T> {};

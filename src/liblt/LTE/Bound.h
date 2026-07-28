@@ -12,8 +12,8 @@ AutoClass(BoundT,
   PointT, lower,
   PointT, upper)
 
-  typedef MatrixT<typename PointT::MetricType> MatrixType;
-  typedef typename PointT::MetricType MetricType;
+  using MatrixType = MatrixT<typename PointT::MetricType>;
+  using MetricType = typename PointT::MetricType;
 
   BoundT() = default;
 

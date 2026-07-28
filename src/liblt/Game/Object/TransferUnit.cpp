@@ -36,7 +36,7 @@ namespace {
   ShaderInstance gShader;
 }
 
-typedef ObjectWrapper
+using TransferUnitBaseT = ObjectWrapper
   < Component_Attachable
   < Component_BoundingBox
   < Component_Cullable
@@ -45,8 +45,7 @@ typedef ObjectWrapper
   < Component_Pluggable
   < Component_Supertyped
   < ObjectWrapperTail<ObjectType_TransferUnit>
-  > > > > > > > >
-  TransferUnitBaseT;
+  > > > > > > > >;
 
 AutoClassDerived(TransferUnit, TransferUnitBaseT,
   float, age,

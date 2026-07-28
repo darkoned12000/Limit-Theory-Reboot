@@ -52,7 +52,7 @@ namespace {
   } bool r = RegisterLoader(OnLoad);
 }
 
-typedef ObjectWrapper
+using ThrusterBaseT = ObjectWrapper
   < Component_Attachable
   < Component_BoundingBox
   < Component_Collidable
@@ -65,8 +65,7 @@ typedef ObjectWrapper
   < Component_Scriptable
   < Component_Supertyped
   < ObjectWrapperTail<ObjectType_Thruster>
-  > > > > > > > > > > > >
-  ThrusterBaseT;
+  > > > > > > > > > > > >;
 
 AutoClassDerived(Thruster, ThrusterBaseT,
   float, activation,

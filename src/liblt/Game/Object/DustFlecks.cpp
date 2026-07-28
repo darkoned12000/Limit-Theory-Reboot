@@ -12,10 +12,9 @@
 const uint kFleckCount = 1024;
 const float kDistance = 1024;
 
-typedef ObjectWrapper
+using DustFlecksBaseT = ObjectWrapper
   < ObjectWrapperTail<ObjectType_Effect>
-  >
-  DustFlecksBaseT;
+  >;
 
 AutoClassDerived(DustFlecks, DustFlecksBaseT,
   Vector<Object>, elements)

@@ -8,15 +8,14 @@
 #include "Component/Orientation.h"
 #include "LTE/Color.h"
 
-typedef ObjectWrapper
+using LightBaseT = ObjectWrapper
   < Component_Attachable
   < Component_Orientation
   < ObjectWrapperTail<ObjectType_Light>
-  > > >
-  LightBaseT;
+  > > >;
 
 struct Light : public LightBaseT {
-  typedef Light SelfType;
+  using SelfType = Light;
   Color color;
   float radius;
   float visibility;

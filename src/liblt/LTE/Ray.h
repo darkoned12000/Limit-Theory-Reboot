@@ -11,7 +11,7 @@ AutoClass(RayT,
   PointT, origin,
   DirT, direction)
 
-  typedef typename DirT::ReturnType LengthT;
+  using LengthT = typename DirT::ReturnType;
 
   RayT() = default;
 

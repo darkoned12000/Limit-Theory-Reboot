@@ -14,7 +14,7 @@
 char const* const kScriptExtension = ".lts";
 
 namespace {
-  typedef Map<String, Script> ScriptCacheT;
+  using ScriptCacheT = Map<String, Script>;
 
   ScriptCacheT& GetScriptCache() {
     static ScriptCacheT cache;

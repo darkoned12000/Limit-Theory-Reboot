@@ -16,7 +16,7 @@
 #include "LTE/Debug.h"
 
 namespace {
-  typedef Reference<struct PathNodeT> PathNode;
+  using PathNode = Reference<struct PathNodeT>;
 
   AutoClass(Edge,
     PathNode, node,
@@ -43,7 +43,7 @@ namespace {
       {}
   };
 
-  typedef Reference<struct PathT> Path;
+  using Path = Reference<struct PathT>;
 
   AutoClassDerived(PathT, RefCounted,
     Vector<Object>, nodes)

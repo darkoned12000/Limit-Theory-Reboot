@@ -6,7 +6,7 @@
 namespace LTE {
   template <class ParentT, class T>
   struct MemberFnT {
-    typedef typename GetReturnType<T>::Result ReturnType;
+    using ReturnType = typename GetReturnType<T>::Result;
 
     ParentT receiver;
     T t;

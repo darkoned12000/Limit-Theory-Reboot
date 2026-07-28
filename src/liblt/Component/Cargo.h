@@ -7,9 +7,9 @@
 #include "LTE/AutoClass.h"
 #include "LTE/Map.h"
 
-typedef Map<Item, Quantity> CargoMapT;
-typedef CargoMapT::iterator CargoIter;
-typedef CargoMapT::const_iterator CargoIterC;
+using CargoMapT = Map<Item, Quantity>;
+using CargoIter = CargoMapT::iterator;
+using CargoIterC = CargoMapT::const_iterator;
 
 AutoClass(ComponentCargo,
   CargoMapT, elements,

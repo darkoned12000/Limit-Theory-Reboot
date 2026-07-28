@@ -5,7 +5,7 @@
 
 template <class T>
 struct Attribute_Task : public T {
-  typedef Attribute_Task SelfType;
+  using SelfType = Attribute_Task;
   ATTRIBUTE_COMMON(task)
   Task task;
 

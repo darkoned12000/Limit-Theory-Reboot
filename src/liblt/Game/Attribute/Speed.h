@@ -5,7 +5,7 @@
 
 template <class T>
 struct Attribute_Speed : public T {
-  typedef Attribute_Speed SelfType;
+  using SelfType = Attribute_Speed;
   ATTRIBUTE_COMMON(speed)
   float speed;
 

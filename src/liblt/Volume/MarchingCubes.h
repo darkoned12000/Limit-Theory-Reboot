@@ -16,11 +16,11 @@
 //_____________________________________________________________________________
 // types
 /** unsigned char alias */
-typedef unsigned char uchar ;
+using uchar = unsigned char;
 /** signed char alias */
-typedef   signed char schar ;
+using schar = signed char;
 /** isovalue alias */
-typedef        float real  ;
+using real = float;
 
 //-----------------------------------------------------------------------------
 // MCVertex structure
@@ -34,11 +34,12 @@ typedef        float real  ;
  * \param ny Y component of the normal
  * \param nz Z component of the normal
  */
-typedef struct
+struct MCVertex
 {
+
   real  x,  y,  z ;  /**< MCVertex coordinates */
   real nx, ny, nz ;  /**< MCVertex normal */
-} MCVertex ;
+};
 
 //-----------------------------------------------------------------------------
 // Triangle structure
@@ -49,10 +50,11 @@ typedef struct
  * \param v2 Second MCVertex index
  * \param v3 Third MCVertex index
  */
-typedef struct
+struct Triangle
 {
+
   int v1,v2,v3 ;  /**< Triangle vertices */
-} Triangle ;
+};
 //_____________________________________________________________________________
 
 

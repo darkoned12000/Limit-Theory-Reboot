@@ -6,8 +6,8 @@
 namespace LTE {
   template <class T, class IndexT>
   struct LookupT {
-    typedef typename GetReturnType<T>::Result ExprT;
-    typedef typename GetReturnType<ExprT>::Result ReturnType;
+    using ExprT = typename GetReturnType<T>::Result;
+    using ReturnType = typename GetReturnType<ExprT>::Result;
 
     T t;
     IndexT index;

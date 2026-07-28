@@ -8,7 +8,7 @@
 namespace LTE {
   template <class ReturnT>
   struct FunctionTraits {
-    typedef ReturnT ReturnType;
+    using ReturnType = ReturnT;
   };
 
   template <class T, class ArgT>
@@ -48,7 +48,7 @@ namespace LTE {
   struct Function0ArgT :
     public FunctionInterface<typename T::ReturnType, void>
   {
-    typedef typename T::ReturnType ReturnType;
+    using ReturnType = typename T::ReturnType;
 
     mutable T t;
 
@@ -77,7 +77,7 @@ namespace LTE {
   struct Function1ArgT :
     public FunctionInterface<typename T::ReturnType, A1>
   {
-    typedef typename T::ReturnType ReturnType;
+    using ReturnType = typename T::ReturnType;
 
     mutable T t;
 
@@ -128,7 +128,7 @@ namespace LTE {
 namespace LTE {
   template <class T, class ArgT>
   struct GenericBase {
-    typedef T ReturnType;
+    using ReturnType = T;
 
     Reference<FunctionInterface<T, ArgT> > fn;
 

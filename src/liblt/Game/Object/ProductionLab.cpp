@@ -9,14 +9,13 @@
 
 #include "Module/SoundEngine.h"
 
-typedef ObjectWrapper
+using ProductionLabBaseT = ObjectWrapper
   < Component_Orientation
   < Component_Pluggable
   < Component_Supertyped
   < Component_Tasks
   < ObjectWrapperTail<ObjectType_ProductionLab>
-  > > > > >
-  ProductionLabBaseT;
+  > > > > >;
 
 AutoClassDerivedEmpty(ProductionLab, ProductionLabBaseT)
   Sound sound;

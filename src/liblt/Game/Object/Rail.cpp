@@ -42,12 +42,11 @@ namespace {
   } bool l = RegisterLoader(OnLoad);
 }
 
-typedef ObjectWrapper
+using RailBaseT = ObjectWrapper
   < Component_Damager
   < Component_Drawable
   < ObjectWrapperTail<ObjectType_Rail>
-  > > >
-  RailBaseT;
+  > > >;
 
 AutoClassDerived(Rail, RailBaseT,
   Position, position,

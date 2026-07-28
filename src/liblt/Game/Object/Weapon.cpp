@@ -25,7 +25,7 @@ const float kMinAngle = -0.25f;
 const float kTrackSpeed = 2.0f * kTau;
 const bool kInfiniteAmmo = true;
 
-typedef ObjectWrapper
+using WeaponBaseT = ObjectWrapper
   < Component_Attachable
   < Component_BoundingBox
   < Component_Collidable
@@ -37,8 +37,7 @@ typedef ObjectWrapper
   < Component_Pluggable
   < Component_Supertyped
   < ObjectWrapperTail<ObjectType_Weapon>
-  > > > > > > > > > > >
-  WeaponBaseT;
+  > > > > > > > > > > >;
 
 AutoClassDerived(Weapon, WeaponBaseT,
   Position, targetPos,

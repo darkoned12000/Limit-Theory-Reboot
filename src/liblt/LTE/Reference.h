@@ -27,8 +27,8 @@ struct RefCounted : public NullBase<RefCounted> {
 
 template <class T>
 struct Reference : public NullBase<Reference<T> > {
-  typedef NullBase<Reference<T> > BaseType;
-  typedef Reference SelfType;
+  using BaseType = NullBase<Reference<T> >;
+  using SelfType = Reference;
   T* t;
 
   Reference(T* t = 0) : t(t) {

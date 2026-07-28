@@ -12,12 +12,11 @@
 
 #include "LTE/Math.h"
 
-typedef ObjectWrapper
+using DroneProspectingBaseT = ObjectWrapper
   < Component_Drawable
   < Component_Orientation
   < ObjectWrapperTail<ObjectType_Drone>
-  > > >
-  DroneProspectingBaseT;
+  > > >;
 
 AutoClassDerivedEmpty(DroneProspecting, DroneProspectingBaseT)
   DERIVED_TYPE_EX(DroneProspecting)
@@ -34,12 +33,11 @@ AutoClassDerivedEmpty(DroneProspecting, DroneProspectingBaseT)
 
 DERIVED_IMPLEMENT(DroneProspecting)
 
-typedef
+using DroneProspectingTypeBaseT = 
     Attribute_Name
   < Attribute_Value
   < ItemWrapper<ItemType_DroneType>
-  > >
-  DroneProspectingTypeBaseT;
+  > >;
 
 AutoClassDerivedEmpty(DroneProspectingType, DroneProspectingTypeBaseT)
   DERIVED_TYPE_EX(DroneProspectingType)

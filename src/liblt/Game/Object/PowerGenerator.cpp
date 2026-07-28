@@ -18,12 +18,11 @@ const double kEfficiencyFactor = 1.0;
 const float kCapacitance = 8.0f;
 const double kChangeSpeed = 2.0;
 
-typedef ObjectWrapper
+using PowerGeneratorBaseT = ObjectWrapper
   < Component_Pluggable
   < Component_Supertyped
   < ObjectWrapperTail<ObjectType_PowerGenerator>
-  > > >
-  PowerGeneratorBaseT;
+  > > >;
 
 AutoClassDerived(PowerGenerator, PowerGeneratorBaseT,
   float, capacitance,

@@ -9,6 +9,6 @@ struct PhysicsEngine;
 struct Scheduler;
 struct SoundEngine;
 
-typedef Reference<struct SoundT> Sound;
+using Sound = Reference<struct SoundT>;
 
 #endif

@@ -40,14 +40,13 @@ namespace {
   }
 }
 
-typedef
+using OreTypeBase = 
     Attribute_Icon
   < Attribute_Mass
   < Attribute_Name
   < Attribute_Value
   < ItemWrapper<ItemType_OreType>
-  > > > >
-  OreTypeBase;
+  > > > >;
 
 AutoClassDerivedEmpty(OreType, OreTypeBase)
   DERIVED_TYPE_EX(OreType)

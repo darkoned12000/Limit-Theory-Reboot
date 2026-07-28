@@ -6,12 +6,12 @@
 namespace LTE {
   template <class T>
   struct GetMutableType {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T>
   struct GetMutableType<const T> {
-    typedef T Result;
+    using Result = T;
   };
 
   template <class T>

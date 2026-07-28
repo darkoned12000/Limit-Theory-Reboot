@@ -9,7 +9,7 @@
 #include "LTE/Debug.h"
 
 namespace {
-  typedef HashMap<HashT, Widget> ChildMapT;
+  using ChildMapT = HashMap<HashT, Widget>;
 
   AutoClassDerived(WidgetDynamic, WidgetComponentT,
     ChildMapT, childrenMap)

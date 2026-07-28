@@ -6,13 +6,12 @@
 
 #include "LTE/Pool.h"
 
-typedef ObjectWrapper
+using StaticBaseT = ObjectWrapper
   < Component_BoundingBox
   < Component_Drawable
   < Component_Orientation
   < ObjectWrapperTail<ObjectType_Static>
-  > > > >
-  StaticBaseT;
+  > > > >;
 
 AutoClassDerivedEmpty(Static, StaticBaseT)
   DERIVED_TYPE_EX(Static)

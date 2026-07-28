@@ -12,14 +12,13 @@
 
 #include "Module/SoundEngine.h"
 
-typedef ObjectWrapper
+using TechLabBaseT = ObjectWrapper
   < Component_Orientation
   < Component_Pluggable
   < Component_Supertyped
   < Component_Tasks
   < ObjectWrapperTail<ObjectType_TechLab>
-  > > > > >
-  TechLabBaseT;
+  > > > > >;
 
 AutoClassDerivedEmpty(TechLab, TechLabBaseT)
   Sound sound;

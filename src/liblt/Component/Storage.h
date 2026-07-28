@@ -5,7 +5,7 @@
 #include "Game/Player.h"
 #include "LTE/Map.h"
 
-typedef Map<Object, Object> StorageMapT;
+using StorageMapT = Map<Object, Object>;
 
 AutoClass(ComponentStorage,
   StorageMapT, entries)

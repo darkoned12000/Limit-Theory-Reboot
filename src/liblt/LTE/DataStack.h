@@ -7,7 +7,7 @@ const size_t kAlignment = sizeof(void*);
 
 namespace LTE {
   struct DataStack {
-    typedef DataStack SelfType;
+    using SelfType = DataStack;
 
     char* buffer;
     char* ptr;

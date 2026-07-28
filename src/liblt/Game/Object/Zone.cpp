@@ -35,15 +35,14 @@ namespace {
   }
 }
 
-typedef ObjectWrapper
+using ZoneBaseT = ObjectWrapper
   < Component_Nameable
   < Component_Orientation
   < Component_Resources
   < Component_Seeded
   < Component_Zoned
   < ObjectWrapperTail<ObjectType_Zone>
-  > > > > > >
-  ZoneBaseT;
+  > > > > > >;
 
 struct DynamicCell {
   Vector<Object> elements;

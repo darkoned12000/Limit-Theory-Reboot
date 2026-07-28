@@ -11,12 +11,12 @@ struct InterfaceT;
 struct WidgetT;
 struct WidgetComponentT;
 
-typedef Reference<CompositorT> Compositor;
-typedef Reference<GlyphT> Glyph;
-typedef Reference<IconT> Icon;
-typedef Reference<InterfaceT> Interface;
-typedef Reference<WidgetT> Widget;
-typedef Reference<WidgetComponentT> WidgetComponent;
+using Compositor = Reference<CompositorT>;
+using Glyph = Reference<GlyphT>;
+using Icon = Reference<IconT>;
+using Interface = Reference<InterfaceT>;
+using Widget = Reference<WidgetT>;
+using WidgetComponent = Reference<WidgetComponentT>;
 
 #define WIDGET_FOCUS_X                                                         \
   X(Key)                                                                       \

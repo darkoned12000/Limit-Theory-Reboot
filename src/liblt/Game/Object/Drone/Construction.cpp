@@ -10,12 +10,11 @@
 #include "Game/Attribute/Name.h"
 #include "Game/Attribute/Value.h"
 
-typedef ObjectWrapper
+using DroneConstructionBaseT = ObjectWrapper
   < Component_Drawable
   < Component_Orientation
   < ObjectWrapperTail<ObjectType_Drone>
-  > > >
-  DroneConstructionBaseT;
+  > > >;
 
 AutoClassDerivedEmpty(DroneConstruction, DroneConstructionBaseT)
   DERIVED_TYPE_EX(DroneConstruction)
@@ -30,12 +29,11 @@ AutoClassDerivedEmpty(DroneConstruction, DroneConstructionBaseT)
 
 DERIVED_IMPLEMENT(DroneConstruction)
 
-typedef
+using DroneConstructionTypeBaseT = 
     Attribute_Name
   < Attribute_Value
   < ItemWrapper<ItemType_DroneType>
-  > >
-  DroneConstructionTypeBaseT;
+  > >;
 
 AutoClassDerivedEmpty(DroneConstructionType, DroneConstructionTypeBaseT)
   DERIVED_TYPE_EX(DroneConstructionType)

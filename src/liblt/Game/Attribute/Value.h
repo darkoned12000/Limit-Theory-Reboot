@@ -5,7 +5,7 @@
 
 template <class T>
 struct Attribute_Value : public T {
-  typedef Attribute_Value SelfType;
+  using SelfType = Attribute_Value;
   ATTRIBUTE_COMMON(value)
   Quantity value;
 

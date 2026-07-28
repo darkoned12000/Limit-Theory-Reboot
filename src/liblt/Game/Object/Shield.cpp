@@ -49,7 +49,7 @@ namespace {
   } static bool l = RegisterLoader(OnLoad);
 }
 
-typedef ObjectWrapper
+using ShieldBaseT = ObjectWrapper
   < Component_Attachable
   < Component_BoundingBox
   < Component_Collidable
@@ -60,8 +60,7 @@ typedef ObjectWrapper
   < Component_Orientation
   < Component_Supertyped
   < ObjectWrapperTail<ObjectType_Shield>
-  > > > > > > > > > >
-  ShieldBaseT;
+  > > > > > > > > > >;
 
 AutoClassDerived(Shield, ShieldBaseT,
   float, time,

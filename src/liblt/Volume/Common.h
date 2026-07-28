@@ -5,7 +5,7 @@
 
 template <class T> struct Array3D;
 
-typedef Array3D<float> Array3DFloat;
-typedef Array3D<V3> Array3DVector;
+using Array3DFloat = Array3D<float>;
+using Array3DVector = Array3D<V3>;
 
 #endif

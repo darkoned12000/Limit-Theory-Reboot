@@ -6,7 +6,7 @@
 
 template <class T>
 struct Attribute_Color : public T {
-  typedef Attribute_Color SelfType;
+  using SelfType = Attribute_Color;
   ATTRIBUTE_COMMON(color)
   Color color;
 

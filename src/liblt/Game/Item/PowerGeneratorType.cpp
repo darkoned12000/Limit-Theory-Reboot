@@ -9,14 +9,13 @@
 
 #include "UI/Glyphs.h"
 
-typedef
+using PowerGeneratorTypeBase = 
     Attribute_Capability
   < Attribute_Icon
   < Attribute_Name
   < Attribute_Value
   < ItemWrapper<ItemType_PowerGeneratorType>
-  > > > >
-  PowerGeneratorTypeBase;
+  > > > >;
 
 AutoClassDerivedEmpty(PowerGeneratorType, PowerGeneratorTypeBase)
   DERIVED_TYPE_EX(PowerGeneratorType)

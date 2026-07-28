@@ -7,7 +7,7 @@
 
 template <class T>
 struct Attribute_Sockets : public T {
-  typedef Attribute_Sockets SelfType;
+  using SelfType = Attribute_Sockets;
   Array<Socket> sockets;
 
   Array<Socket> const* GetSockets() const override {

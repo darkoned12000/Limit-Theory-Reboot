@@ -6,7 +6,7 @@
 
 template <class T>
 struct Attribute_Name : public T {
-  typedef Attribute_Name SelfType;
+  using SelfType = Attribute_Name;
   ATTRIBUTE_COMMON(name)
   String name;
 

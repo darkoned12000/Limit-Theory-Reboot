@@ -26,7 +26,7 @@
 
 template <class T>
 struct Attribute_Mass : public T {
-  typedef Attribute_Mass SelfType;
+  using SelfType = Attribute_Mass;
   ATTRIBUTE_COMMON(mass)
   Mass mass;
 

@@ -12,12 +12,11 @@
 
 const int kSamples = 1024;
 
-typedef ObjectWrapper
+using ScannerBaseT = ObjectWrapper
   < Component_Pluggable
   < Component_Supertyped
   < ObjectWrapperTail<ObjectType_Scanner>
-  > > >
-  ScannerBaseT;
+  > > >;
 
 AutoClassDerivedEmpty(Scanner, ScannerBaseT)
   InteriorIterator iterator;

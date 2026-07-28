@@ -14,13 +14,12 @@
 
 #include "Module/SoundEngine.h"
 
-typedef ObjectWrapper
+using PayloadBaseT = ObjectWrapper
   < Component_Drawable
   < Component_Motion
   < Component_Orientation
   < ObjectWrapperTail<ObjectType_Payload>
-  > > > >
-  PayloadBaseT;
+  > > > >;
 
 AutoClassDerived(Payload, PayloadBaseT,
   LightRef, light,

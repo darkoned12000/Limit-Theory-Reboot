@@ -24,11 +24,11 @@ const String kVersionDirective = "#version 460 core\n";
 const uint kTextureUnits = 16;
 
 namespace {
-  typedef Reference<struct ShaderObjectT> ShaderObject;
-  typedef Reference<struct ProgramObjectT> ProgramObject;
-  typedef Map<String, ShaderObject> ShaderMap;
-  typedef Map<String, ProgramObject> ProgramMap;
-  typedef Map<char const*, int> LocationCache;
+  using ShaderObject = Reference<struct ShaderObjectT>;
+  using ProgramObject = Reference<struct ProgramObjectT>;
+  using ShaderMap = Map<String, ShaderObject>;
+  using ProgramMap = Map<String, ProgramObject>;
+  using LocationCache = Map<char const*, int>;
 
   GL_Program gActiveProgram = GL_NullProgram;
   Pointer<ShaderT> gActiveShader;

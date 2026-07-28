@@ -28,7 +28,7 @@ const Icon kIcon = Icon_Create()
   ->Add(Glyph_LineFade(V2(-1.0f,  0.0f), V2(0.50f,  0.0f), 1, 1))
   ->Add(Glyph_LineFade(V2(-0.5f, -0.5f), V2(0.25f, -0.5f), 1, 1));
 
-typedef
+using ThrusterTypeBase = 
     Attribute_Capability
   < Attribute_Color
   < Attribute_Icon
@@ -42,8 +42,7 @@ typedef
   < Attribute_Scale
   < Attribute_Value
   < ItemWrapper<ItemType_ThrusterType>
-  > > > > > > > > > > > >
-  ThrusterTypeBase;
+  > > > > > > > > > > > >;
 
 AutoClassDerivedEmpty(ThrusterType, ThrusterTypeBase)
   DERIVED_TYPE_EX(ThrusterType)

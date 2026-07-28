@@ -9,7 +9,7 @@
 #if 0
 
 const float kTriangleCost = 1.0f;
-typedef Reference<struct SphereTreeT> SphereTree;
+using SphereTree = Reference<struct SphereTreeT>;
 
 AutoClass(Triangle,
   V3, p1,

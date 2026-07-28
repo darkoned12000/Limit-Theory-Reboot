@@ -35,7 +35,7 @@
 #include "LTE/RenderStyle.h"
 #include "LTE/SDFs.h"
 
-typedef ObjectWrapper
+using StationBaseT = ObjectWrapper
   < Component_Affectable
   < Component_Asset
   < Component_BoundingBox
@@ -60,8 +60,7 @@ typedef ObjectWrapper
   < Component_Targets
   < Component_Zoned
   < ObjectWrapperTail<ObjectType_Station>
-  > > > > > > > > > > > > > > > > > > > > > > > >
-  StationBaseT;
+  > > > > > > > > > > > > > > > > > > > > > > > >;
 
 AutoClassDerivedEmpty(Station, StationBaseT)
   DERIVED_TYPE_EX(Station)

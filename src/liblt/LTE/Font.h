@@ -5,7 +5,7 @@
 #include "Reference.h"
 #include "String.h"
 
-typedef Reference<struct FontT> Font;
+using Font = Reference<struct FontT>;
 
 struct FontT : public RefCounted {
   FontT() = default;

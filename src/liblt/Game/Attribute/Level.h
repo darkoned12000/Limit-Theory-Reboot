@@ -5,7 +5,7 @@
 
 template <class T>
 struct Attribute_Level : public T {
-  typedef Attribute_Level SelfType;
+  using SelfType = Attribute_Level;
   ATTRIBUTE_COMMON(level)
   float level;
 

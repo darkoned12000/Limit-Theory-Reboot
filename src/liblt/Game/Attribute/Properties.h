@@ -5,7 +5,7 @@
 
 template <class T>
 struct Attribute_Properties : public T {
-  typedef Attribute_Properties SelfType;
+  using SelfType = Attribute_Properties;
   ATTRIBUTE_COMMON(properties)
   V3 properties;
 

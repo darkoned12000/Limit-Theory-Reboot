@@ -5,7 +5,7 @@
 
 template <class T>
 struct Attribute_Integrity : public T {
-  typedef Attribute_Integrity SelfType;
+  using SelfType = Attribute_Integrity;
   ATTRIBUTE_COMMON(integrity)
   Health integrity;
 

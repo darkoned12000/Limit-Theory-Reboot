@@ -28,8 +28,8 @@ const int kPadding = 8;
 TypeAlias(Reference<FontT>, Font);
 
 namespace {
-  typedef Map<String, Font> FontCache;
-  typedef HashMap<uint32, float> KerningMap;
+  using FontCache = Map<String, Font>;
+  using KerningMap = HashMap<uint32, float>;
 
   FontCache& GetFontCache() {
     static FontCache cache;

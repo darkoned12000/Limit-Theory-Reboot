@@ -24,7 +24,7 @@ namespace GL_BlendFunction {
 }
 
 namespace GL_BufferBit {
-  typedef unsigned int Mask;
+  using Mask = unsigned int;
   const Mask Color             = GL_COLOR_BUFFER_BIT;
   const Mask Depth             = GL_DEPTH_BUFFER_BIT;
   const Mask Stencil           = GL_STENCIL_BUFFER_BIT;

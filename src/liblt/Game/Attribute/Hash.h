@@ -5,7 +5,7 @@
 
 template <class T>
 struct Attribute_Hash : public T {
-  typedef Attribute_Hash SelfType;
+  using SelfType = Attribute_Hash;
   ATTRIBUTE_COMMON(hash)
   HashT hash;
 

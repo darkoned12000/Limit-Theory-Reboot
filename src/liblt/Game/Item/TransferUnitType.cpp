@@ -18,7 +18,7 @@
 
 #include "LTE/Script.h"
 
-typedef
+using TransferUnitTypeBase = 
     Attribute_Capability
   < Attribute_Icon
   < Attribute_Mass
@@ -31,8 +31,7 @@ typedef
   < Attribute_Scale
   < Attribute_Value
   < ItemWrapper<ItemType_TransferUnitType>
-  > > > > > > > > > > >
-  TransferUnitTypeBase;
+  > > > > > > > > > > >;
 
 AutoClassDerivedEmpty(TransferUnitType, TransferUnitTypeBase)
   DERIVED_TYPE_EX(TransferUnitType)

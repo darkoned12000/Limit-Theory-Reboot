@@ -22,7 +22,7 @@
 
 #include "LTE/DeclareFunction.h"
 
-typedef ObjectWrapper
+using PlayerBaseT = ObjectWrapper
   < Attribute_Traits
   < Component_Account
   < Component_Affectable
@@ -37,8 +37,7 @@ typedef ObjectWrapper
   < Component_Scriptable
   < Component_Tasks
   < ObjectWrapperTail<ObjectType_Player>
-  > > > > > > > > > > > > > >
-  PlayerBaseT;
+  > > > > > > > > > > > > > >;
 
 struct PlayerT : public PlayerBaseT {
   BASE_TYPE_EX(PlayerT)

@@ -14,7 +14,7 @@
 
 #include "UI/Widget.h"
 
-typedef ObjectWrapper
+using CustomBaseT = ObjectWrapper
   < Component_BoundingBox
   < Component_Drawable
   < Component_Cullable
@@ -23,8 +23,7 @@ typedef ObjectWrapper
   < Component_Orientation
   < Component_Scriptable
   < ObjectWrapperTail<ObjectType_Custom>
-  > > > > > > > >
-  CustomBaseT;
+  > > > > > > > >;
 
 AutoClassDerived(ObjectCustom, CustomBaseT,
   Data, instance,
