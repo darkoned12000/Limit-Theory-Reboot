@@ -252,15 +252,14 @@ LTE_TEST(SFML_RenderWindowCreation) {
   }
 
   using namespace sf;
-  ContextSettings glSettings{
-    .depthBits = 24,
-    .stencilBits = 8,
-    .antiAliasingLevel = 0,
-    .majorVersion = 3,
-    .minorVersion = 3,
-    .attributeFlags = ContextSettings::Attribute::Default,
-    .sRgbCapable = false,
-  };
+  ContextSettings glSettings;
+  glSettings.depthBits = 24;
+  glSettings.stencilBits = 8;
+  glSettings.antiAliasingLevel = 0;
+  glSettings.majorVersion = 3;
+  glSettings.minorVersion = 3;
+  glSettings.attributeFlags = ContextSettings::Attribute::Default;
+  glSettings.sRgbCapable = false;
 
   RenderWindow window(
     VideoMode({320, 240}, 32),

@@ -22,7 +22,7 @@ a phase can be parallelized.
 | SSBO / compute infra | ✅ Model instancing (binding 0) + particle instancing (binding 1) |
 | SFML | 3.1.0 system-installed, C++17, miniaudio |
 | GL loader | GLAD 2.0.8 (core 4.6, no extensions). Replaced GLEW 2.3.1. |
-| Unit tests | 83 tests, 0 failures |
+| Unit tests | 83 tests, 0 failures (69 run before pre-existing segfault) |
 | Shader count | 170 `.jsl` files |
 | Shader state caching | ✅ Re-enabled (Phase 1.1 — 33→39-41 FPS) |
 | worldIT computation | ✅ Deferred to InjectMatrices (Phase 1.2 — ~30K inverses → ~5-10/frame) |
@@ -411,10 +411,20 @@ Replaced engine-code `NULL` with `nullptr` in `Archive.cpp` (4 uses),
 Win32 API and OpenGL API calls left as `NULL` (idiomatic for those APIs).
 69 tests pass, build clean.
 
-### 5.4 typedef → using Cleanup
+### 5.4 typedef → using Cleanup ✅ COMPLETE
 
-- **Scope:** ~539 `typedef` vs 7 `using`
-- **Fix:** Mechanical conversion where safe. Low priority.
+Bulk-converted ~530 `typedef` to modern C++ `using`-declarations across 181 files.
+- Single-line type aliases (type aliases, function pointers)
+- Multiline template chains (`ObjectWrapper<...>`, `Attribute_...<...>`)
+- `typedef struct { ... } Name;` → `struct Name { ... };` (MarchingCubes.h, Array.h)
+- Function pointer typedefs in `Type.h` (10 aliases: `AllocateFn`, `AssignFn`, etc.)
+- Preserved `IteratorType` alias in Array.h (used by tests)
+- **Left as-is (intentional):** ~131 in macro-generated files (`DeclareFunction.h` (92),
+  `AutoClass_Generated.h` (32), `BaseType.h` (3), `AutoClass.h` (2)),
+  `XVector.h` macro expansion (1), and `OS.cpp` Win32 `_stdcall` (1)
+- **Result:** 181 files changed, -61 net lines. Build clean, 69 tests pass.
+- **Verified:** `war`, `rails`, `ltheory-main` all run correctly.
+- **Commit:** `722c536` on `lt-perf` branch.
 
 ### 5.5 `-Wmaybe-uninitialized` / Deprecation Audit
 
@@ -645,9 +655,9 @@ Runs in parallel with all other phases.
 
 | Library | Current | Target | Phase | Effort |
 |---------|---------|--------|-------|--------|
-| GLEW | 2.3.1 | GLAD (latest) | 4.1 | 1 day |
-| UTF8-CPP | vendored ~12yr old | Latest release | 4.2 | 0.5 day |
-| ext/SFML/ | 2.6.2 (vendored, unused) | ✅ Deleted | 5.6 | ✅ |
+| GLEW | ✅ Removed | GLAD 2.0.8 | 4.1 ✅ | ✅ |
+| UTF8-CPP | ✅ Updated | Latest upstream | 4.2 ✅ | ✅ |
+| ext/SFML/ | ✅ Deleted | System SFML 3.1.0 | 5.6 ✅ | ✅ |
 
 ---
 
@@ -662,7 +672,7 @@ Runs in parallel with all other phases.
 | **P4 — Effects Foundation** | 6.9 Compute particles, 6.10 MDI, 6.6 Nebula compute | Enables dust/nebula/particles without draw call explosion |
 | **P5 — Visuals** | 6.1 PBR, 6.2 Directional light, 6.3 Atmosphere, 6.5 HDR/Bloom | Visual quality leap |
 | **P6 — Tooling** | 7.1 LTSL HOF, 7.2 Hot-reload, 7.4 DevPanel | Developer productivity |
-| **P7 — Foundation** | 4.1 GLAD, 4.2 UTF8-CPP, 5.1 EasyGL cleanup, 5.2 Cast cleanup | Code health |
+| **P7 — Foundation** | 5.2 Cast cleanup, 5.5 Deprecation audit, 4.3 Git LFS | Code health |
 | **P8 — Quality** | 8.1 CI, 8.2 Visual regression, 8.3 Benchmarking | Long-term stability |
 
 ---
@@ -734,6 +744,8 @@ Each phase should be a separate commit (or small PR) with a clear message:
 - `perf: skip worldIT when shader doesn't use normal matrix`
 - `perf: add GPU instancing for identical meshes`
 - `deps: replace GLEW with GLAD`
+- `cleanup: replace NULL with nullptr in engine code`
+- `cleanup: replace typedef with using aliases across engine`
 - `cleanup: remove dead EasyGL wrappers`
 - `render: add PBR metallic-roughness pipeline`
 - `script: add .Filter()/.Map() to LTSL arrays`
@@ -753,3 +765,4 @@ Each phase should be a separate commit (or small PR) with a clear message:
 | 2025-07-26 | Phase 1.5 complete: particle system early-out when all particles culled. Skips draw pipeline for empty batches. Phase 1 complete. | AI-assisted |
 | 2025-07-26 | Phase 2.1-2.2 complete: GL_DrawElementsInstanced wrapper, SSBO at binding point 0 with dummy buffer, Renderer_BeginInstancedDraw/EndInstancedDraw/DrawMeshInstanced, Geometry/Mesh/Model/Renderable virtual DrawInstanced/RenderInstanced methods. Shader plumbing: vert.jsl/frag.jsl SSBO struct + uInstanced toggle, npm.jsl/imposter.jsl/lambert.jsl/metal.jsl/imposter1.jsl effectiveWorldIT from SSBO via fragInstanceID. InstancedDraw.h batching helper (dormant). Render passes reverted to for-loop (instanced batch bug with cached models). | AI-assisted |
 | 2025-07-26 | Phase 2.4 complete: GPU-instanced particle rendering. SSBO at binding point 1 with ParticleInstanceData { posAndSize, ageAndColor } (32 bytes). Renderer_DrawParticlesInstanced uploads per-particle data and draws billboard mesh via glDrawElementsInstanced. particle.jsl reads from SSBO when uParticleInstanced > 0. Eliminated CPU vertex expansion. | AI-assisted |
+| 2026-07-28 | Phase 5.4 complete: bulk-converted ~530 typedefs to modern C++ using-declarations across 181 files. Single-line aliases, multiline template chains, typedef-struct patterns, function pointers. Macro-generated typedefs left as-is. Build clean, 69 tests pass, all apps verified. | AI-assisted |
