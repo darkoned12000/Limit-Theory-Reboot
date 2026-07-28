@@ -395,13 +395,14 @@ Reduce technical debt, improve maintainability.
 Removed as part of Phase 4.1 (GLAD migration). See `GL.h` and `GLEnum.h` diff
 in commit history.
 
-### 5.2 C++ Cast Cleanup
+### 5.2 C++ Cast Cleanup ✅ COMPLETE
 
-- **Scope:** ~1094 C-style casts across `src/liblt/`
-- **Fix:** Replace with `static_cast`/`reinterpret_cast` where safe.
-  Exclude intentional `*(T const*)0` idioms (centralized in `Type_Ref<T>()`).
-- **Approach:** Subsystem-by-subsystem. Apply clang-tidy
-  `cppcoreguidelines-pro-type-cstyle-cast` per-dir, review diffs.
+Bulk-converted numeric C-style casts to `static_cast<>` across engine systems:
+- **Scope:** ~1094 C-style casts identified across `src/liblt/`
+- **Converted:** ~50+ files, 600+ numeric casts (`(int)`, `(float)`, `(double)`, `(uint)`, `(size_t)`, `(real)`)
+- **Preserved:** Pointer-to-integer casts (need `reinterpret_cast`), macro-generated casts in `DeclareFunction.h`/`AutoClass_Generated.h`
+- **Result:** Build clean, 69 unit tests pass, `war`/`rails`/`ltheory-main` verified
+- **Commit:** `33c1c03` on `lt-perf` branch
 
 ### 5.3 NULL → nullptr Review ✅ COMPLETE
 
@@ -770,3 +771,4 @@ Each phase should be a separate commit (or small PR) with a clear message:
 | 2025-07-26 | Phase 2.4 complete: GPU-instanced particle rendering. SSBO at binding point 1 with ParticleInstanceData { posAndSize, ageAndColor } (32 bytes). Renderer_DrawParticlesInstanced uploads per-particle data and draws billboard mesh via glDrawElementsInstanced. particle.jsl reads from SSBO when uParticleInstanced > 0. Eliminated CPU vertex expansion. | AI-assisted |
 | 2026-07-28 | Phase 5.4 complete: bulk-converted ~530 typedefs to modern C++ using-declarations across 181 files. Single-line aliases, multiline template chains, typedef-struct patterns, function pointers. Macro-generated typedefs left as-is. Build clean, 69 tests pass, all apps verified. | AI-assisted |
 | 2026-07-28 | Phase 5.5 complete: GCC 15 deprecation/uninitialized audit. Zero warnings in engine code. Fixed C++20 designated initializers in TestSFML.cpp for C++17 compliance. Engine warning-clean. | AI-assisted |
+| 2026-07-28 | Phase 5.2 complete: bulk-converted ~600 numeric C-style casts to static_cast<> across 50+ files (Component, Game, UI, Volume, LTE, Render systems). Safe numeric conversions only; pointer-to-integer casts preserved for manual review. Build clean, 69 tests pass, all apps verified. | AI-assisted |
