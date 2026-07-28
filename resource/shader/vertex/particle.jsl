@@ -6,6 +6,19 @@ uniform vec3 camUp;
 uniform float fadeIn;
 uniform float fadeOut;
 
+/* GPU-instanced particles: per-instance data in SSBO at binding point 1.
+   When uParticleInstanced > 0, position/size/age/color come from the SSBO
+   instead of vertex attributes. The billboard mesh's quad positions (at
+   origin) and UVs are still needed from the mesh VBO. */
+struct ParticleInstanceData {
+  vec4 posAndSize;
+  vec4 ageAndColor;
+};
+layout(std430, binding=1) buffer ParticleInstanceBuffer {
+  ParticleInstanceData particleInstances[];
+};
+uniform int uParticleInstanced;
+
 layout(location=11) VERT_OUT float opacityMult;
 layout(location=12) VERT_OUT vec3 attrib;
 
@@ -14,18 +27,32 @@ const float zOffset = 6.0;
 void main() {
   VS_PROLOGUE;
 
-  vec3 position = vertex_position;
+  vec3 position;
+  float size;
+  float age;
+  vec3 particleAttrib;
+
+  if (uParticleInstanced > 0) {
+    ParticleInstanceData inst = particleInstances[gl_InstanceID];
+    position = inst.posAndSize.xyz;
+    size = inst.posAndSize.w;
+    age = inst.ageAndColor.x;
+    particleAttrib = inst.ageAndColor.yzw;
+  } else {
+    position = vertex_position;
+    size = vertex_normal.x;
+    age = vertex_normal.y;
+    particleAttrib = vertex_color;
+  }
+
   vec3 toCam = eye - position;
   float dist = length(toCam);
   toCam /= dist;
   vec3 right = normalize(cross(camUp, toCam));
   vec3 up = cross(right, toCam);
 
-  float size = vertex_normal.x;
-  float age = vertex_normal.y;
-
   opacityMult = saturate((1. - age) / fadeOut) * saturate(age / fadeIn);
-  attrib = vertex_color;
+  attrib = particleAttrib;
 
   position += size * u * right;
   position += size * v * up;

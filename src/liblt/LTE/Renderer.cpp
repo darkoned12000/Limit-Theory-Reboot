@@ -202,6 +202,43 @@ namespace {
         shader->SetInt(loc, instanced);
     }
   }
+
+  void SetParticleInstancedUniform(int instanced) {
+    ShaderT* shader = Shader_GetActive();
+    if (shader) {
+      int loc = shader->QueryUniformLocation("uParticleInstanced");
+      if (loc >= 0)
+        shader->SetInt(loc, instanced);
+    }
+  }
+
+  /* Particle SSBO at binding point 1 — compact per-instance data for
+     GPU-instanced billboard particles. Separate from the model instancing
+     SSBO at binding point 0. */
+  const unsigned int kParticleBindingPoint = 1;
+  GL_Buffer gParticleDummyBuffer = GL_NullBuffer;
+  GL_Buffer gParticleInstanceBuffer = GL_NullBuffer;
+  size_t gParticleInstanceBufferCapacity = 0;
+
+  GL_Buffer GetParticleDummyBuffer() {
+    if (gParticleDummyBuffer == GL_NullBuffer) {
+      gParticleDummyBuffer = GL_GenBuffer();
+      /* 2 x vec4 = 32 bytes, matches ParticleInstanceData layout. */
+      float zero[8] = {};
+      GL_BindBuffer(GL_BufferTarget::ShaderStorage, gParticleDummyBuffer);
+      GL_BufferData(GL_BufferTarget::ShaderStorage, sizeof(zero), zero,
+                    GL_BufferUsage::StaticDraw);
+      GL_BindBufferBase(GL_BufferTarget::ShaderStorage,
+                        kParticleBindingPoint, gParticleDummyBuffer);
+    }
+    return gParticleDummyBuffer;
+  }
+
+  GL_Buffer GetParticleInstanceBuffer() {
+    if (gParticleInstanceBuffer == GL_NullBuffer)
+      gParticleInstanceBuffer = GL_GenBuffer();
+    return gParticleInstanceBuffer;
+  }
 }
 
 namespace LTE {
@@ -289,6 +326,10 @@ namespace LTE {
     /* Bind a dummy SSBO at binding point 0 so non-instanced shaders
        never access an unbound buffer object. */
     GetDummyInstanceBuffer();
+
+    /* Bind a dummy SSBO at binding point 1 for the particle instancing
+       path (same reason — GLSL doesn't short-circuit). */
+    GetParticleDummyBuffer();
   }
 
 // ----------------------------------------------------------------------------
@@ -591,6 +632,70 @@ namespace LTE {
 
     renderer.callCount++;
     renderer.polyCount += (mesh->GetIndices() / 3) * instanceCount;
+  }
+
+  void Renderer_DrawParticlesInstanced(
+    MeshT const* mesh,
+    ParticleInstanceData const* instances,
+    int count)
+  {
+    LTE_ASSERT(count > 0);
+    PrepareMeshForDraw(mesh);
+
+    /* Upload per-particle instance data to SSBO at binding point 1.
+       Layout: { vec4 posAndSize, vec4 ageAndColor } per instance = 32 bytes. */
+    GL_Buffer buf = GetParticleInstanceBuffer();
+    GL_BindBuffer(GL_BufferTarget::ShaderStorage, buf);
+
+    size_t needed = (size_t)count;
+    if (needed > gParticleInstanceBufferCapacity) {
+      gParticleInstanceBufferCapacity = needed * 2;
+      GL_BufferData(GL_BufferTarget::ShaderStorage,
+                    (int)(sizeof(ParticleInstanceData) * gParticleInstanceBufferCapacity),
+                    nullptr, GL_BufferUsage::DynamicDraw);
+    }
+    GL_BufferSubData(GL_BufferTarget::ShaderStorage, 0,
+                     (int)(sizeof(ParticleInstanceData) * count),
+                     instances);
+    GL_BindBufferBase(GL_BufferTarget::ShaderStorage,
+                      kParticleBindingPoint, buf);
+
+    /* Set uParticleInstanced AFTER the shader is bound. */
+    SetParticleInstancedUniform(1);
+
+    Renderer_BindVertexBuffer(mesh->vbo);
+    Renderer_BindIndexBuffer(mesh->ibo);
+
+    Renderer_EnableAttribArray(0);
+    Renderer_EnableAttribArray(1);
+    Renderer_EnableAttribArray(2);
+
+    /* The billboard mesh has Vertex layout: p(3), n(3), u(2), v(2), c(3).
+       Positions are at origin (all zeros), UVs provide the quad corners.
+       The particle vertex shader reads position/size/age/color from SSBO
+       instead of these attributes when uParticleInstanced > 0. */
+    GL_VertexAttribPointer(0, 3, GL_DataFormat::Float, false, sizeof(Vertex),
+                           (void const*)offset_of(Vertex, p));
+    GL_VertexAttribPointer(1, 3, GL_DataFormat::Float, false, sizeof(Vertex),
+                           (void const*)offset_of(Vertex, n));
+    GL_VertexAttribPointer(2, 2, GL_DataFormat::Float, false, sizeof(Vertex),
+                           (void const*)offset_of(Vertex, u));
+    GL_DrawElementsInstanced(
+      GL_DrawMode::Triangles,
+      mesh->GetIndices(),
+      mesh->indexFormat,
+      nullptr,
+      count);
+
+    SetParticleInstancedUniform(0);
+
+    /* Rebind the dummy SSBO so non-particle shaders don't touch the
+       instance buffer. */
+    GL_BindBufferBase(GL_BufferTarget::ShaderStorage,
+                      kParticleBindingPoint, GetParticleDummyBuffer());
+
+    renderer.callCount++;
+    renderer.polyCount += (mesh->GetIndices() / 3) * count;
   }
 
   namespace {
