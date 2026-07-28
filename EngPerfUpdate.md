@@ -419,12 +419,12 @@ in commit history.
 - **Scope:** GCC 15 strict warnings
 - **Fix:** Fix at source, not via suppression. Audit one subsystem at a time.
 
-### 5.6 Delete Vendored ext/SFML/ Directory
+### 5.6 Delete Vendored ext/SFML/ Directory ✅ COMPLETE
 
-- **Scope:** `ext/SFML/` is legacy (2.6.2, no longer built). System SFML 3.1
-  is used via `find_package`.
-- **Fix:** Remove the directory to reduce repo size. Update `.gitignore` if
-  needed.
+Removed legacy `ext/SFML/` submodule (2.6.2, never built). System SFML 3.1.0
+is used via `find_package(SFML 3.1 REQUIRED ...)`. Updated `install_dependencies.sh`
+to include `libsfml-dev` and remove `libglew-dev`. Updated README, AGENTS.md,
+CMakeLists.txt, and .clang-format to remove all references.
 
 ---
 
@@ -645,7 +645,7 @@ Runs in parallel with all other phases.
 |---------|---------|--------|-------|--------|
 | GLEW | 2.3.1 | GLAD (latest) | 4.1 | 1 day |
 | UTF8-CPP | vendored ~12yr old | Latest release | 4.2 | 0.5 day |
-| ext/SFML/ | 2.6.2 (vendored, unused) | Delete directory | 5.6 | 0.25 day |
+| ext/SFML/ | 2.6.2 (vendored, unused) | ✅ Deleted | 5.6 | ✅ |
 
 ---
 

@@ -184,8 +184,6 @@ python configure.py run war
   system, serializer, LTSL scripting), `Game`, `Component`, `UI`, `Module`
   (SoundEngine/FMOD, Physics, Scheduler), `Audio`, `Volume`.
 - **`src/launch/`** — the `launch` executable entry point (`main()`).
-- **`ext/SFML/`** — vendored SFML 2.6.2 (X11-only backend; runs on Wayland via
-  XWayland), built statically into `liblt.so`.
 - **`extbin/`** — shipped runtime binaries (FMOD).
 - **`resource/`** — game data: 169 `.jsl` shaders, textures, fonts, LTSL scripts.
 - **`script/`** — Python tooling (`tloc`, `assetlist`, ...).

@@ -9,7 +9,7 @@
 #   - pointer/reference glued to the type (T* t, char const*)
 #   - ~90 column limit (observed max line ~89)
 #   - namespace contents indented 2 spaces
-# Do NOT reformat vendored code (ext/SFML/, include/) — see .clang-format-ignore
+# Do NOT reformat vendored code (include/) — see .clang-format-ignore
 # style guards below; run clang-format only on src/liblt and src/launch.
 
 BasedOnStyle: LLVM
