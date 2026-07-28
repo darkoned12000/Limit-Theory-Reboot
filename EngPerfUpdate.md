@@ -363,16 +363,21 @@ from `GL.h` and legacy GL enums from `GLEnum.h`. Deleted vendored
 platform `LINK_LIBRARIES` in CMakeLists.txt. Verified with `war`, `rails`,
 `ltheory-main` apps; 69 unit tests pass.
 
-### 4.2 UTF8-CPP Upgrade
+### 4.2 UTF8-CPP Upgrade ✅ COMPLETE
 
-**Impact: LOW | Effort: 0.5 day | Risk: LOW**
-
-Update vendored `include/UTF8` from the current ancient release to a current
-release. Library is 12+ years old.
-
-- **Source:** https://github.com/nemtrif/utfcpp/releases
-- **Files:** Replace `include/UTF8/*` with latest headers.
-- **Verify:** UTF-8 string operations still work (font rendering, UI text).
+Updated vendored `include/UTF8/` from ancient 2006 release to latest
+(upstream `utfcpp` master). Key changes:
+- `core.h`: `utfchar8_t`/`utfchar16_t`/`utfchar32_t` typedefs replace raw
+  `uint8_t`/`uint16_t`/`uint32_t`; `#include <cstring>`/`<string>` added;
+  C++ version detection macros (`UTF_CPP_OVERRIDE`, `UTF_CPP_NOEXCEPT`);
+  `sequence_length()` returns `int`; `validate_next()` inlined with per-case
+  overlong checks.
+- `checked.h`: Iterator class no longer inherits from deprecated
+  `std::iterator` — explicit typedefs instead (fixes C++17 deprecation).
+- `unchecked.h`: Same `next()` API (only consumer: `UniString.cpp`).
+- New: `cpp11.h`, `cpp17.h`, `cpp20.h` convenience overloads (string_view,
+  u8string).
+- Verified: 69 unit tests pass, build clean, apps run.
 
 ### 4.3 Git LFS for Large Resources
 
