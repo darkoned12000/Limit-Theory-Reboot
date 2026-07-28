@@ -86,9 +86,9 @@ public :
   /** accesses the number of triangles of the generated mesh */
   inline int ntrigs() const { return _ntrigs ; }
   /** accesses a specific MCVertex of the generated mesh */
-  inline MCVertex   * vert( const int i ) const { if( i < 0  || i >= _nverts ) return ( MCVertex *)NULL ; return _vertices  + i ; }
+  inline MCVertex   * vert( const int i ) const { if( i < 0  || i >= _nverts ) return nullptr ; return _vertices  + i ; }
   /** accesses a specific triangle of the generated mesh */
-  inline Triangle * trig( const int i ) const { if( i < 0  || i >= _ntrigs ) return (Triangle*)NULL ; return _triangles + i ; }
+  inline Triangle * trig( const int i ) const { if( i < 0  || i >= _ntrigs ) return nullptr ; return _triangles + i ; }
 
   /** accesses the MCVertex buffer of the generated mesh */
   inline MCVertex   *vertices () { return _vertices  ; }
@@ -119,11 +119,11 @@ public :
    * \param data is the pointer to the external data, allocated as a size_x*size_y*size_z vector running in x first
    */
   inline void set_ext_data  ( real *data )
-  { if( !_ext_data ) delete [] _data ;  _ext_data = data != NULL ;  if( _ext_data ) _data = data ; }
+  { if( !_ext_data ) delete [] _data ;  _ext_data = data != nullptr ;  if( _ext_data ) _data = data ; }
   /**
    * selects to allocate data
    */
-  inline void set_int_data  () { _ext_data = false ;  _data = NULL ; }
+  inline void set_int_data  () { _ext_data = false ;  _data = nullptr ; }
 
   // Data access
   /**

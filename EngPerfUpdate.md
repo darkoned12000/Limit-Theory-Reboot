@@ -403,11 +403,13 @@ in commit history.
 - **Approach:** Subsystem-by-subsystem. Apply clang-tidy
   `cppcoreguidelines-pro-type-cstyle-cast` per-dir, review diffs.
 
-### 5.3 NULL → nullptr Review
+### 5.3 NULL → nullptr Review ✅ COMPLETE
 
-- **Scope:** ~41 remaining `NULL` usages
-- **Fix:** Manual review and replacement. Cannot auto-fix because `0` is
-  overloaded as both null-pointer and integer-zero in this codebase.
+Replaced engine-code `NULL` with `nullptr` in `Archive.cpp` (4 uses),
+`Diff.cpp` (1 use), `MarchingCubes.cpp` (8 uses), and `MarchingCubes.h`
+(4 uses). Removed unnecessary C-style casts (e.g. `(real*)NULL` → `nullptr`).
+Win32 API and OpenGL API calls left as `NULL` (idiomatic for those APIs).
+69 tests pass, build clean.
 
 ### 5.4 typedef → using Cleanup
 
