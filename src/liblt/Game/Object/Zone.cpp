@@ -14,6 +14,7 @@
 #include "LTE/RNG.h"
 #include "LTE/SDFs.h"
 #include "LTE/SDFMesh.h"
+#include "LTE/Pool.h"
 #include "LTE/StackFrame.h"
 #include "LTE/View.h"
 
@@ -108,6 +109,7 @@ AutoClassDerivedEmpty(Zone, ZoneBaseT)
   bool hasEyePos;
 
   DERIVED_TYPE_EX(Zone)
+  POOLED_TYPE
 
   Zone() : hasEyePos(false) {
     for (size_t i = 0; i < kFieldLevels; ++i) {

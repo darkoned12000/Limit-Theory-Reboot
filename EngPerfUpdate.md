@@ -272,18 +272,24 @@ flag (skips first update until camera position is known).
 - **Measured impact:** The 14 FPS gap between moving (33) and still (47)
   is largely this + planet bounce scan — expected to close significantly.
 
-### 3.2 Object Pooling for Frequent Create/Destroy
+### 3.2 Object Pooling for Frequent Create/Destroy ✅ COMPLETE
 
-- **Files exist:** `src/liblt/LTE/Pool.h` (94 lines) — `PoolRaw<T>` lock-free
-  free-list with linked arenas, `Pool<T>` typed wrapper, `GetTypePool<T>()`
-  singleton accessor, `POOLED_TYPE` macro. ~100+ types already pooled
-  (expression AST nodes, UI glyphs, widgets, tasks).
-- **Gap:** No dedicated game-object pool. Most game objects (asteroids,
-  stations, ships, projectiles) use regular `new`/`delete` via `Reference<T>`.
-  Only `Ship`, `Shield`, `TechLab`, `Wormhole` use `POOLED_TYPE`.
-- **Fix:** Extend `POOLED_TYPE` usage to hot-path game objects created by
-  `Zone::DynamicCell::Update()` (asteroids). Add a dedicated game-object
-  slab allocator if needed.
+- **Existing infrastructure:** `Pool.h` (94 lines) with `PoolRaw<T>` lock-free
+  free-list, `Pool<T>` typed wrapper, `GetTypePool<T>()` singleton, and
+  `POOLED_TYPE` macro. Already used by ~100+ types (AST nodes, UI glyphs,
+  widgets, tasks) and major game objects (Asteroid, Ship, Station, etc.).
+- **Gap found:** 7 game object types and 2 derivative types lacked `POOLED_TYPE`.
+- **Fix:** Added `POOLED_TYPE` + `#include "LTE/Pool.h"` to:
+  - `PlanetImpl` (Planet.cpp)
+  - `Zone` (Zone.cpp)
+  - `WarpNode`, `WarpNodeControllerT` (WarpNode.cpp)
+  - `WarpRail` (WarpRail.cpp)
+  - `DustFlecks` (DustFlecks.cpp)
+  - `ObjectCustom` (Custom.cpp)
+  - `DroneConstruction`, `DroneConstructionType` (Drone/Construction.cpp)
+  - `DroneProspecting`, `DroneProspectingType` (Drone/Prospecting.cpp)
+- **Result:** All game objects now use pool allocation. Hot path (Asteroid,
+  AsteroidRich from Zone) was already pooled. Build clean, 69 tests pass.
 
 ### 3.3 Pre-reserve Mesh Vectors ✅ COMPLETE
 

@@ -8,6 +8,7 @@
 #include "LTE/Meshes.h"
 #include "LTE/Model.h"
 #include "LTE/SDFMesh.h"
+#include "LTE/Pool.h"
 #include "LTE/ShaderInstance.h"
 
 namespace {
@@ -40,6 +41,7 @@ AutoClassDerived(WarpRail, WarpRailBaseT,
   Object, node1,
   Object, node2)
   DERIVED_TYPE_EX(WarpRail)
+  POOLED_TYPE
 
   WarpRail() {
     // Drawable.renderable = GetModel;

@@ -17,12 +17,14 @@
 #include "LTE/Texture2D.h"
 
 #include "LTE/Debug.h"
+#include "LTE/Pool.h"
 
 AutoClassDerived(PlanetImpl, Planet,
   double, hunger,
   double, population)
 
   DERIVED_TYPE_EX(PlanetImpl)
+  POOLED_TYPE
 
   PlanetImpl() :
     hunger(0),

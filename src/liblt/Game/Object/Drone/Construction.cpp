@@ -10,6 +10,8 @@
 #include "Game/Attribute/Name.h"
 #include "Game/Attribute/Value.h"
 
+#include "LTE/Pool.h"
+
 using DroneConstructionBaseT = ObjectWrapper
   < Component_Drawable
   < Component_Orientation
@@ -18,6 +20,7 @@ using DroneConstructionBaseT = ObjectWrapper
 
 AutoClassDerivedEmpty(DroneConstruction, DroneConstructionBaseT)
   DERIVED_TYPE_EX(DroneConstruction)
+  POOLED_TYPE
   
   DroneConstruction() {
     Drawable.renderable = Renderable_Ice(5);
@@ -37,6 +40,7 @@ using DroneConstructionTypeBaseT =
 
 AutoClassDerivedEmpty(DroneConstructionType, DroneConstructionTypeBaseT)
   DERIVED_TYPE_EX(DroneConstructionType)
+  POOLED_TYPE
 
   Object Instantiate(ObjectT* parent) override {
     return new DroneConstruction;

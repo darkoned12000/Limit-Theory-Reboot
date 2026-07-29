@@ -8,6 +8,7 @@
 #include "LTE/RenderStyle.h"
 #include "LTE/ShaderInstance.h"
 #include "LTE/View.h"
+#include "LTE/Pool.h"
 
 const uint kFleckCount = 1024;
 const float kDistance = 1024;
@@ -20,6 +21,7 @@ AutoClassDerived(DustFlecks, DustFlecksBaseT,
   Vector<Object>, elements)
 
   DERIVED_TYPE_EX(DustFlecks)
+  POOLED_TYPE
 
   DustFlecks() = default;
 

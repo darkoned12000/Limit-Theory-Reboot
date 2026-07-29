@@ -10,6 +10,7 @@
 
 #include "Game/Player.h"
 
+#include "LTE/Pool.h"
 #include "LTE/Script.h"
 
 #include "UI/Widget.h"
@@ -32,6 +33,7 @@ AutoClassDerived(ObjectCustom, CustomBaseT,
   ScriptFunction, onDestroy,
   ScriptFunction, onUpdate)
   DERIVED_TYPE_EX(ObjectCustom)
+  POOLED_TYPE
 
   ObjectCustom() = default;
 

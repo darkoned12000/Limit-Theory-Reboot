@@ -18,6 +18,7 @@
 #include "LTE/DrawState.h"
 #include "LTE/Meshes.h"
 #include "LTE/Model.h"
+#include "LTE/Pool.h"
 
 #include "LTE/Debug.h"
 
@@ -121,6 +122,8 @@ namespace {
   AutoClassDerived(WarpNodeControllerT, RefCounted,
     Vector<Passenger>, passengers,
     Vector<RailSlot>, slots)
+
+    POOLED_TYPE
 
     WarpNodeControllerT() = default;
 
@@ -385,6 +388,7 @@ AutoClassDerived(WarpNode, WarpNodeBaseT,
   WarpNodeController, controller,
   bool, owner)
   DERIVED_TYPE_EX(WarpNode)
+  POOLED_TYPE
 
   WarpNode() {
     Drawable.renderable = GetModel;
