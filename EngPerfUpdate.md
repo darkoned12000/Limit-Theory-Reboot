@@ -249,23 +249,28 @@ will keep FPS above 30 at current object counts.
 
 Reduce allocation churn and move expensive work out of the render path.
 
-### 3.1 Move Zone Object Generation Out of Render Pass
+### 3.1 Move Zone Object Generation Out of Render Pass ✅ COMPLETE
 
 **Impact: HIGH | Effort: 0.5 day | Risk: LOW**
 
-`Zone::OnDraw()` (Zone.cpp:118-123) calls `field[i]->Update(this, pos)`
-which iterates 6 `DynamicCell` levels, comparing current camera cell to
-last-known cell. On cell change, **deletes all existing elements** and
-**regenerates** up to 648 asteroids per field level × 6 levels = ~3,888
+`Zone::OnDraw()` (Zone.cpp:118-123) called `field[i]->Update(this, pos)`
+which iterated 6 `DynamicCell` levels, comparing current camera cell to
+last-known cell. On cell change, **deleted all existing elements** and
+**regenerated** up to 648 asteroids per field level × 6 levels = ~3,888
 objects — all synchronously from inside the draw pass.
 
-- **File:** `src/liblt/Game/Object/Zone.cpp` (OnDraw line 118-123)
-- **Fix:** Move `field[i]->Update()` calls from `OnDraw()` to `OnUpdate()`.
-  If update timing is critical, defer creation across multiple frames
-  (amortize: create N objects per frame instead of all at once).
-- **Note:** `Zone` does NOT define `OnUpdate()` — inherits empty default.
+**Fix:** Moved `field[i]->Update()` calls from `OnDraw()` into a new
+`OnUpdate()` override. Since `UpdateState` lacks camera position, stored
+the eye position from `OnDraw()` via a `lastEyePos` member + `hasEyePos`
+flag (skips first update until camera position is known).
+
+- **File:** `src/liblt/Game/Object/Zone.cpp` (OnDraw line 118-123 → new OnUpdate)
+- **Members added:** `Position lastEyePos`, `bool hasEyePos`
+- **Result:** Object generation now runs in the update loop, not the draw
+  pass. Eliminates ~3,888 object creations/destructions from the render
+  path. Build clean, 69 tests pass, apps verified.
 - **Measured impact:** The 14 FPS gap between moving (33) and still (47)
-  is largely this — planet bounce scan + Zone updates during the frame.
+  is largely this + planet bounce scan — expected to close significantly.
 
 ### 3.2 Object Pooling for Frequent Create/Destroy
 

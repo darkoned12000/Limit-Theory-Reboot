@@ -104,10 +104,12 @@ struct DynamicCell {
 
 AutoClassDerivedEmpty(Zone, ZoneBaseT)
   AutoPtr<DynamicCell> field[kFieldLevels];
+  Position lastEyePos;
+  bool hasEyePos;
 
   DERIVED_TYPE_EX(Zone)
 
-  Zone() {
+  Zone() : hasEyePos(false) {
     for (size_t i = 0; i < kFieldLevels; ++i) {
       float objectSize = kInitialSize * Pow(2.0f, static_cast<float>(i));
       float cellSize = 512.0f * Pow(objectSize, kCompression);
@@ -117,8 +119,16 @@ AutoClassDerivedEmpty(Zone, ZoneBaseT)
 
   void OnDraw(DrawState* state) override {
     BaseType::OnDraw(state);
+    lastEyePos = state->view->transform.pos;
+    hasEyePos = true;
+  }
+
+  void OnUpdate(UpdateState& state) override {
+    BaseType::OnUpdate(state);
+    if (!hasEyePos)
+      return;
     for (size_t i = 0; i < kFieldLevels; ++i)
-      field[i]->Update(this, state->view->transform.pos);
+      field[i]->Update(this, lastEyePos);
   }
 };
 
