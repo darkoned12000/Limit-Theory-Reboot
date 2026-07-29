@@ -18,7 +18,10 @@ namespace {
           SDF_FractalWorley(Rand(1, 1000), 6, 2.6f), 0.0f, 2.0f);
         models[i] = (Renderable)Model_Create()
           ->Add(SDFMesh_Create(d), Material_Rock());
-        models[i] = Renderable_Imposter(models[i]);
+        // TODO: Phase 3b.2 — Renderable_Imposter wrapping renders invisible
+        // (cubemap atlas generation and/or LOD calculation in Imposter::Render
+        // needs debugging). See Imposter.cpp.
+        // models[i] = Renderable_Imposter(models[i]);
       }
     }
 
