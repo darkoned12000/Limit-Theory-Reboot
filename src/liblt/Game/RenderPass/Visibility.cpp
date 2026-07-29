@@ -28,10 +28,13 @@ namespace {
     DERIVED_TYPE_EX(Visibility)
 
     void CheckVisibility(ObjectT* self, DrawState* state) {
-      if (IsVisible(self, state))
-        state->visible.push((void*)self);
       if (self->GetType() == ObjectType_Light)
         state->lights.push((void*)self);
+
+      if (!IsVisible(self, state))
+        return;
+
+      state->visible.push((void*)self);
 
       LIST_ITERATE(Object, self->children, nextSibling) {
         CheckVisibility(*it, state);
