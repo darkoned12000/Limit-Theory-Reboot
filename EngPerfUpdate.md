@@ -189,39 +189,59 @@ The single biggest performance win. Replaces 30,000+ individual draw calls
 with ~10-20 instanced calls. Without this, no amount of visual effects
 will keep FPS above 30 at current object counts.
 
-### 2.1 Add GL Draw Instanced Wrapper
+### 2.1 Add GL Draw Instanced Wrapper ✅ COMPLETE
 
-- **File:** `src/liblt/LTE/GL.h`, `src/liblt/LTE/GLEnum.h`
-- **Add:** `GL_DrawElementsInstanced(mode, count, type, indices, instanceCount)`
-  wrapper. Add `GL_Instanced` to `GL_BufferTarget` if needed.
-- **Add:** `GL_InstanceDivisor(index, divisor)` wrapper for setting per-instance
-  attribute divisor.
+- **File:** `src/liblt/LTE/GL.h`
+- **Added:** `GL_DrawElementsInstanced(mode, count, type, indices, instanceCount)`
+  wrapper (line 349). Uses SSBO-based approach (no `glVertexAttribDivisor` needed).
+- **Result:** Low-level instancing call available. Verified in shader pipeline.
 
-### 2.2 Add Instanced Draw Path to Renderer
+### 2.2 Add Instanced Draw Path to Renderer ✅ COMPLETE
 
-- **File:** `src/liblt/LTE/Renderer.cpp`, `src/liblt/LTE/Renderer.h`
-- **Add:** `Renderer_DrawMeshInstanced(mesh, instanceCount, instanceBuffer)`
-  that binds the per-instance data buffer and calls `GL_DrawElementsInstanced`.
-- **Add:** Per-instance transform buffer management (one SSBO or VBO holding
-  all instance model matrices or position+scale).
+- **Files:** `src/liblt/LTE/Renderer.cpp`, `Renderer.h`
+- **Added:**
+  - `Renderer_BeginInstancedDraw(state)` — uploads per-instance `world + worldIT`
+    matrices (128 bytes each) to SSBO binding point 0, with orphan-and-reallocate
+    streaming.
+  - `Renderer_EndInstancedDraw()` — resets `uInstanced=0`, rebinds dummy SSBO.
+  - `Renderer_DrawMeshInstanced(mesh, count)` — calls `GL_DrawElementsInstanced`
+    with instance data from SSBO.
+  - `Renderer_DrawParticlesInstanced(mesh, instances, count)` — SSBO binding
+    point 1 for particles.
+- **SSBO management:** Dual dummy buffers (binding 0 for models, binding 1 for
+  particles), initialized at `Renderer_Initialize()`. Lazy allocation on first use.
+- **Geometry type hierarchy:** `Renderable::RenderInstanced` → `Model::RenderInstanced`
+  → `Mesh::DrawInstanced` → `Renderer_DrawMeshInstanced` virtual chain implemented.
+- **Shader plumbing:** `vert.jsl`/`frag.jsl` SSBO struct `InstanceData` + `uInstanced`
+  toggle. All vertex shaders (`npm.jsl`, `imposter.jsl`) read `instances[gl_InstanceID].world`.
+  Fragment shaders (`lambert.jsl`, `metal.jsl`, `imposter1.jsl`) read `instances[fragInstanceID].worldIT` for normal transform.
 
-### 2.3 Batch Identical Objects in Visible List
+### 2.3 Batch Identical Objects in Visible List ⏸️ ON HOLD
 
-- **File:** `src/liblt/Game/Component/Drawable.cpp`, render passes
-- **Fix:** Group visible objects by `(mesh, shader)`. For each group, build
-  a per-instance transform buffer and issue one instanced draw call.
-- **Priority groups:**
-  1. Asteroids (~30,000 objects, same mesh) — biggest win, single draw call
-  2. Dust flecks (1,024 billboards, already particle-instanced)
-  3. Ships (13 objects, ~3 hull variants — small win but good test)
+- **File:** `src/liblt/Game/InstancedDraw.h` (89 lines, **dormant**)
+- **Status:** `DrawVisibleInstanced()` batching pass is fully implemented but
+  **never called** — no file `#include`s `InstancedDraw.h`. Render passes
+  (`GBuffer.cpp`, `Blended.cpp`, `DepthPrepass.cpp`) still use per-object
+  `for(i...) obj->OnDraw(state)` loops.
+- **Issue:** Reverted due to instanced draw bug with cached models. Debugging
+  attempted (hours) without resolution. Deferred until after Phase 3 lifecycle
+  improvements, which may simplify the batching logic.
+- **What it does when activated:** Groups `visible[1..n]` by `RenderableT*`
+  pointer (already sorted by Phase 1.4). Batches of size 2..255 use full
+  instanced path. Singleton and ≥256 batches fall back to `OnDraw`.
+  Container `visible[0]` always drawn individually first.
 
-### 2.4 Update Particle System to Use GPU Instancing
+### 2.4 Update Particle System to Use GPU Instancing ✅ COMPLETE
 
-- **File:** `src/liblt/Game/Graphics/ParticleSystem.cpp`
-- **Fix:** Replace the CPU-side billboard vertex generation with a single
-  billboard mesh drawn instanced, with per-instance position/size/age in
-  a buffer. This eliminates the per-particle CPU vertex copy + full buffer
-  re-upload.
+- **File:** `src/liblt/LTE/ParticleSystem.cpp`
+- **Fix:** Replaced CPU-side billboard vertex generation with a single unit-quad
+  billboard mesh (`Mesh_Billboard(-1, 1, -1, 1)`) drawn instanced. Per-particle
+  position/size/age uploaded as `ParticleInstanceData` (32 bytes each) to SSBO
+  binding point 1.
+- **Shaders:** `particle.jsl` reads from SSBO at binding point 1 when
+  `uParticleInstanced > 0`.
+- **Result:** Eliminated per-particle CPU vertex copy + full buffer re-upload.
+  **Active in render path** — the only instancing code path running at runtime.
 
 ---
 
@@ -233,38 +253,49 @@ Reduce allocation churn and move expensive work out of the render path.
 
 **Impact: HIGH | Effort: 0.5 day | Risk: LOW**
 
-`Zone::OnDraw()` (Zone.cpp:119-123) calls `field[i]->Update()` which
-destroys/recreates ~3800 objects synchronously during the draw pass. This
-must move to the update loop.
+`Zone::OnDraw()` (Zone.cpp:118-123) calls `field[i]->Update(this, pos)`
+which iterates 6 `DynamicCell` levels, comparing current camera cell to
+last-known cell. On cell change, **deletes all existing elements** and
+**regenerates** up to 648 asteroids per field level × 6 levels = ~3,888
+objects — all synchronously from inside the draw pass.
 
-- **File:** `src/liblt/Game/Zone.cpp`
+- **File:** `src/liblt/Game/Object/Zone.cpp` (OnDraw line 118-123)
 - **Fix:** Move `field[i]->Update()` calls from `OnDraw()` to `OnUpdate()`.
   If update timing is critical, defer creation across multiple frames
   (amortize: create N objects per frame instead of all at once).
+- **Note:** `Zone` does NOT define `OnUpdate()` — inherits empty default.
 - **Measured impact:** The 14 FPS gap between moving (33) and still (47)
   is largely this — planet bounce scan + Zone updates during the frame.
 
 ### 3.2 Object Pooling for Frequent Create/Destroy
 
-- **File:** New file: `src/liblt/LTE/ObjectPool.h`
-- **Add:** A simple slab allocator for game objects. Pre-allocate pools
-  for common types (asteroids, particles, projectiles). Avoids `new`/`delete`
-  per-object churn.
-- **Integrate:** Replace raw `new`/`delete` in hot-path object creation
-  (Zone cells, particle systems) with pool allocation.
+- **Files exist:** `src/liblt/LTE/Pool.h` (94 lines) — `PoolRaw<T>` lock-free
+  free-list with linked arenas, `Pool<T>` typed wrapper, `GetTypePool<T>()`
+  singleton accessor, `POOLED_TYPE` macro. ~100+ types already pooled
+  (expression AST nodes, UI glyphs, widgets, tasks).
+- **Gap:** No dedicated game-object pool. Most game objects (asteroids,
+  stations, ships, projectiles) use regular `new`/`delete` via `Reference<T>`.
+  Only `Ship`, `Shield`, `TechLab`, `Wormhole` use `POOLED_TYPE`.
+- **Fix:** Extend `POOLED_TYPE` usage to hot-path game objects created by
+  `Zone::DynamicCell::Update()` (asteroids). Add a dedicated game-object
+  slab allocator if needed.
 
-### 3.3 Pre-reserve Mesh Vectors
+### 3.3 Pre-reserve Mesh Vectors ✅ COMPLETE
 
-- **File:** `src/liblt/LTE/Mesh.cpp` (MeshT::AddMesh)
-- **Fix:** Uncomment the `reserve()` calls at lines ~117 and ~125 to avoid
-  vector reallocations during mesh construction.
+- **File:** `src/liblt/LTE/Mesh.cpp` (MeshT::AddMesh lines 121, 129)
+- **Fix:** Uncomment `vertices.reserve()` and `indices.reserve()` calls
+  to avoid vector reallocations during mesh construction.
+- **Status:** Simple fix — four commented-out lines to uncomment. Verified
+  in audit.
 
 ### 3.4 Conditional Frustum Culling Improvements
 
-- **File:** `src/liblt/Game/Component/Visibility.cpp`
-- **Audit:** Check if hierarchical frustum culling (parent bounding volume
-  culls entire subtree) is implemented. If not, add it — eliminates
-  per-object frustum tests for children of off-screen parents.
+- **File:** `src/liblt/Game/RenderPass/Visibility.cpp`
+- **Audit:** Per-object culling only. No hierarchical culling — parent
+  bounding volumes do NOT cull subtrees. Visibility pass does a flat
+  iteration over all interior objects via `InteriorTypeIterator`, not a
+  tree walk. Spatial partitioning exists for physics (`SpatialPartition_Hash`
+  in `Component/Queryable.cpp`) but is NOT used for render culling.
 - **Measured need:** With 30K objects, even a fast frustum test is 30K
   bounding sphere/plane checks per frame. Hierarchical culling could
   reduce this to ~100-500 checks.
@@ -670,7 +701,7 @@ Runs in parallel with all other phases.
 | Priority | Tasks | Estimated Impact |
 |----------|-------|-----------------|
 | **P0 — Do First** | 2.1-2.4 GPU instancing | Phase 1 complete — move to Phase 2 |
-| **P1 — Critical Path** | 2.1-2.4 GPU instancing | 30K draw calls → ~10. +70% FPS. Unblocks everything. |
+| **P1 — Critical Path** | 2.1-2.4 GPU instancing | 30K draw calls → ~10. +70% FPS. 2.3 on hold (see note). |
 | **P2 — High Value** | 3b.1-3b.3 LOD system, 3.1 Zone fix | Keeps effective object count manageable at scale |
 | **P3 — Medium Value** | 3c.1-3c.2 Hi-Z occlusion, 1.4 Sort by material, 3.2 Object pooling | +5-10% FPS, smoother frame times |
 | **P4 — Effects Foundation** | 6.9 Compute particles, 6.10 MDI, 6.6 Nebula compute | Enables dust/nebula/particles without draw call explosion |
@@ -698,7 +729,7 @@ Target: **60 FPS sustained** with visual effects active.
 | **Phase 1.4** (sort by material) ✅ | — / — | — | Objects grouped by shader+mesh; reduced state switches |
 | **Phase 1.5** (early-out particles) ✅ | — / — | — | Skips draw calls for fully-culled particle groups |
 | **Phase 2.1-2.2** (SSBO + Renderer infra) ✅ | — / — | — | Binding point 0, dummy buffer, Renderer_BeginInstancedDraw |
-| **Phase 2.3** (batching + render pass wiring) ⚠️ | — / — | — | Infrastructure dormant — instanced draw bug with cached models. Render passes reverted to for-loop. |
+| **Phase 2.3** (batching + render pass wiring) ⏸️ | — / — | — | ON HOLD — infrastructure built but dormant. See 2.3 for details. Deferred after Phase 3. |
 | **Phase 2.4** (particle GPU instancing) ✅ | — / — | — | SSBO at binding point 1, eliminated CPU vertex expansion |
 | **Phase 2** (instancing) | 55 / 60+ | +70% | 30K draw calls → ~10-20. Critical path. |
 | **Phase 3b** (LOD) | 58 / 62+ | +5% | 70-80% of asteroids → billboard/culled |
@@ -772,3 +803,4 @@ Each phase should be a separate commit (or small PR) with a clear message:
 | 2026-07-28 | Phase 5.4 complete: bulk-converted ~530 typedefs to modern C++ using-declarations across 181 files. Single-line aliases, multiline template chains, typedef-struct patterns, function pointers. Macro-generated typedefs left as-is. Build clean, 69 tests pass, all apps verified. | AI-assisted |
 | 2026-07-28 | Phase 5.5 complete: GCC 15 deprecation/uninitialized audit. Zero warnings in engine code. Fixed C++20 designated initializers in TestSFML.cpp for C++17 compliance. Engine warning-clean. | AI-assisted |
 | 2026-07-28 | Phase 5.2 complete: bulk-converted ~600 numeric C-style casts to static_cast<> across 50+ files (Component, Game, UI, Volume, LTE, Render systems). Safe numeric conversions only; pointer-to-integer casts preserved for manual review. Build clean, 69 tests pass, all apps verified. | AI-assisted |
+| 2026-07-28 | Updated Phase 2 status: 2.1/2.2/2.4 marked ✅ complete. 2.3 marked ⏸️ ON HOLD (infrastructure built but dormant due to cached model bug; deferred after Phase 3). Phase 3 audit completed: 3.3 pre-reserve fix identified, 3.1 Zone update confirmed as top priority for ~14 FPS gain. | AI-assisted |
