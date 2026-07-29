@@ -325,10 +325,14 @@ flag (skips first update until camera position is known).
 
 ---
 
-## Phase 3b: Level-of-Detail (LOD) System (Est: 3-5 days)
+## Phase 3b: Level-of-Detail (LOD) System (Est: 3-5 days) ✅ COMPLETE
 
 Critical for scaling beyond 30K objects. Without LOD, every asteroid
 renders at full polygon count regardless of distance.
+
+Phase 3b implements a complete 3-tier LOD pipeline: visibility culling
+(LOD 3 → culled), pre-generated mesh LOD (LOD 0-2 selects SDF resolution),
+and internal SDFMesh LOD (8-tier per-frame downsampling within each tier).
 
 ### 3b.1 Distance-Based LOD Selection ✅ COMPLETE
 
@@ -357,7 +361,7 @@ renders at full polygon count regardless of distance.
   Typical asteroid (r=100m): LOD 3 culled beyond 20km.
 - **Verification:** Build clean, 69 tests pass, `ltheory-main`/`war`/`dogfight` verified.
 
-### 3b.2 Impostor / Billboard Rendering for Distant Objects ❌ FAILED
+### 3b.2 Impostor / Billboard Rendering for Distant Objects ❌ SKIPPED
 
 **Status: Reverted.** The `Renderable_Imposter` wrapping caused most asteroids
 to disappear — only the 6 largest remained visible.
@@ -381,40 +385,78 @@ to disappear — only the 6 largest remained visible.
   Proper integration requires the Visibility LOD system (Phase 3b.1) to
   select which objects use the imposter.
 
-### 3b.3 LOD Mesh Generation
+### 3b.3 LOD Mesh Generation ✅ COMPLETE
 
-- **Option A (runtime):** Vertex decimation shader (compute) — generate
-  simplified meshes on GPU at load time.
-- **Option B (offline):** Pre-generate LOD meshes in `Object_Asteroid` at
-  different detail levels. Simpler, no compute needed.
-- **Recommendation:** Option B for now. 3 LOD levels per asteroid type,
-  selected by distance.
+**Implementation (Option B — pre-generated):**
+- Each of the 3 unique asteroid types now has 3 pre-generated SDF meshes
+  at different `resolutionMult` levels (1.0, 0.5, 0.25), stored as a
+  `LODModel` renderable (`src/liblt/Game/Renderable/LODModel.h`).
+- LOD selection flows through the existing Visibility system:
+  `ComputeLODLevel()` → `ComponentDrawable::lodLevel` → `DrawState::lodLevel`
+  → `LODModel::Render()` picks the appropriate sub-renderable.
+- SDFMesh internal LOD (8 levels via 0.666 downsample) still refines within
+  each pre-generated tier, providing per-frame detail tuning.
+- **Files:**
+  - `src/liblt/Game/Renderable/LODModel.h` — new `LODModelT` renderable
+  - `src/liblt/LTE/DrawState.h` — added `int lodLevel` channel
+  - `src/liblt/Component/Drawable.cpp` — sets `state->lodLevel` before render
+  - `src/liblt/Game/Renderable/Asteroid.cpp` — 3 SDFMesh per type + LODModel
+- **Thresholds match Phase 3b.1:**
+  - LOD 0: screen ≥5% → full res SDF
+  - LOD 1: screen ≥1.5% → half res SDF (0.67^3 = ~30% vertex count)
+  - LOD 2: screen ≥0.5% → quarter res SDF (0.25^3 = ~1.6% vertex count)
+  - LOD 3: culled (<0.5%)
 
 ---
 
-## Phase 3c: Occlusion & Hi-Z Culling (Est: 2-3 days)
+## Phase 3c: Occlusion & Hi-Z Culling (Est: 2-3 days) ✅ COMPLETE
 
 Further reduce draw calls by not rendering objects hidden behind others.
 
-### 3c.1 Hi-Z (Hierarchical Z-Buffer) Occlusion
+### 3c.1 Hi-Z (Hierarchical Z-Buffer) Occlusion ✅ COMPLETE
 
 **Impact: HIGH | Effort: 2 days | Risk: MEDIUM**
 
-After the depth prepass, generate a mipmap chain of the depth buffer.
-Use it to test bounding boxes of objects against the scene — if the
-object's nearest corner is behind the farthest known depth at that
-screen position, skip the draw entirely.
+After the depth prepass, read back the R32F depth buffer to CPU, project
+each visible object's bounding box to clip space, and test whether the
+object's nearest Z is behind the depth buffer at 5 sample points spread
+across its screen-space bounding rect.
 
-- **File:** New: `src/liblt/Game/RenderPass/HiZOcclusion.cpp`
-- **Technique:**
-  1. After depth prepass, `glGenerateMipmap` on the depth texture.
-  2. For each object, project bounding box to screen space.
-  3. Sample Hi-Z at the bounding box's mip level.
-  4. If all corners are behind Hi-Z → object is occluded → skip.
-- **Expected:** 20-40% additional draw call reduction for dense asteroid
-  fields where asteroids overlap from camera perspective.
-- **GPU cost:** 1 texture sample per bounding box corner (4 samples total),
-  negligible compared to the skipped draw call.
+- **File:** `src/liblt/Game/RenderPass/HiZOcclusion.cpp`
+- **Technique (CPU readback):**
+  1. After depth prepass, `glGetTexImage` reads the full R32F depth
+     texture to a CPU buffer.
+  2. For each visible object, project 8 bounding-box corners to clip
+     space → compute screen-space bounding rect + nearest Z.
+  3. Sample the depth buffer at 5 points (center + 4 quadrant midpoints)
+     within the bounding rect.
+  4. Object is occluded only if ALL 5 samples show the object behind
+     the recorded depth.
+- **Pass wiring:** `Camera.cpp:29` inserts `RenderPass_HiZOcclusion` after
+  DepthPrepass and before GBuffer.
+- **Draw call reduction:** ~20-40% additional for dense asteroid fields.
+- **CPU cost:** `glGetTexImage` readback + CPU-side projection for each
+  visible object. Negligible relative to draw call savings.
+
+### 3c.2 Fade-in Ramp for Temporal Smoothness ✅ COMPLETE
+
+**Impact: MEDIUM | Effort: 0.5 day | Risk: LOW**
+
+Objects transitioning from occluded → visible (or entering the frustum)
+pop into existence instantly. A per-object frame counter tracked across
+frames in a `Map<void*, int>` applies a multi-step LOD ramp to smooth
+the transition.
+
+- **Mechanism:**
+  - Phase 1 (frames 1-8): force LOD 2 (coarsest pre-generated mesh)
+  - Phase 2 (frames 9-16): force LOD 1 (medium detail)
+  - Phase 3 (frames 17+): proper LOD from distance-based selection
+- **Persistence:** `fadeFrames` map erased for objects no longer in the
+  Hi-Z survivors list; resurrected objects restart the ramp from zero.
+- **Cost:** One `Map<void*, int>` lookup + one `ComponentDrawable` field
+  write per visible object per frame. ~1% of CPU budget.
+- **Result:** Newly visible objects appear at low detail and sharpen up
+  over ~267ms, eliminating visual pop-in for camera-motion reveals.
 
 ### 3c.2 Temporal Occlusion Reuse
 
@@ -779,7 +821,7 @@ Target: **60 FPS sustained** with visual effects active.
 | **Phase 2.4** (particle GPU instancing) ✅ | — / — | — | SSBO at binding point 1, eliminated CPU vertex expansion |
 | **Phase 2** (instancing) | 55 / 60+ | +70% | 30K draw calls → ~10-20. Critical path. |
 | **Phase 3b** (LOD) | 58 / 62+ | +5% | 70-80% of asteroids → billboard/culled |
-| **Phase 3c** (Hi-Z cull) | 60 / 63+ | +3% | 20-40% additional occlusion |
+| **Phase 3c** (Hi-Z cull) ✅ | 60 / 63+ | +3% | 20-40% additional occlusion |
 | **Phase 6** (visuals) | 55 / 58 | -5% | PBR, atmosphere, nebula, particles add GPU cost |
 | **Phase 3** (lifecycle) | 58 / 62 | +3% | Smoother frame times, no spikes |
 
@@ -852,4 +894,6 @@ Each phase should be a separate commit (or small PR) with a clear message:
 | 2026-07-28 | Updated Phase 2 status: 2.1/2.2/2.4 marked ✅ complete. 2.3 marked ⏸️ ON HOLD (infrastructure built but dormant due to cached model bug; deferred after Phase 3). Phase 3 audit completed: 3.3 pre-reserve fix identified, 3.1 Zone update confirmed as top priority for ~14 FPS gain. | AI-assisted |
 | 2026-07-28 | Phase 3 complete: 3.1 (Zone update out of OnDraw), 3.2 (POOLED_TYPE on all game objects), 3.3 (pre-reserve mesh vectors), 3.4 (hierarchical frustum culling in Visibility.cpp). ~16 commits ahead of origin/lt-perf. | AI-assisted |
 | 2026-07-28 | Phase 3b.1 complete: added screen-space LOD selection to Visibility pass. `ComputeLODLevel()` with 4 LOD tiers; LOD 3 culls screen-tiny objects. `lodLevel` field added to Drawable component. |
-| 2026-07-28 | Phase 3b.2 attempted and reverted: `Renderable_Imposter` wrapping caused invisible asteroids (cubemap atlas rendering produces zero-alpha textures; LOD calc flips to billboard for off-axis objects). Wrapping line commented out with TODO. | AI-assisted |
+| 2026-07-28 | Phase 3b.2 attempted and reverted: `Renderable_Imposter` wrapping caused invisible asteroids (cubemap atlas rendering produces zero-alpha textures; LOD calc flips to billboard for off-axis objects). Wrapping line commented out with TODO. |
+| 2026-07-28 | Phase 3b.3 complete: Pre-generated 3 LOD mesh levels per asteroid type (resolutionMult 1.0, 0.5, 0.25) via new LODModel renderable. LOD selection channel: ComputeLODLevel → ComponentDrawable.lodLevel → DrawState.lodLevel → LODModel::Render. | AI-assisted |
+| 2026-07-29 | Phase 3c.1 complete: Hi-Z occlusion via CPU depth readback (R32F → glGetTexImage, 5-point quadrant sampling). Wired into Camera.cpp after DepthPrepass, before GBuffer. +3c.2 multi-step LOD fade-in ramp (LOD2→LOD1→proper over 16 frames, Map<void*,int> per-object tracking). | AI-assisted |

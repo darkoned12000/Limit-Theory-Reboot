@@ -24,6 +24,7 @@ namespace {
     CameraPass(Camera const& camera) : camera(camera) {
       passes.push(RenderPass_Visibility());
       passes.push(RenderPass_DepthPrepass());
+      passes.push(RenderPass_HiZOcclusion());
       passes.push(RenderPass_GBuffer());
       // passes.push(RenderPass_SSAO());
       passes.push(RenderPass_GlobalLighting());
