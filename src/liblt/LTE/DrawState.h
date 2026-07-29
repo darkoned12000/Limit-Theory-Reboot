@@ -25,6 +25,10 @@ struct DrawState : public Pushable<DrawState> {
   /* Depth. */
   Texture2D depth;
 
+  /* LOD: set by ComponentDrawable::Draw() from ComponentDrawable::lodLevel.
+     Read by LODModel::Render() to select sub-renderable. */
+  int lodLevel = 0;
+
   /* Visibility. */
   Vector<void*> lights;
   Vector<void*> visible;

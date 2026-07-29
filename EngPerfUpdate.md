@@ -357,17 +357,29 @@ renders at full polygon count regardless of distance.
   Typical asteroid (r=100m): LOD 3 culled beyond 20km.
 - **Verification:** Build clean, 69 tests pass, `ltheory-main`/`war`/`dogfight` verified.
 
-### 3b.2 Impostor / Billboard Rendering for Distant Objects ✅ COMPLETE
+### 3b.2 Impostor / Billboard Rendering for Distant Objects ❌ FAILED
 
-- **Implementation:** `Renderable_Imposter` wraps any `Renderable` with a
-  6-face cubemap impostor that switches between the original mesh and a
-  camera-facing billboard based on `camDistance / viewExtent`. Pre-renders
-  all 6 faces at load time, stores as cubemap texture.
-- **Integration:** Asteroid renderables now wrapped with `Renderable_Imposter`
-  in `Asteroid.cpp:21`. 3 LOD-aware mesh variants are generated per asteroid
-  (line 28: `SDFMesh_Create(detail)` with `detail` from seeded RNG call).
-- **File:** `src/liblt/Game/Renderable/Imposter.cpp`, `Asteroid.cpp`
-- **Dependency:** Phase 2 GPU instancing — billboards are instanced.
+**Status: Reverted.** The `Renderable_Imposter` wrapping caused most asteroids
+to disappear — only the 6 largest remained visible.
+
+**Root cause (two issues):**
+1. **Cubemap atlas generation** — The offscreen FBO rendering in
+   `Generate()` (`Imposter.cpp:62-161`) produces zero-alpha or black textures.
+   The `/* TODO : Valid depth buffer. */` comment suggests this was never
+   validated. With alpha=0, the shader's `albedo.w < 1.0` discard in
+   `imposter1.jsl:20` kills every fragment → imposter renders invisible.
+2. **LOD calculation** — `Imposter::Render()` uses an angle-based heuristic
+   (`viewBound.GetCenter() - viewExtent`, clamped to 0, then length) instead
+   of proper screen-space projection. This flips to imposter mode for
+   off-axis objects even at moderate distances (~10km for 200m asteroids).
+
+**Learnings:**
+- The imposter concept (billboard for distant objects) is sound but the
+  implementation needs the FBO rendering path debugged first.
+- A `// TODO` note left in `Asteroid.cpp:21-24` for future work.
+- Imposter should NOT be used for ALL asteroids — only for those at LOD 2+.
+  Proper integration requires the Visibility LOD system (Phase 3b.1) to
+  select which objects use the imposter.
 
 ### 3b.3 LOD Mesh Generation
 
@@ -840,4 +852,4 @@ Each phase should be a separate commit (or small PR) with a clear message:
 | 2026-07-28 | Updated Phase 2 status: 2.1/2.2/2.4 marked ✅ complete. 2.3 marked ⏸️ ON HOLD (infrastructure built but dormant due to cached model bug; deferred after Phase 3). Phase 3 audit completed: 3.3 pre-reserve fix identified, 3.1 Zone update confirmed as top priority for ~14 FPS gain. | AI-assisted |
 | 2026-07-28 | Phase 3 complete: 3.1 (Zone update out of OnDraw), 3.2 (POOLED_TYPE on all game objects), 3.3 (pre-reserve mesh vectors), 3.4 (hierarchical frustum culling in Visibility.cpp). ~16 commits ahead of origin/lt-perf. | AI-assisted |
 | 2026-07-28 | Phase 3b.1 complete: added screen-space LOD selection to Visibility pass. `ComputeLODLevel()` with 4 LOD tiers; LOD 3 culls screen-tiny objects. `lodLevel` field added to Drawable component. |
-| 2026-07-28 | Phase 3b.2 complete: uncommented `Renderable_Imposter` wrapping in Asteroid.cpp (fixed call syntax — removed spurious `()`). Each asteroid renderable now uses the 6-face cubemap impostor, switching between full mesh and billboard quad by distance. | AI-assisted |
+| 2026-07-28 | Phase 3b.2 attempted and reverted: `Renderable_Imposter` wrapping caused invisible asteroids (cubemap atlas rendering produces zero-alpha textures; LOD calc flips to billboard for off-axis objects). Wrapping line commented out with TODO. | AI-assisted |
