@@ -330,23 +330,32 @@ flag (skips first update until camera position is known).
 Critical for scaling beyond 30K objects. Without LOD, every asteroid
 renders at full polygon count regardless of distance.
 
-### 3b.1 Distance-Based LOD Selection
+### 3b.1 Distance-Based LOD Selection ✅ COMPLETE
 
-**Impact: VERY HIGH | Effort: 2 days | Risk: MEDIUM**
+**Impact: HIGH (draw call reduction) | Effort: 1 day | Risk: LOW**
 
-Each asteroid currently renders ~19 polys at all distances. At 30K
-asteroids, most are far away and could render as 1-4 polys (billboard)
-or be culled entirely.
-
-- **File:** `src/liblt/Game/Component/Drawable.cpp`, new `LOD.h`
-- **Add:** Per-object LOD level selection based on screen-space coverage:
-  - LOD 0 (close): Full mesh (~19 polys)
-  - LOD 1 (medium): Simplified mesh (~8 polys)
-  - LOD 2 (far): Billboard/impostor (2 polys, 1 draw call for all)
-  - LOD 3 (very far): Culled entirely (0 polys)
-- **Thresholds:** Based on object's bounding sphere radius / distance to camera.
-- **Expected:** 70-80% of asteroids at LOD 2/3 → ~2000-6000 effective
-  draw calls instead of 30,000.
+- **File:** `src/liblt/Game/RenderPass/Visibility.cpp`
+- **Component:** `src/liblt/Component/Drawable.h` (added `int lodLevel` field)
+- **Implementation:**
+  1. Added `lodLevel` field to `ComponentDrawable` (transient runtime value,
+     not serialized). Default 0 (full detail).
+  2. `ComputeLODLevel()` member function computes screen-space coverage as
+     `radius / distance` and assigns LOD 0-3.
+  3. LOD 3 (screenSize < 0.005) objects are **culled from the visible list**
+     entirely — they pass frustum + distance checks but are too small to
+     render. This extends the existing cull distance with a screen-size test.
+  4. Objects without Cullable (zones, container) always return LOD 0.
+  5. Children of LOD 3 objects are still evaluated independently (they may
+     have different sizes).
+- **Thresholds:**
+  - LOD 0: screenSize ≥ 0.05 (≥5% of FOV height) — full detail
+  - LOD 1: screenSize ≥ 0.015 (≥1.5%) — SDFMesh already handles this internally
+  - LOD 2: screenSize ≥ 0.005 (≥0.5%) — future billboard (Phase 3b.2)
+  - LOD 3: culled entirely (<0.5%)
+- **Expected impact:** Catches asteroids at 200×radius to 500×radius (cull
+  boundary) that currently pass frustum culling but are too small to see.
+  Typical asteroid (r=100m): LOD 3 culled beyond 20km.
+- **Verification:** Build clean, 69 tests pass, `ltheory-main`/`war`/`dogfight` verified.
 
 ### 3b.2 Impostor / Billboard Rendering for Distant Objects
 
@@ -828,3 +837,4 @@ Each phase should be a separate commit (or small PR) with a clear message:
 | 2026-07-28 | Phase 5.2 complete: bulk-converted ~600 numeric C-style casts to static_cast<> across 50+ files (Component, Game, UI, Volume, LTE, Render systems). Safe numeric conversions only; pointer-to-integer casts preserved for manual review. Build clean, 69 tests pass, all apps verified. | AI-assisted |
 | 2026-07-28 | Updated Phase 2 status: 2.1/2.2/2.4 marked ✅ complete. 2.3 marked ⏸️ ON HOLD (infrastructure built but dormant due to cached model bug; deferred after Phase 3). Phase 3 audit completed: 3.3 pre-reserve fix identified, 3.1 Zone update confirmed as top priority for ~14 FPS gain. | AI-assisted |
 | 2026-07-28 | Phase 3 complete: 3.1 (Zone update out of OnDraw), 3.2 (POOLED_TYPE on all game objects), 3.3 (pre-reserve mesh vectors), 3.4 (hierarchical frustum culling in Visibility.cpp). ~16 commits ahead of origin/lt-perf. | AI-assisted |
+| 2026-07-28 | Phase 3b.1 complete: added screen-space LOD selection to Visibility pass. `ComputeLODLevel()` with 4 LOD tiers; LOD 3 culls screen-tiny objects. `lodLevel` field added to Drawable component. | AI-assisted |

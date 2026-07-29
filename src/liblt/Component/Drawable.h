@@ -10,6 +10,7 @@
 /* CRITICAL : Serialization of renderable. */
 AutoClassEmpty(ComponentDrawable)
   Generic<Renderable> renderable;
+  int lodLevel = 0;
 
   LT_API void Draw(ObjectT* self, DrawState* state);
 };
