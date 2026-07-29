@@ -118,7 +118,7 @@ Mesh MeshT::AddMesh(Mesh const& mesh, Matrix const& m) {
   Matrix it = m.Inverse().Transpose();
   uint indexOffset = vertices.size();
 
-  // vertices.reserve(vertices.size() + mesh->vertices.size());
+  vertices.reserve(vertices.size() + mesh->vertices.size());
   for (uint i = 0; i < mesh->vertices.size(); ++i) {
     const Vertex& v = mesh->vertices[i];
     V3 newPos = m.TransformPoint(v.p);
@@ -126,7 +126,7 @@ Mesh MeshT::AddMesh(Mesh const& mesh, Matrix const& m) {
     AddVertex(newPos, newNormal, v.u, v.v);
   }
 
-  // indices.reserve(indices.size() + mesh->indices.size());
+  indices.reserve(indices.size() + mesh->indices.size());
   for (size_t i = 0; i < mesh->indices.size(); ++i)
     indices.push(mesh->indices[i] + indexOffset);
   version++;

@@ -294,10 +294,14 @@ flag (skips first update until camera position is known).
 ### 3.3 Pre-reserve Mesh Vectors ✅ COMPLETE
 
 - **File:** `src/liblt/LTE/Mesh.cpp` (MeshT::AddMesh lines 121, 129)
-- **Fix:** Uncomment `vertices.reserve()` and `indices.reserve()` calls
-  to avoid vector reallocations during mesh construction.
-- **Status:** Simple fix — four commented-out lines to uncomment. Verified
-  in audit.
+- **Fix:** Uncommented `vertices.reserve()` and `indices.reserve()` calls
+  to pre-allocate capacity before the push loops, avoiding repeated vector
+  reallocations during mesh construction.
+- **Impact:** Each call to `AddMesh()` previously caused multiple
+  reallocations + element copies as vertices/indices vectors grew.
+  With `reserve()`, capacity is allocated once before the loop.
+- **Verification:** Build clean, 69 tests pass, apps verified. Behavior
+  identical — `reserve()` only affects capacity, not content.
 
 ### 3.4 Conditional Frustum Culling Improvements
 
