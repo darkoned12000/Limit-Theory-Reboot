@@ -176,12 +176,14 @@ namespace {
       sf::SoundBuffer* buf = GetBuffer(filename);
       if (!buf) return new SoundSFMLImpl(nullptr, nullptr);
 
+      float effectiveVolume = volume * masterVolume;
+
       auto snd = std::make_unique<sf::Sound>(*buf);
       snd->setRelativeToListener(true);
       snd->setPosition({0, 0, 0});
 
       auto s = new SoundSFMLImpl(std::move(snd), buf);
-      s->SetVolume(volume);
+      s->SetVolume(effectiveVolume);
       s->sound->setLooping(looped);
       s->looped = looped;
       s->SetPlaying(true);
@@ -201,13 +203,15 @@ namespace {
       sf::SoundBuffer* buf = GetBuffer(s);
       if (!buf) return new SoundSFMLImpl(nullptr, nullptr);
 
+      float effectiveVolume = f * masterVolume;
+
       auto snd = std::make_unique<sf::Sound>(*buf);
       snd->setRelativeToListener(true); // We manage relative position manually 
       snd->setMinDistance(kDistanceScale * distanceDiv);
       snd->setAttenuation(1.0f); // Default linear attenuation in SFML
 
       auto sndImpl = new SoundSFMLImpl(std::move(snd), buf);
-      sndImpl->SetVolume(f);
+      sndImpl->SetVolume(effectiveVolume);
       sndImpl->sound->setLooping(looped);
       sndImpl->looped = looped;
       

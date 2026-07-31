@@ -84,7 +84,25 @@ VoidFreeFunction(Widget_Delete,
   Widget, widget)
 {
   widget->deleted = true;
+  widget->focusMouse = false;
+  widget->focusKey = false;
+  widget->focusScroll = false;
 } FunctionAlias(Widget_Delete, Delete);
+
+VoidFreeFunction(Widget_DeleteAncestors,
+  "Delete 'widget' and all ancestors up to root",
+  Widget, widget)
+{
+  WidgetT* w = widget.t;
+  while (w && w->parent.t) {
+    WidgetT* next = w->parent.t;
+    w->deleted = true;
+    w->focusMouse = false;
+    w->focusKey = false;
+    w->focusScroll = false;
+    w = next;
+  }
+} FunctionAlias(Widget_DeleteAncestors, DeleteAncestors);
 
 FreeFunction(String, Widget_GetName,
   "Return the name of 'widget'",

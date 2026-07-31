@@ -69,7 +69,6 @@ LTE_TEST(Window_MousePosRoundTrip) {
   // Skip mouse position tests - API has changed
   // These functions may not be available in the current window implementation
 
-  Window_Pop();
   w->Close();
 }
 

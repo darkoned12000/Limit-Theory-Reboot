@@ -37,7 +37,7 @@ void WidgetT::Clear() {
 }
 
 void WidgetT::Draw() {
-  if (!initialized)
+  if (!initialized || deleted)
     return;
 
   for (size_t i = 0; i < components.size(); ++i)
@@ -45,6 +45,8 @@ void WidgetT::Draw() {
 
   for (size_t i = 0; i < children.size(); ++i) {
     Widget const& child = children[i];
+    if (child->deleted)
+      continue;
     child->alpha *= alpha;
     child->Draw();
   }

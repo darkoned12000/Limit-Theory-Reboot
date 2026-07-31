@@ -15,6 +15,14 @@ struct SoundEngine : public ModuleT {
   LT_API void Pop();
   LT_API void Push();
 
+  float GetMasterVolume() const {
+    return masterVolume;
+  }
+
+  void SetMasterVolume(float v) {
+    masterVolume = Saturate(v);
+  }
+
   virtual Sound Play(Array<float> const& buffer) = 0;
 
   virtual Sound Play2D(String const& name, float volume, bool looped) = 0;
@@ -26,6 +34,9 @@ struct SoundEngine : public ModuleT {
     float volume,
     float distanceDiv,
     bool looped) = 0;
+
+protected:
+  float masterVolume = 1.0f;
 };
 
 LT_API SoundEngine* GetSoundEngine();
