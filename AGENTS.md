@@ -416,6 +416,10 @@ correctness/tooling passes, NOT a ground-up rewrite.
 
 ## 10. Modernization TODO — Remaining Work
 
+> **Forward plan:** [ROADMAP.md](ROADMAP.md) is the consolidated, prioritized
+> work plan (single source of truth for "what's next"). The subsections below
+> remain the detailed inventory.
+
 ### 10.1 Build & Tooling
 - [x] **SFML 3.x upgrade** — Upgraded from vendored 2.5.0 → 2.6.2 → system 3.0.2 → system 3.1.0.
       CMake `find_package(SFML 3.1 REQUIRED ...)`. Zero code changes required for

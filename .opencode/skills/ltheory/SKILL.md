@@ -1335,6 +1335,7 @@ See AUDIO-SYSTEM-GUIDE.md for 300+ sound asset catalog.
 - **LTSL internals:** LTSL-ARCHITECTURE-AND-IMPROVEMENTS.md (15,000 words)
 - **Save/load/inventory:** SAVE-LOAD-AND-INVENTORY.md (12,000 words)
 - **Strategic roadmap:** PRD-LIMIT-THEORY-REBOOT.md (15,000 words)
+- **Forward work plan:** ROADMAP.md (repo root — single source of truth, supersedes PRD Phase statuses)
 - **Space phenomena:** VULKAN-AND-SPACE-PHENOMENA.md (12,000 words)
 - **Modding/JSON:** ENGINE-STABILITY-AND-MODDING.md (15,000 words)
 - **UI widgets:** Widget/Button.lts, Widget/Window.lts examples

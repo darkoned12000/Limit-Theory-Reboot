@@ -229,6 +229,7 @@
 | LTSL-ARCHITECTURE-AND-IMPROVEMENTS.md | 15,000+ | Tree-walking interpreter, language improvements | 3-4 hours |
 | AI-ASSISTED-DEVELOPMENT-GUIDE.md | 12,000+ | Creating AI-friendly docs, skill files | 2-3 hours |
 | **SKILL.md** (`.opencode/skills/ltheory/`) | **15,000+** | **⭐ Master AI reference (load first!)** | **1-2 hours** |
+| **ROADMAP.md** (repo root) | ~4,000 | **⭐ Consolidated forward work plan (single source of truth)** | 30 min |
 | assessment.md | 12,000+ | Modernization priorities | 2-3 hours |
 | docs/ltsl-docs.md | 8,000+ | LTSL syntax reference | 1-2 hours |
 | docs/LTSL-LSP-IMPLEMENTATION-GUIDE.md | 25,000+ | LSP server + VS Code extension (complete code) | 2-3 hours |
