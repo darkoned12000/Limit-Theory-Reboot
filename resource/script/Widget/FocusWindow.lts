@@ -19,3 +19,7 @@ type FocusWindow
   function Void PostUpdate (Widget self)
     if self.GetChildren.Size == 0
       self.Delete
+
+  function Void Receive (Widget self Data data)
+    if data.IsType "MessageOpenSettings"
+      self.Delete

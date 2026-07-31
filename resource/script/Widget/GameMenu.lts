@@ -2,7 +2,7 @@ type Buttons
   function List CreateChildren (Widget self)
     var l List
     l += (Components:Expand (Button:Create 0 "SAVE GAME" 18))
-    l += (Components:Expand (Button:Create 0 "SETTINGS" 18))
+    l += (Components:Expand (Button:Create (Widget/Messages:MessageAddWidget (Widget/SettingsPanel:Create)) "SETTINGS" 18))
     l += (Components:Expand (Button:Create 0 "HELP" 18))
     l += (Components:Expand (Button:Create 0 "EXIT TO MAIN MENU" 18))
     l += (Components:Expand (ExitButton:Create "EXIT GAME" 18))
@@ -12,6 +12,8 @@ type Buttons
     DrawPanel self.pos self.size 0.1 0.9 1.0 8.0
 
 type GameMenu
+  Bool openSettings false
+
   function List CreateChildren (Widget self)
     var l List
     l +=
@@ -30,9 +32,21 @@ type GameMenu
             Custom Widget Buttons
     l
 
-  function Void PreUpdate (Widget self)
+  function Void PostUpdate (Widget self)
     if Key_Escape.Pressed
-      Exit
+      self.Delete
+    if openSettings
+      openSettings = false
+      var w self
+      var i 0
+      while w.IsNotNull && i < 5
+        w.Delete
+        w = w.GetParent
+        i = i + 1
+
+  function Void Receive (Widget self Data data)
+    if data.IsType "MessageAddWidget"
+      openSettings = true
 
 function Widget Create ()
   Widgets:FocusWindow 0.8

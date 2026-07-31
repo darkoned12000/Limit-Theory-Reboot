@@ -40,8 +40,11 @@ namespace {
     Viewport viewport;
     V2U size;
     uint bpp;
+    bool fullscreen;
+    bool vsync;
     bool captureMouse;
     bool hasFocus;
+    sf::ContextSettings glSettings;
 
     WindowImpl(
         String const& title,
@@ -51,11 +54,12 @@ namespace {
       title(title),
       size(size),
       bpp(32),
+      fullscreen(fullscreen),
+      vsync(false),
       captureMouse(false),
       hasFocus(true)
     {
       viewport = Viewport_Create(0, size, 1, true);
-      sf::ContextSettings glSettings;
       // Request a 4.6 context (shaders use #version 460). Leave attributeFlags
       // at Default: setting the explicit Core bit makes SFML 2.6 + this Mesa
       // driver crash with a GLX MakeCurrent / oldCtxInfo assertion at first
@@ -103,6 +107,14 @@ namespace {
       return impl.isOpen();
     }
 
+    bool GetFullscreen() const override {
+      return fullscreen;
+    }
+
+    bool GetVSync() const override {
+      return vsync;
+    }
+
     void SetCaptureMouse(bool captureMouse) override {
       this->captureMouse = captureMouse;
     }
@@ -111,14 +123,36 @@ namespace {
       impl.setMouseCursorVisible(visible);
     }
 
-    void SetFullscreen() override {
+    void SetFullscreen(bool fs) override {
+      if (fs == fullscreen)
+        return;
+      fullscreen = fs;
       impl.create(
         sf::VideoMode({size.x, size.y}, bpp),
         title,
-        sf::State::Fullscreen);
+        sf::Style::Default,
+        fullscreen ? sf::State::Fullscreen : sf::State::Windowed,
+        glSettings);
       viewport->size.x = (float)impl.getSize().x;
       viewport->size.y = (float)impl.getSize().y;
       impl.setMouseCursorVisible(false);
+    }
+
+    void SetSize(V2U const& newSize) override {
+      size = newSize;
+      if (fullscreen) {
+        impl.create(
+          sf::VideoMode({size.x, size.y}, bpp),
+          title,
+          sf::Style::Default,
+          sf::State::Fullscreen,
+          glSettings);
+        viewport->size.x = (float)impl.getSize().x;
+        viewport->size.y = (float)impl.getSize().y;
+        impl.setMouseCursorVisible(false);
+      } else {
+        impl.setSize({size.x, size.y});
+      }
     }
 
     void SetIcon(Texture2D const& icon) override {
@@ -134,6 +168,7 @@ namespace {
     }
 
     void SetSync(bool sync) override {
+      vsync = sync;
       impl.setVerticalSyncEnabled(sync);
     }
 
