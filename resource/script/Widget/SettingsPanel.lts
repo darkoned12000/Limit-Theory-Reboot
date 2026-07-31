@@ -1,0 +1,57 @@
+type VolumeSlider
+  (Pointer Float) value
+  Bool focus false
+
+  function Void PreDraw (Widget self)
+    var t (deref value)
+    DrawPanel self.pos self.size (Vec3 0.1) 0.5 1 0
+
+  function Void CaptureFocus (Widget self)
+    var c Cursor_Get
+    var p1 (Max self.pos ClipRegion_GetMin)
+    var p2 (Min self.pos + self.size ClipRegion_GetMax)
+    self.focusMouse = (p1 <= c && c <= p2)
+
+function Widget CreateVolumeSlider ((Pointer Float) value)
+  Components:MinSize (Vec2 200 20)
+    Components:CaptureMouse
+      Stack
+        Custom Widget
+          VolumeSlider value
+
+type SettingsPanel
+  Bool fullscreen
+  Bool vsync
+  Float masterVolume 0.75
+
+  function Void Create (Widget self)
+    fullscreen = Window_GetFullscreen
+    vsync = Window_GetVSync
+    masterVolume = Sound_GetMasterVolume
+
+  function List CreateChildren (Widget self)
+    var l List
+    l +=
+      Components:Margin (Vec2 0 4) (Vec2 0 4)
+        ToggleButton:Create (address self.fullscreen) "Fullscreen"
+    l +=
+      Components:Margin (Vec2 0 4) (Vec2 0 4)
+        ToggleButton:Create (address self.vsync) "VSync"
+    l +=
+      Components:Margin (Vec2 0 4) (Vec2 0 4)
+        CreateVolumeSlider (address self.masterVolume)
+    l
+
+  function Void PostUpdate (Widget self)
+    Window_SetFullscreen fullscreen
+    Window_SetVSync vsync
+    Sound_SetMasterVolume masterVolume
+
+  function Void PreDraw (Widget self)
+    DrawPanel self.pos self.size 0.06 0.9 1.0 4
+
+function Widget Create ()
+  Window:Create "Settings"
+    Components:Margin (Vec2 12 12) (Vec2 12 12)
+      Custom Widget
+        SettingsPanel

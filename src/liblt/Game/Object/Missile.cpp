@@ -20,14 +20,13 @@
 #include "LTE/Ray.h"
 #include "LTE/ShaderInstance.h"
 
-typedef ObjectWrapper
+using MissileBaseT = ObjectWrapper
   < Component_Damager
   < Component_Drawable
   < Component_Motion
   < Component_Orientation
   < ObjectWrapperTail<ObjectType_Missile>
-  > > > > >
-  MissileBaseT;
+  > > > > >;
 
 AutoClassDerived(Missile, MissileBaseT,
   LightRef, light,

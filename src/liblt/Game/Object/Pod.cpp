@@ -27,7 +27,7 @@ Renderable GetPodModel() {
   return model;
 }
 
-typedef ObjectWrapper
+using PodBaseT = ObjectWrapper
   < Component_BoundingBox
   < Component_Cargo
   < Component_Collidable
@@ -38,8 +38,7 @@ typedef ObjectWrapper
   < Component_Nameable
   < Component_Orientation
   < ObjectWrapperTail<ObjectType_Pod>
-  > > > > > > > > > >
-  PodBaseT;
+  > > > > > > > > > >;
 
 AutoClassDerived(Pod, PodBaseT,
   Item, type,

@@ -42,5 +42,5 @@ FreeFunction(int, ProjectsIterator_Size,
   "Return the total number of elements in 'iterator'",
   ProjectsIterator, iterator)
 {
-  return (int)iterator.object->GetProjects()->elements.size();
+  return static_cast<int>(iterator.object->GetProjects()->elements.size());
 } FunctionAlias(ProjectsIterator_Size, Size);

@@ -6,9 +6,9 @@
 #include "LTE/AutoClass.h"
 #include "LTE/Map.h"
 
-typedef Map<Item, Quantity> DatabaseMapT;
-typedef DatabaseMapT::iterator DatabaseIter;
-typedef DatabaseMapT::const_iterator DatabaseIterC;
+using DatabaseMapT = Map<Item, Quantity>;
+using DatabaseIter = DatabaseMapT::iterator;
+using DatabaseIterC = DatabaseMapT::const_iterator;
 
 AutoClass(ComponentDatabase,
   DatabaseMapT, elements)

@@ -12,8 +12,8 @@ AutoClass(V3T,
   T, y,
   T, z)
 
-  typedef T ReturnType;
-  typedef T MetricType;
+  using ReturnType = T;
+  using MetricType = T;
 
   /* Constructors. */
   V3T() = default;

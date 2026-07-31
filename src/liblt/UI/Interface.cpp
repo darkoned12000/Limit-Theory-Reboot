@@ -61,7 +61,7 @@ namespace {
       ClipRegion_Push(0, windowSize);
 
       WidgetUpdateState state;
-      for (int i = 0; i < (int)widgets.size(); ++i) {
+      for (int i = 0; i < static_cast<int>(widgets.size()); ++i) {
         int index = widgets.size() - (i + 1);
         Widget const& widget = widgets[index];
         if (widget->deleted) {

@@ -57,7 +57,7 @@ struct PhysicsEngineImpl : public PhysicsEngine {
       {}
   };
 
-  typedef HashMap<size_t, Entry> MeshMapT;
+  using MeshMapT = HashMap<size_t, Entry>;
   MeshMapT meshes;
 
   bool CheckCollision(

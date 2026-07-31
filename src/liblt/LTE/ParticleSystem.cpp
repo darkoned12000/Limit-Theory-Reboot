@@ -12,7 +12,6 @@
 #include "Renderer.h"
 #include "RenderStyle.h"
 #include "ShaderInstance.h"
-#include "Texture2D.h"
 #include "Vector.h"
 #include "View.h"
 
@@ -57,16 +56,8 @@ namespace {
     }
   };
 
-  AutoClass(ParticleVertex,
-    V3, p,
-    V3, n,
-    V2, uv,
-    V3, c)
-    ParticleVertex() = default;
-  };
-
   AutoClassDerivedEmpty(ParticleSystemImpl, ParticleSystemT)
-    typedef Map<ShaderInstance, Vector<Particle> > ParticleMapT;
+    using ParticleMapT = Map<ShaderInstance, Vector<Particle> >;
     ParticleMapT particles;
     DERIVED_TYPE_EX(ParticleSystemImpl)
 
@@ -88,54 +79,44 @@ namespace {
         if (!style->WillRender())
           continue;
 
-        size_t vertexCount = gParticleMesh->vertices.size() * particles.size();
-        size_t indexCount = gParticleMesh->indices.size() * particles.size();
+        static Vector<ParticleInstanceData> instances;
+        instances.clear();
+        instances.reserve(particles.size());
 
-        static Vector<ParticleVertex> vertices;
-        static Vector<uint> indices;
-        vertices.clear();
-        indices.clear();
-        vertices.reserve(vertexCount);
-        indices.reserve(indexCount);
+        V3D camPos = state->view->transform.pos;
 
         for (size_t i = 0; i < particles.size(); ++i) {
           Particle const& particle = particles[i];
           if (!state->view->CanSee(particle.p))
             continue;
 
-          V3D position = particle.p - state->view->transform.pos;
+          V3D position = particle.p - camPos;
           float d2 = LengthSquared(position);
           float r2 = Squared(particle.size);
           if (d2 >= kLodFactor * r2)
             continue;
 
           float age = (particle.maxLife - particle.life) / particle.maxLife;
-          for (size_t j = 0; j < gParticleMesh->indices.size(); ++j)
-            indices.push((uint)(gParticleMesh->indices[j] + vertices.size()));
 
-          for (size_t j = 0; j < gParticleMesh->vertices.size(); ++j) {
-            Vertex& sourceVertex = gParticleMesh->vertices[j];
-            vertices.push(ParticleVertex());
-            ParticleVertex& v = vertices.back();
-            v.p = position;
-            v.n.x = particle.size;
-            v.n.y = age;
-            v.uv.x = sourceVertex.u;
-            v.uv.y = sourceVertex.v;
-            v.c = particle.attrib;
-          }
+          ParticleInstanceData inst;
+          inst.position = V3(position);
+          inst.size = particle.size;
+          inst.age = age;
+          inst.attrib = particle.attrib;
+          instances.push(inst);
         }
+
+        if (instances.empty())
+          continue;
 
         DrawState_Link(shader);
         shader->Begin();
         state->primary->Bind(0);
 
-        Renderer_DrawVertices(
-          vertices.data(),
-          Type_Get<ParticleVertex>(),
-          indices.data(),
-          indices.size(),
-          GL_IndexFormat::Int);
+        Renderer_DrawParticlesInstanced(
+          gParticleMesh,
+          instances.data(),
+          (int)instances.size());
 
         state->primary->Unbind();
         shader->End();

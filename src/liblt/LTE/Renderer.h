@@ -45,6 +45,36 @@ namespace LTE {
 
   LT_API void Renderer_DrawMesh(MeshT const* mesh);
 
+  /* Draw a mesh with GPU instancing. The per-instance world + worldIT matrices
+     must have been uploaded via Renderer_BeginInstancedDraw beforehand. */
+  LT_API void Renderer_DrawMeshInstanced(MeshT const* mesh, int instanceCount);
+
+  /* Begin an instanced draw batch: upload interleaved world + worldIT matrices
+     (2 * count mat4's) to the shared SSBO at binding point 0. Call
+     Renderer_EndInstancedDraw after the batch. */
+  LT_API void Renderer_BeginInstancedDraw(Matrix const* interleavedData, int count);
+
+  /* End an instanced draw batch: reset uInstanced and unbind the SSBO. */
+  LT_API void Renderer_EndInstancedDraw();
+
+  /* Per-instance data for GPU-instanced particles. Matches GLSL struct
+     ParticleInstanceData { vec4 posAndSize; vec4 ageAndColor; }. */
+  struct ParticleInstanceData {
+    V3  position;  /* world-space center */
+    float size;    /* billboard radius */
+    float age;     /* 0..1 normalized lifecycle */
+    V3  attrib;    /* per-particle color/rotation */
+  };
+
+  /* Draw a billboard mesh instanced with per-particle instance data.
+     The billboard mesh's VBO provides quad positions (at origin) and UVs;
+     per-particle position/size/age/color come from the SSBO at binding
+     point 1. The active shader must already be bound. */
+  LT_API void Renderer_DrawParticlesInstanced(
+    MeshT const* mesh,
+    ParticleInstanceData const* instances,
+    int count);
+
   LT_API void Renderer_DrawQuad(
     V2 const& p1 = V2(-1),
     V2 const& p2 = V2(1),
@@ -140,7 +170,6 @@ namespace LTE {
   LT_API void Renderer_SetViewTransform(Transform const& view);
 
   LT_API Matrix const& Renderer_GetWorldMatrix();
-  LT_API Matrix const& Renderer_GetWorldITMatrix();
   LT_API Matrix const& Renderer_GetWorldViewProjMatrix();
   LT_API Matrix const& Renderer_GetViewMatrix();
   LT_API Matrix const& Renderer_GetProjMatrix();

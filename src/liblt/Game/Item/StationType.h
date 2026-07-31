@@ -14,7 +14,7 @@
 #include "Game/Attribute/Sockets.h"
 #include "Game/Attribute/Value.h"
 
-typedef
+using StationTypeBase = 
     Attribute_Capability
   < Attribute_Docks
   < Attribute_Icon
@@ -27,8 +27,7 @@ typedef
   < Attribute_Sockets
   < Attribute_Value
   < ItemWrapper<ItemType_StationType>
-  > > > > > > > > > > >
-  StationTypeBase;
+  > > > > > > > > > > >;
 
 AutoClassDerivedEmpty(StationType, StationTypeBase)
   DERIVED_TYPE_EX(StationType)

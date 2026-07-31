@@ -71,6 +71,18 @@ void ModelT::RenderPiece(size_t piece, DrawState* state) const {
   style->Render(d.entries[piece].geometry);
 }
 
+void ModelT::RenderInstanced(DrawState* state, int instanceCount) const {
+  RenderStyle const& style = RenderStyle_Get();
+  for (size_t i = 0; i < d.entries.size(); ++i) {
+    style->SetShader(d.entries[i].shader);
+    if (!style->WillRender())
+      continue;
+    d.entries[i].shader->Begin();
+    d.entries[i].geometry->DrawInstanced(instanceCount);
+    d.entries[i].shader->End();
+  }
+}
+
 Bound3 ModelT::GetBound() const {
   LTE_ASSERT(d.entries.size());
   short currentVersion = GetVersion();

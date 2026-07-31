@@ -19,12 +19,11 @@ const Icon kIcon = Icon_Create()
   ->Add(Glyph_Box(V2(0, 0.8f), V2(1, 0.2f), 1, 1))
   ->Add(Glyph_Arc(V2(0, 0.6f), 0.7f, 0.01f, 1, 1, 0.25f, 0.25f));
 
-typedef
+using TurretTypeBase = 
     Attribute_Icon
   < Attribute_Mass
   < ItemWrapper<ItemType_TurretType>
-  > >
-  TurretTypeBase;
+  > >;
 
 AutoClassDerivedEmpty(TurretType, TurretTypeBase)
   DERIVED_TYPE_EX(TurretType)

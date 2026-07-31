@@ -6,7 +6,7 @@
 
 template <class T>
 struct Attribute_Metatype : public T {
-  typedef Attribute_Metatype SelfType;
+  using SelfType = Attribute_Metatype;
   ATTRIBUTE_COMMON(metatype)
   Data metatype;
 

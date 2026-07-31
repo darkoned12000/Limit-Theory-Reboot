@@ -3,20 +3,20 @@
 
 namespace {
   void BuildPlanarFace(Mesh const& self, V3 origin, V3 d1, V3 d2, uint n) {
-    d1 /= (float)(n-1);
-    d2 /= (float)(n-1);
+    d1 /= static_cast<float>(n-1);
+    d2 /= static_cast<float>(n-1);
     uint indexOffset = self->GetVertices();
     V3 currentPoint;
     V3 normal = Normalize(Cross(d1, d2));
 
     for (uint i = 0; i < n; ++i)
     for (uint j = 0; j < n; ++j) {
-      V3 p = origin + (float)j * d1 + (float)i * d2;
+      V3 p = origin + static_cast<float>(j) * d1 + static_cast<float>(i) * d2;
       Vertex thisVertex;
       thisVertex.p = p;
       thisVertex.n = normal;
-      thisVertex.u = (float)i / (float)(n - 1);
-      thisVertex.v = (float)j / (float)(n - 1);
+      thisVertex.u = static_cast<float>(i) / (float)(n - 1);
+      thisVertex.v = static_cast<float>(j) / (float)(n - 1);
       self->AddVertex(thisVertex);
     }
 
@@ -126,9 +126,9 @@ DefineFunction(Mesh_Plane) {
   V3 normal = Normalize(Cross(args.y, args.x));
 
   for (uint j = 0; j < args.cellsY; ++j) {
-    float v = (float)j / (float)(args.cellsY - 1);
+    float v = static_cast<float>(j) / static_cast<float>(args.cellsY - 1);
     for (uint i = 0; i < args.cellsX; ++i) {
-      float u = (float)i / (float)(args.cellsX - 1);
+      float u = static_cast<float>(i) / static_cast<float>(args.cellsX - 1);
       if (i && j) {
         uint index = self->GetVertices();
         self->AddQuad(index, index - 1, index - args.cellsY - 1, index - args.cellsY);
@@ -153,11 +153,11 @@ Mesh Mesh_SkirtedPlane(int verticesX, int verticesY) {
   Mesh self = Mesh_Create();
 
   for (int j = 0; j < verticesY; ++j) {
-    float v = (float)(j - 1) / (float)(verticesY - 3);
+    float v = static_cast<float>(j - 1) / static_cast<float>(verticesY - 3);
     float y = 2.0f*v - 1.0f;
 
     for (int i = 0; i < verticesX; ++i) {
-      float u = (float)(i - 1) / (float)(verticesX - 3);
+      float u = static_cast<float>(i - 1) / static_cast<float>(verticesX - 3);
       float x = 2.0f*u - 1.0f;
 
       if (i && j) {

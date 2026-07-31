@@ -6,7 +6,7 @@
 
 template <class T>
 struct Attribute_Icon : public T {
-  typedef Attribute_Icon SelfType;
+  using SelfType = Attribute_Icon;
   ATTRIBUTE_COMMON(icon)
   Icon icon;
 

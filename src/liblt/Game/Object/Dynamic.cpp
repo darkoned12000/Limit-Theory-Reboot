@@ -7,14 +7,13 @@
 
 #include "LTE/Pool.h"
 
-typedef ObjectWrapper
+using DynamicBaseT = ObjectWrapper
   < Component_BoundingBox
   < Component_Drawable
   < Component_Motion
   < Component_Orientation
   < ObjectWrapperTail<ObjectType_Dynamic>
-  > > > > >
-  DynamicBaseT;
+  > > > > >;
 
 AutoClassDerivedEmpty(Dynamic, DynamicBaseT)
   DERIVED_TYPE_EX(Dynamic)

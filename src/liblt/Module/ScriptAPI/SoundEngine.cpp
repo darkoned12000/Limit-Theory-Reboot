@@ -98,3 +98,17 @@ VoidFreeFunction(Sound_SetVolume,
 {
   sound->SetVolume(volume);
 } FunctionAlias(Sound_SetVolume, SetVolume);
+
+FreeFunctionNoParams(float, Sound_GetMasterVolume,
+  "Return the master volume (0.0 = silent, 1.0 = max)")
+{
+  return GetSoundEngine()->GetMasterVolume();
+}
+
+VoidFreeFunction(Sound_SetMasterVolume,
+  "Set the master volume (0.0 = silent, 1.0 = max). "
+  "All subsequent sound plays are scaled by this factor.",
+  float, volume)
+{
+  GetSoundEngine()->SetMasterVolume(volume);
+}

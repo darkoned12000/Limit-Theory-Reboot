@@ -6,7 +6,7 @@
 namespace LTE {
   template <class T, class A1>
   struct Bind1T {
-    typedef typename T::ReturnType ReturnType;
+    using ReturnType = typename T::ReturnType;
 
     T t;
     A1 a1;
@@ -34,7 +34,7 @@ namespace LTE {
 
   template <class T, class A1, class A2>
   struct Bind2T {
-    typedef typename T::ReturnType ReturnType;
+    using ReturnType = typename T::ReturnType;
 
     T t;
     A1 a1;
@@ -60,7 +60,7 @@ namespace LTE {
 
   template <class T, class A1, class A2, class A3>
   struct Bind3T {
-    typedef typename T::ReturnType ReturnType;
+    using ReturnType = typename T::ReturnType;
 
     T t;
     A1 a1;

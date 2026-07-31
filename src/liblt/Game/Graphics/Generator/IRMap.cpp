@@ -48,14 +48,14 @@ namespace {
 
     for (uint i = 1; i < levels; ++i) {
       levelRes /= 2;
-      float angle = (float)i / (float)(levels - 1);
+      float angle = static_cast<float>(i) / static_cast<float>(levels - 1);
       angle = Squared(angle);
 
       CubeMap thisMap = CubeMap_Create(levelRes, format);
       (*shader)
         ("angle", angle)
         ("source", source)
-        ("samples", (int)args.samples)
+        ("samples", static_cast<int>(args.samples))
         ("sampleBuffer", sampleBuffer);
       thisMap->GenerateFromShader(shader);
 

@@ -10,13 +10,12 @@
 #include "LTE/Data.h"
 #include "LTE/Pointer.h"
 
-typedef
+using BlueprintBase = 
     Attribute_Icon
   < Attribute_Name
   < Attribute_Value
   < ItemWrapper<ItemType_Blueprint>
-  > > >
-  BlueprintBase;
+  > > >;
 
 AutoClass(Modifier,
   String, attribute,

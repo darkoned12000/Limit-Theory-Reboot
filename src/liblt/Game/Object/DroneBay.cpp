@@ -31,14 +31,13 @@
 
 const float kDroneBayCooldown = 0.25f;
 
-typedef ObjectWrapper
+using DroneBayBaseT = ObjectWrapper
   < Component_Attachable
   < Component_Orientation
   < Component_Pluggable
   < Component_Supertyped
   < ObjectWrapperTail<ObjectType_DroneBay>
-  > > > > >
-  DroneBayBaseT;
+  > > > > >;
 
 AutoClassDerived(DroneBay, DroneBayBaseT,
   Position, targetPos,
@@ -82,7 +81,7 @@ AutoClassDerived(DroneBay, DroneBayBaseT,
 
 DERIVED_IMPLEMENT(DroneBay)
 
-typedef
+using DroneBayTypeBase = 
     Attribute_Icon
   < Attribute_Mass
   < Attribute_Name
@@ -90,8 +89,7 @@ typedef
   < Attribute_Speed
   < Attribute_Value
   < ItemWrapper<ItemType_DroneBayType>
-  > > > > > >
-  DroneBayTypeBase;
+  > > > > > >;
 
 AutoClassDerivedEmpty(DroneBayType, DroneBayTypeBase)
   DERIVED_TYPE_EX(DroneBayType)

@@ -12,14 +12,13 @@
 
 #include "LTE/Distribution.h"
 
-typedef ObjectWrapper
+using UniverseBaseT = ObjectWrapper
   < Component_Interior
   < Component_Nameable
   < Component_Resources
   < Component_Seeded
   < ObjectWrapperTail<ObjectType_Universe>
-  > > > > >
-  UniverseBaseT;
+  > > > > >;
 
 struct Universe : public UniverseBaseT {
   uint depth;

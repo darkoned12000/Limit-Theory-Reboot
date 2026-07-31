@@ -59,7 +59,7 @@ DefineFunction(Item_StationType) { AUTO_FRAME;
 
   PlateMesh pm;
   ScriptFunction_Load("Item/StationType/Generate:Main")
-    ->Call(pm, (int)rg->GetInt());
+    ->Call(pm, static_cast<int>(rg->GetInt()));
   Mesh mesh = pm->GetMesh();
   Mesh_ComputeOcclusion(mesh);
   self->renderable = (Renderable)Model_Create()->Add(mesh, Material_Metal());

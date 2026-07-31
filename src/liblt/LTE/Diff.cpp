@@ -74,7 +74,7 @@ namespace LTE {
 
     Array<uchar>* Inflate(const Array<uchar>& source) override {
       if (source.size() != srcSize)
-        return NULL;
+        return nullptr;
 
       Array<uchar>* arr = new Array<uchar>(dstSize);
       uchar* pData = arr->data();

@@ -5,7 +5,7 @@
 
 template <class T>
 struct Attribute_PowerDrain : public T {
-  typedef Attribute_PowerDrain SelfType;
+  using SelfType = Attribute_PowerDrain;
   ATTRIBUTE_COMMON(powerDrain)
   float powerDrain;
 

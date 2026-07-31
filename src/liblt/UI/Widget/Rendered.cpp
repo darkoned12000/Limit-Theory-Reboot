@@ -64,8 +64,8 @@ namespace {
 
     void PreDraw(Widget const& self) override {
       FRAME("Initialize Render") {
-        uint targetWidth = (uint)(kResolution * self->size.x);
-        uint targetHeight = (uint)(kResolution * self->size.y);
+        uint targetWidth = static_cast<unsigned int>(kResolution * self->size.x);
+        uint targetHeight = static_cast<unsigned int>(kResolution * self->size.y);
 
         if (!buffers[0] ||
              targetWidth != width ||

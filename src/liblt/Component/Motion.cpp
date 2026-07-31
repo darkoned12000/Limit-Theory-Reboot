@@ -21,11 +21,11 @@ void ComponentMotion::Run(ObjectT* self, UpdateState& state) { AUTO_FRAME;
   force -= velocity * (mass * kLinearDrag);
   torque -= velocityA * (inertia * kAngularDrag);
 
-  velocity += force * (state.dt / (float)mass);
+  velocity += force * (state.dt / static_cast<float>(mass));
 
   /* Note that this should actually be inertial tensor, not mass. But
    * for now this will do as an approximation. */
-  velocityA += torque * (state.dt / (float)inertia);
+  velocityA += torque * (state.dt / static_cast<float>(inertia));
 
   const float tolerance = 0;
 

@@ -14,7 +14,7 @@
 char const* const kScriptExtension = ".lts";
 
 namespace {
-  typedef Map<String, Script> ScriptCacheT;
+  using ScriptCacheT = Map<String, Script>;
 
   ScriptCacheT& GetScriptCache() {
     static ScriptCacheT cache;
@@ -63,13 +63,33 @@ namespace LTE {
     Vector<String> pathComponents;
     String_Split(pathComponents, name, '/');
 
-    Script script;
+    Script script = nullptr;
+
+    /* First try the exact path from root — allows cross-directory imports.
+       Check existence first to suppress errors during ancestor search loop below. */
+    String scriptPathRoot = path + kScriptExtension;
+    Location locationRoot = Location_Script(scriptPathRoot);
+    if (locationRoot->Exists()) {
+      script = Script_Load(path);
+      return script;
+    }
+
+    /* Then search relative to this script's directory and ancestors upward.
+       Check existence before loading to avoid noise/errors for expected misses. */
     for (size_t i = 0; i < pathComponents.size() && !script; ++i) {
       String potentialName;
-      for (size_t j = 0; j + 1 < (pathComponents.size() - i); ++j)
-        potentialName += pathComponents[j] + "/";
-      potentialName += path;
-      script = Script_Load(potentialName);
+      size_t depth = pathComponents.size() - i;
+      for (size_t j = 0; j < depth; ++j) {
+        if (!potentialName.empty()) potentialName += "/";
+        potentialName += pathComponents[j];
+      }
+      potentialName += "/" + path;
+
+      String scriptPath = potentialName + kScriptExtension;
+      Location location = Location_Script(scriptPath);
+      if (location->Exists()) {
+        script = Script_Load(potentialName);
+      }
     }
 
     return script;

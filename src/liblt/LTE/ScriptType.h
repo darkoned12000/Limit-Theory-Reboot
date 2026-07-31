@@ -7,7 +7,7 @@
 #include "Vector.h"
 
 namespace LTE {
-  typedef Map<String, ScriptFunction> ScriptFunctionMapT;
+  using ScriptFunctionMapT = Map<String, ScriptFunction>;
 
   AutoClassDerived(ScriptTypeT, RefCounted,
     String, name,

@@ -32,7 +32,7 @@ namespace {
       {}
   };
 
-  typedef Map<String, SettingsNode*> NodeMapT;
+  using NodeMapT = Map<String, SettingsNode*>;
 
   AutoClass(Settings,
     Pointer<SettingsNode>, root,

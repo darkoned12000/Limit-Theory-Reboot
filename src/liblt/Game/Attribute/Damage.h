@@ -5,7 +5,7 @@
 
 template <class T>
 struct Attribute_Damage : public T {
-  typedef Attribute_Damage SelfType;
+  using SelfType = Attribute_Damage;
   ATTRIBUTE_COMMON(damage)
   Damage damage;
 

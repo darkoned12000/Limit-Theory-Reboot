@@ -50,6 +50,6 @@ FreeFunction(int, LogIterator_Size,
   LogIterator, iterator)
 {
   return iterator.object->GetLog()
-    ? (int)iterator.object->GetLog()->elements.size()
+    ? static_cast<int>(iterator.object->GetLog()->elements.size())
     : 0;
 } FunctionAlias(LogIterator_Size, Size);

@@ -9,7 +9,7 @@
 #include "LTE/Debug.h"
 
 namespace {
-  typedef HashMap<HashT, Widget> ChildMapT;
+  using ChildMapT = HashMap<HashT, Widget>;
 
   AutoClassDerived(WidgetDynamic, WidgetComponentT,
     ChildMapT, childrenMap)
@@ -40,7 +40,7 @@ namespace {
       }
 
       /* Delete orphaned or invalidated children. */ {
-        for (int i = 0; i < (int)self->children.size(); ++i) {
+        for (int i = 0; i < static_cast<int>(self->children.size()); ++i) {
           Widget const& child = self->children[i];
           if (!child->visited) {
             childrenMap.erase(child->GetHash());

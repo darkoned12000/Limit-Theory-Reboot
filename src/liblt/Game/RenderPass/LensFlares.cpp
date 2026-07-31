@@ -115,7 +115,7 @@ namespace {
             0.5f * (projMin + projMax).GetXY(),
             0.5f * (projMax - projMin).GetXY(),
             light->color,
-            Min((float)projected.z, state->view->zFar),
+            Min(static_cast<float>(projected.z), state->view->zFar),
             light);
 
           flares.push(flare);
@@ -162,7 +162,7 @@ namespace {
 
         queryBuffer->SetData(
           0, 0,
-          Min(kMaxFlares, (uint)flares.size()), 1,
+          Min(kMaxFlares, static_cast<unsigned int>(flares.size())), 1,
           GL_PixelFormat::RGBA,
           GL_DataFormat::Float,
           queryBufferData.data());

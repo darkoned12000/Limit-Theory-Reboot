@@ -6,7 +6,7 @@
 #include "ScriptType.h"
 
 namespace LTE {
-  typedef Map<String, ScriptType> ScriptTypeMapT;
+  using ScriptTypeMapT = Map<String, ScriptType>;
   
   AutoClassDerived(ScriptT, RefCounted,
     String, name,

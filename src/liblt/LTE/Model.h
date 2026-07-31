@@ -28,8 +28,13 @@ struct ModelT : public RenderableT {
   LT_API Model Add(Model const& model);
 
   LT_API void Render(DrawState* state) const override;
-  
+
   LT_API void RenderPiece(size_t piece, DrawState* state) const;
+
+  /* Instanced render: draws all entries of this model with a single instanced
+     draw call per entry. Caller must call Renderer_BeginInstancedDraw before
+     this and Renderer_EndInstancedDraw after. */
+  LT_API void RenderInstanced(DrawState* state, int instanceCount) const;
 
   LT_API Bound3 GetBound() const override;
   

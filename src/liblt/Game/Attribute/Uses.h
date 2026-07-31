@@ -5,7 +5,7 @@
 
 template <class T>
 struct Attribute_Uses : public T {
-  typedef Attribute_Uses SelfType;
+  using SelfType = Attribute_Uses;
   ATTRIBUTE_COMMON(uses)
   Quantity uses;
 

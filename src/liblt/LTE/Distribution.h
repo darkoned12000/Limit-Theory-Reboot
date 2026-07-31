@@ -5,8 +5,8 @@
 
 template <class T>
 struct Distribution : public VectorMap<T, float> {
-  typedef typename VectorMap<T, float>::BaseType BaseType;
-  typedef Distribution SelfType;
+  using BaseType = typename VectorMap<T, float>::BaseType;
+  using SelfType = Distribution;
 
   Distribution() = default;
 

@@ -7,8 +7,8 @@
 
 template <class T>
 struct Pointer : public NullBase<Pointer<T> > {
-  typedef NullBase<Pointer<T> > BaseType;
-  typedef Pointer SelfType;
+  using BaseType = NullBase<Pointer<T> >;
+  using SelfType = Pointer;
   T* t;
 
   Pointer() : t(0) {}

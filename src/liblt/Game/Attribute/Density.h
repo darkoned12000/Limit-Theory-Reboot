@@ -28,7 +28,7 @@
 
 template <class T>
 struct Attribute_Density : public T {
-  typedef Attribute_Density SelfType;
+  using SelfType = Attribute_Density;
   ATTRIBUTE_COMMON(density)
   float density;
 

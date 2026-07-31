@@ -7,8 +7,8 @@
 
 template <class T>
 struct AutoPtr : public NullBase<AutoPtr<T> > {
-  typedef NullBase<AutoPtr<T> > BaseType;
-  typedef AutoPtr SelfType;
+  using BaseType = NullBase<AutoPtr<T> >;
+  using SelfType = AutoPtr;
   T* t;
 
   AutoPtr(T* t = 0) : t(t) {}

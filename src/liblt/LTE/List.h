@@ -5,7 +5,7 @@
 
 template <class T>
 struct List : public NullBase<List<T> > {
-  typedef NullBase<List<T> > BaseType;
+  using BaseType = NullBase<List<T> >;
   T* head;
 
   struct Iterator {

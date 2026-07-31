@@ -6,7 +6,7 @@
 
 namespace LTE {
   struct JobT : public RefCounted {
-    typedef void ReturnType;
+    using ReturnType = void;
 
     float totalTime;
     uint totalUnits;

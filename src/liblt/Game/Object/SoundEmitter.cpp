@@ -8,13 +8,12 @@
 
 #include "Module/SoundEngine.h"
 
-typedef ObjectWrapper
+using SoundEmitterBaseT = ObjectWrapper
   < Component_Drawable
   < Component_Motion
   < Component_Orientation
   < ObjectWrapperTail<ObjectType_SoundEmitter>
-  > > > >
-  SoundEmitterBaseT;
+  > > > >;
 
 AutoClassDerived(SoundEmitter, SoundEmitterBaseT,
   float, life)

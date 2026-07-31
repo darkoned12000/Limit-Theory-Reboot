@@ -43,8 +43,8 @@ namespace {
     }
 
     void PreDraw(Widget const& self) override {
-      uint bufferWidth = (uint)(resolution * self->size.x);
-      uint bufferHeight = (uint)(resolution * self->size.y);
+      uint bufferWidth = static_cast<unsigned int>(resolution * self->size.x);
+      uint bufferHeight = static_cast<unsigned int>(resolution * self->size.y);
       if (!buffer ||
            buffer->GetWidth() != bufferWidth ||
            buffer->GetHeight() != bufferHeight)

@@ -6,7 +6,7 @@
 namespace LTE {
   template <class T>
   struct ConstantPointerT {
-    typedef T ReturnType;
+    using ReturnType = T;
 
     T const* t;
 
@@ -21,7 +21,7 @@ namespace LTE {
 
   template <class T>
   struct DereferenceT {
-    typedef typename GetDereferenceType<T>::Result ReturnType;
+    using ReturnType = typename GetDereferenceType<T>::Result;
 
     T t;
 

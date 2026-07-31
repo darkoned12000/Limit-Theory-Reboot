@@ -51,20 +51,20 @@
         }
 
         for (size_t x = 0; x < signGrid.resX; ++x) {
-          float x0 = (float)(x + 0) / (float)(grid.resX);
-          float x1 = (float)(x + 1) / (float)(grid.resX);
+          float x0 = static_cast<float>(x + 0) / static_cast<float>(grid.resX);
+          float x1 = static_cast<float>(x + 1) / static_cast<float>(grid.resX);
           x0 = Mix(b.lower.x, b.upper.x, x0);
           x1 = Mix(b.lower.x, b.upper.x, x1);
 
           for (size_t y = 0; y < signGrid.resY; ++y) {
-            float y0 = (float)(y + 0) / (float)(grid.resY);
-            float y1 = (float)(y + 1) / (float)(grid.resY);
+            float y0 = static_cast<float>(y + 0) / static_cast<float>(grid.resY);
+            float y1 = static_cast<float>(y + 1) / static_cast<float>(grid.resY);
             y0 = Mix(b.lower.y, b.upper.y, y0);
             y1 = Mix(b.lower.y, b.upper.y, y1);
 
             for (size_t z = 0; z < signGrid.resZ; ++z) {
-              float z0 = (float)(z + 0) / (float)(grid.resZ);
-              float z1 = (float)(z + 1) / (float)(grid.resZ);
+              float z0 = static_cast<float>(z + 0) / static_cast<float>(grid.resZ);
+              float z1 = static_cast<float>(z + 1) / static_cast<float>(grid.resZ);
               z0 = Mix(b.lower.z, b.upper.z, z0);
               z1 = Mix(b.lower.z, b.upper.z, z1);
 

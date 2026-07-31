@@ -14,7 +14,7 @@ namespace {
     (*shader)
       ("radius", args.radius)
       ("source", args.source())
-      ("samples", (int)args.samples);
+      ("samples", static_cast<int>(args.samples));
     self->GenerateFromShader(shader);
     return self;
   }

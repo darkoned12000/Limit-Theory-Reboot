@@ -11,7 +11,7 @@ AutoClass(InfoEntry,
   InfoEntry() = default;
 };
 
-typedef Map<ObjectID, InfoEntry> InfoMapT;
+using InfoMapT = Map<ObjectID, InfoEntry>;
 
 AutoClass(ComponentInfo,
   InfoMapT, elements)

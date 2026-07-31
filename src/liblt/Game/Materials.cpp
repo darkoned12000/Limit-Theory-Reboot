@@ -34,9 +34,9 @@ namespace {
     Texture_Generate(albedoMap, normalMap, platingShader);
 
     (*aoShader)
-      ("samples", (int)256)
+      ("samples", static_cast<int>(256))
       ("strength", 2.0f)
-      ("radius", 30.0f / (float)kTextureRes);
+      ("radius", 30.0f / static_cast<float>(kTextureRes));
     Texture2D t2 = Texture2D_Filter(albedoMap, aoShader);
     albedoMap = Texture2D_Filter(t2, dirtShader);
 

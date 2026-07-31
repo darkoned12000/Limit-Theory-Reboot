@@ -45,7 +45,7 @@ namespace {
   }
 
   struct CubeMapImpl : public CubeMapT {
-    typedef CubeMapT BaseType;
+    using BaseType = CubeMapT;
     DERIVED_TYPE_EX(CubeMapImpl)
 
     GL_Texture texture;

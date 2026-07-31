@@ -6,8 +6,8 @@
 
 namespace {
   struct UniformGrid : public SpatialPartition {
-    typedef V3T<int> Coord;
-    typedef Vector<void*> Cell;
+    using Coord = V3T<int>;
+    using Cell = Vector<void*>;
 
     Array<Cell*> cellData;
     int cellsX, cellsY, cellsZ, cellsYZ;

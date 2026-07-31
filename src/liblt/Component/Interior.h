@@ -10,8 +10,8 @@
 #include "LTE/V3.h"
 #include "LTE/Vector.h"
 
-typedef Vector<Object> ObjectListT;
-typedef Map<ObjectType, ObjectListT> ObjectMapT;
+using ObjectListT = Vector<Object>;
+using ObjectMapT = Map<ObjectType, ObjectListT>;
 
 AutoClass(ComponentInterior,
   ObjectListT, objects,

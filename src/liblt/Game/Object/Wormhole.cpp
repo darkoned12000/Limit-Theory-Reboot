@@ -33,7 +33,7 @@ namespace {
   }
 }
 
-typedef ObjectWrapper
+using WormholeBaseT = ObjectWrapper
   < Component_BoundingBox
   < Component_Detectable
   < Component_Drawable
@@ -42,8 +42,7 @@ typedef ObjectWrapper
   < Component_Orientation
   < Component_Zoned
   < ObjectWrapperTail<ObjectType_Wormhole>
-  > > > > > > > >
-  WormholeBaseT;
+  > > > > > > > >;
 
 AutoClassDerived(Wormhole, WormholeBaseT,
   Object, tunnel)

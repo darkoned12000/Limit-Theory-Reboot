@@ -9,13 +9,12 @@
 #include "Component/Orientation.h"
 #include "LTE/Common.h"
 
-typedef ObjectWrapper
+using BeamBaseT = ObjectWrapper
   < Component_Damager
   < Component_Drawable
   < Component_Orientation
   < ObjectWrapperTail<ObjectType_Beam>
-  > > > >
-  BeamBaseT;
+  > > > >;
 
 struct Beam : public BeamBaseT {
   V3 origin;

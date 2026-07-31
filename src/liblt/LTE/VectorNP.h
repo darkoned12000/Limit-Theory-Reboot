@@ -7,8 +7,8 @@
 #include "Vector.h"
 
 struct VectorNP : public NullBase<VectorNP> {
-  typedef VectorNP SelfType;
-  typedef NullBase<VectorNP> BaseType;
+  using SelfType = VectorNP;
+  using BaseType = NullBase<VectorNP>;
 
   Type type;
   char* buffer;

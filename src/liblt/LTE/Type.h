@@ -120,16 +120,16 @@
 #define REGISTER_TYPE(name)                                                    \
   volatile static Type _##name##_type_registration = Type_Get<name>();
 
-typedef void* (*AllocateFn)(TypeT*);
-typedef void (*AssignFn)(TypeT*, void const*, void*);
-typedef void (*ConversionFn)(TypeT*, void const*, void*);
-typedef int64 (*CastIntFn)(TypeT*, void const*);
-typedef double (*CastRealFn)(TypeT*, void const*);
-typedef void (*ConstructFn)(TypeT*, void*);
-typedef void (*DeallocateFn)(TypeT*, void*);
-typedef void (*DestructFn)(TypeT*, void*);
-typedef void (*MapperFn)(TypeT*, void*, FieldMapper&, void*);
-typedef void (*ToStringFn)(TypeT*, void*, String*);
+using AllocateFn   = void* (*)(TypeT*);
+using AssignFn     = void (*)(TypeT*, void const*, void*);
+using ConversionFn = void (*)(TypeT*, void const*, void*);
+using CastIntFn    = int64 (*)(TypeT*, void const*);
+using CastRealFn   = double (*)(TypeT*, void const*);
+using ConstructFn  = void (*)(TypeT*, void*);
+using DeallocateFn = void (*)(TypeT*, void*);
+using DestructFn   = void (*)(TypeT*, void*);
+using MapperFn     = void (*)(TypeT*, void*, FieldMapper&, void*);
+using ToStringFn   = void (*)(TypeT*, void*, String*);
 
 template <class T>
 size_t AlignOf() {
@@ -263,7 +263,7 @@ void Type_Print(T const& t, uint maxDepth = 4) {
 }
 
 struct Type {
-  typedef Type SelfType;
+  using SelfType = Type;
   TypeT* t;
 
   Type(TypeT* t = 0) : t(t) { Acquire(); }

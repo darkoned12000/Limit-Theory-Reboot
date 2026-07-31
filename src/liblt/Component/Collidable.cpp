@@ -23,8 +23,8 @@ namespace {
     V3 const& normal)
   {
     ComponentMotion* motion = self->GetMotion();
-    double selfMass = (double)self->GetMass();
-    double othrMass = (double)othr->GetMass();
+    double selfMass = static_cast<double>(self->GetMass());
+    double othrMass = static_cast<double>(othr->GetMass());
     V3 selfVelocity = self->GetVelocity();
     V3 othrVelocity = othr->GetVelocity();
 
@@ -44,7 +44,7 @@ namespace {
 
     if (motion)
       motion->velocity -=
-        (float)(kResolutionCoefficient * othrMassFraction) *
+        static_cast<float>(kResolutionCoefficient * othrMassFraction) *
         Max(0.f, Dot(motion->velocity, normal)) * normal;
   }
 }

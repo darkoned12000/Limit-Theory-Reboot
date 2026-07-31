@@ -37,4 +37,6 @@ DeclareFunctionNoParams(RenderPass_SSAO, RenderPass)
 
 DeclareFunctionNoParams(RenderPass_Visibility, RenderPass)
 
+DeclareFunctionNoParams(RenderPass_HiZOcclusion, RenderPass)
+
 #endif

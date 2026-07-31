@@ -70,3 +70,12 @@ Vector<Function> const& Function_Find(String const& name) {
 Vector<Function> const& Function_GetList() {
   return GetFunctionList();
 }
+
+void Function_ForEach(void* user, void (*callback)(
+  void* user, String const& name, Vector<Function> const& functions))
+{
+  Map<String, Vector<Function> >& m = GetFunctionMap();
+  for (Map<String, Vector<Function> >::iterator it = m.begin(); it != m.end(); ++it) {
+    callback(user, it->first, it->second);
+  }
+}

@@ -6,8 +6,8 @@
 
 namespace {
   struct HashGrid : public SpatialPartition {
-    typedef V3T<int> Coord;
-    typedef Vector<void*> Cell;
+    using Coord = V3T<int>;
+    using Cell = Vector<void*>;
 
     mutable uint version;
     Array<Cell> cellData;

@@ -8,8 +8,8 @@ namespace Audio {
   struct Note;
   struct SignalT;
 
-  typedef Reference<GeneratorT> Generator;
-  typedef Reference<SignalT> Signal;
+  using Generator = Reference<GeneratorT>;
+  using Signal = Reference<SignalT>;
 }
 
 #endif

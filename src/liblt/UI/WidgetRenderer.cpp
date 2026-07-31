@@ -41,7 +41,7 @@ namespace {
     RadialPanelVertex() = default;
   };
 
-  typedef Map<Type, Vector<GlyphInstance> > GlyphMapT;
+  using GlyphMapT = Map<Type, Vector<GlyphInstance> >;
 
   struct WidgetRenderer {
     GlyphMapT glyphs;

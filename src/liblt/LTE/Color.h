@@ -5,7 +5,7 @@
 #include "V3.h"
 
 struct Color : public V3F {
-  typedef V3T<float> BaseType;
+  using BaseType = V3T<float>;
 
   Color() : V3F(0) {}
   Color(float rgb) : V3F(rgb) {}

@@ -8,11 +8,11 @@
 
 template <class KeyT, class ValueT>
 struct Map : public NullBase<Map<KeyT, ValueT> > {
-  typedef KeyT ArgType;
-  typedef NullBase<Map<KeyT, ValueT> > BaseType;
-  typedef ValueT* ReturnType;
-  typedef typename std::map<KeyT, ValueT>::iterator iterator;
-  typedef typename std::map<KeyT, ValueT>::const_iterator const_iterator;
+  using ArgType = KeyT;
+  using BaseType = NullBase<Map<KeyT, ValueT> >;
+  using ReturnType = ValueT*;
+  using iterator = typename std::map<KeyT, ValueT>::iterator;
+  using const_iterator = typename std::map<KeyT, ValueT>::const_iterator;
 
   std::map<KeyT, ValueT> m;
 

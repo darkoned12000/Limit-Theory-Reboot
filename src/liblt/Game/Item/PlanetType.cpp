@@ -25,7 +25,7 @@
 const float kOuterScale = 1.025f;
 const uint kMeshQuality = 50;
 
-typedef
+using PlanetTypeBase = 
     Attribute_Docks
   < Attribute_Icon
   < Attribute_Name
@@ -33,8 +33,7 @@ typedef
   < Attribute_Scale
   < Attribute_Seed
   < ItemWrapper<ItemType_PlanetType>
-  > > > > > >
-  PlanetTypeBase;
+  > > > > > >;
 
 AutoClassDerived(PlanetType, PlanetTypeBase,
   float, atmoDensity,

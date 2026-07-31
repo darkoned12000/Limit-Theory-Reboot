@@ -12,7 +12,7 @@
 #include "Game/Attribute/Scale.h"
 #include "Game/Attribute/Value.h"
 
-typedef
+using ProductionLabTypeBase = 
     Attribute_Capability
   < Attribute_Icon
   < Attribute_Mass
@@ -22,8 +22,7 @@ typedef
   < Attribute_Scale
   < Attribute_Value
   < ItemWrapper<ItemType_ProductionLabType>
-  > > > > > > > >
-  ProductionLabTypeBase;
+  > > > > > > > >;
 
 AutoClassDerivedEmpty(ProductionLabType, ProductionLabTypeBase)
   DERIVED_TYPE_EX(ProductionLabType)

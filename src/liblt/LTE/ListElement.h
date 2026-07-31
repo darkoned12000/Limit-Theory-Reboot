@@ -6,7 +6,7 @@
 namespace LTE {
   template <class T>
   struct ListElement : public NullBase<ListElement<T> > {
-    typedef NullBase<ListElement<T> > BaseType;
+    using BaseType = NullBase<ListElement<T> >;
     T* t;
 
     ListElement() :

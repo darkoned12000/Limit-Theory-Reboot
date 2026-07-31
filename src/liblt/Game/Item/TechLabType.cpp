@@ -13,7 +13,7 @@
 
 #include "UI/Glyphs.h"
 
-typedef
+using TechLabTypeBase = 
     Attribute_Capability
   < Attribute_Icon
   < Attribute_Mass
@@ -22,8 +22,7 @@ typedef
   < Attribute_Scale
   < Attribute_Value
   < ItemWrapper<ItemType_TechLabType>
-  > > > > > > >
-  TechLabTypeBase;
+  > > > > > > >;
 
 AutoClassDerivedEmpty(TechLabType, TechLabTypeBase)
   DERIVED_TYPE_EX(TechLabType)

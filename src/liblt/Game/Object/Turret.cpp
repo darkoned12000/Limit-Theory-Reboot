@@ -21,7 +21,7 @@
 
 const float kTrackSpeed = 2.0f * kTau;
 
-typedef ObjectWrapper
+using TurretBaseT = ObjectWrapper
   < Component_Attachable
   < Component_BoundingBox
   < Component_Collidable
@@ -32,8 +32,7 @@ typedef ObjectWrapper
   < Component_Sockets
   < Component_Supertyped
   < ObjectWrapperTail<ObjectType_Turret>
-  > > > > > > > > > >
-  TurretBaseT;
+  > > > > > > > > > >;
 
 AutoClassDerived(Turret, TurretBaseT,
   Position, target)

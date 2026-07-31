@@ -16,7 +16,7 @@
 #include "LTE/RNG.h"
 #include "LTE/ShaderInstance.h"
 
-typedef ObjectWrapper
+using AsteroidBaseT = ObjectWrapper
   < Component_BoundingBox
   < Component_Collidable
   < Component_Cullable
@@ -24,8 +24,7 @@ typedef ObjectWrapper
   < Component_Orientation
   < Component_Seeded
   < ObjectWrapperTail<ObjectType_Asteroid>
-  > > > > > > >
-  AsteroidBaseT;
+  > > > > > > >;
 
 AutoClassDerivedEmpty(Asteroid, AsteroidBaseT)
   DERIVED_TYPE_EX(Asteroid)
@@ -40,7 +39,7 @@ AutoClassDerivedEmpty(Asteroid, AsteroidBaseT)
 
 DERIVED_IMPLEMENT(Asteroid)
 
-typedef ObjectWrapper
+using AsteroidRichBaseT = ObjectWrapper
   < Component_BoundingBox
   < Component_Collidable
   < Component_Cullable
@@ -50,8 +49,7 @@ typedef ObjectWrapper
   < Component_Orientation
   < Component_Seeded
   < ObjectWrapperTail<ObjectType_AsteroidRich>
-  > > > > > > > > >
-  AsteroidRichBaseT;
+  > > > > > > > > >;
 
 AutoClassDerivedEmpty(AsteroidRich, AsteroidRichBaseT)
   DERIVED_TYPE_EX(AsteroidRich)

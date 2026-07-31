@@ -14,7 +14,7 @@
 #include "Game/Common.h"
 
 namespace {
-  typedef Map< char const*, Vector<Data> > DataMap;
+  using DataMap = Map< char const*, Vector<Data> >;
 
   DataMap& GetDataMap() {
     static DataMap dataMap;

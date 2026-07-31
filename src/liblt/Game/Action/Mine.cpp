@@ -28,7 +28,7 @@ namespace {
       /* TODO : Normalize in terms of mass. */
       float rate = Exp(-6.0f * (1.0f - Dot(phase, mine->phase)));
       rate *= state.dt * RandExp();
-      rate *= (float)mine->quantity;
+      rate *= static_cast<float>(mine->quantity);
       rate *= 0.25f;
 
       Quantity quantity = Min(mine->quantity, (Quantity)rate);

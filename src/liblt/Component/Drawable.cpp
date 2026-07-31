@@ -12,9 +12,8 @@ void ComponentDrawable::Draw(ObjectT* self, DrawState* state) {
     return;
 
   RenderStyle_Get()->SetTransform(self->GetTransform());
-  // DrawState_Push("objectRadius", self->GetRadius());
+  state->lodLevel = lodLevel;
   renderable()->Render(state);
-  // DrawState_Pop("objectRadius");
 }
 
 VoidFreeFunction(Object_SetRenderable,

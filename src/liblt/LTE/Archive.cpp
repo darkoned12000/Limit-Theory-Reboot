@@ -138,7 +138,7 @@ namespace LTE {
           return arr;
         }
       }
-      return NULL;
+      return nullptr;
     }
 
     bool ReadFrom(const String& filename) {
@@ -161,7 +161,7 @@ namespace LTE {
 
       for (int i = 0; i < fileCount; ++i) {
         File thisFile;
-        thisFile.data = NULL;
+        thisFile.data = nullptr;
 
         if (!std::getline(stream, thisFile.name, '\0'))
           return false;
@@ -187,7 +187,7 @@ namespace LTE {
     void UnloadFile(File& file) {
       if (file.data) {
         free(file.data);
-        file.data = NULL;
+        file.data = nullptr;
       }
     }
 
@@ -195,7 +195,7 @@ namespace LTE {
       String lowerFilename = filename;
       ToLower(lowerFilename);
 
-      File* thisFile = NULL;
+      File* thisFile = nullptr;
       for (size_t i = 0; i < files.size(); ++i) {
         if (files[i].name == lowerFilename) {
           thisFile = &files[i];

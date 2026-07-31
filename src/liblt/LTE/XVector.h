@@ -16,7 +16,7 @@
 #define STORAGE_NAME(x) STORAGE_NAME_2(x)
 
 struct STORAGE_NAME(XNAME) : public NullBase<STORAGE_NAME(XNAME)> {
-  typedef STORAGE_NAME(XNAME) SelfType;
+  using SelfType = STORAGE_NAME(XNAME);
 
 #define X(x) XTYPE x;
   XLIST
@@ -53,8 +53,8 @@ struct STORAGE_NAME(XNAME) : public NullBase<STORAGE_NAME(XNAME)> {
 typedef Vec<XTYPE, XSIZE, STORAGE_NAME(XNAME)> BASE_NAME(XNAME);
 
 struct XNAME : public BASE_NAME(XNAME) {
-  typedef XNAME SelfType;
-  typedef BASE_NAME(XNAME) BaseType;
+  using SelfType = XNAME;
+  using BaseType = BASE_NAME(XNAME);
 
   XNAME& operator=(BASE_NAME(XNAME) const& other) {
     *((BASE_NAME(XNAME)*)this) = other;

@@ -52,7 +52,7 @@ inline Item Item_DroneBayType(double value, uint seed) {
   return Item_DroneBayType(value, seed, 1, 1);
 }
 
-typedef Item_DroneBayType_Args Meta_DroneBayType;
+using Meta_DroneBayType = Item_DroneBayType_Args;
 
 DeclareFunctionArgBind(Item_DroneConstructionType, Item,
   double, value,
@@ -78,7 +78,7 @@ inline Item Item_ProductionLabType(double value, uint seed) {
   return Item_ProductionLabType(value, seed, 1, 1, 1);
 }
 
-typedef Item_ProductionLabType_Args Meta_ProductionLabType;
+using Meta_ProductionLabType = Item_ProductionLabType_Args;
 
 #if 0
 DeclareFunction(Item_PulseType, Item,
@@ -92,20 +92,20 @@ DeclareFunction(Item_PulseType, Item,
   float, rate,
   float, speed)
 
-typedef Item_PulseType_Args Meta_PulseType;
+using Meta_PulseType = Item_PulseType_Args;
 #endif
 
 DeclareFunctionArgBind(Item_OreType, Item,
   double, value,
   uint, seed)
 
-typedef Item_OreType_Args Meta_OreType;
+using Meta_OreType = Item_OreType_Args;
 
 DeclareFunctionArgBind(Item_PowerGeneratorType, Item,
   double, value,
   uint, seed)
 
-typedef Item_PowerGeneratorType_Args Meta_PowerGeneratorType;
+using Meta_PowerGeneratorType = Item_PowerGeneratorType_Args;
 
 DeclareFunctionArgBind(Item_ScannerType, Item,
   double, value,
@@ -117,7 +117,7 @@ inline Item Item_ScannerType(double value, uint seed) {
   return Item_ScannerType(value, seed, 1);
 }
 
-typedef Item_ScannerType_Args Meta_ScannerType;
+using Meta_ScannerType = Item_ScannerType_Args;
 
 DeclareFunctionArgBind(Item_ShieldType, Item,
   double, value,
@@ -132,7 +132,7 @@ inline Item Item_ShieldType(double value, uint seed) {
   return Item_ShieldType(value, seed, 1, 1, 1, 1);
 }
 
-typedef Item_ShieldType_Args Meta_ShieldType;
+using Meta_ShieldType = Item_ShieldType_Args;
 
 DeclareFunctionArgBind(Item_ShipType, Item,
   double, value,
@@ -149,7 +149,7 @@ inline Item Item_ShipType(double value, uint seed) {
   return Item_ShipType(value, seed, 1, 1, 1, 1, 1, 1);
 }
 
-typedef Item_ShipType_Args Meta_ShipType;
+using Meta_ShipType = Item_ShipType_Args;
 
 DeclareFunctionArgBind(Item_StationType, Item,
   double, value,
@@ -176,7 +176,7 @@ inline Item Item_TechLabType(double value, uint seed) {
   return Item_TechLabType(value, seed, 1, 1, 1);
 }
 
-typedef Item_TechLabType_Args Meta_TechLabType;
+using Meta_TechLabType = Item_TechLabType_Args;
 
 DeclareFunctionArgBind(Item_ThrusterType, Item,
   double, value,
@@ -191,7 +191,7 @@ inline Item Item_ThrusterType(double value, uint seed) {
   return Item_ThrusterType(value, seed, 1, 1, 1, 1);
 }
 
-typedef Item_ThrusterType_Args Meta_ThrusterType;
+using Meta_ThrusterType = Item_ThrusterType_Args;
 
 DeclareFunctionArgBind(Item_TransferUnitType, Item,
   double, value,
@@ -202,13 +202,13 @@ DeclareFunctionArgBind(Item_TransferUnitType, Item,
   float, range,
   float, rate)
 
-typedef Item_TransferUnitType_Args Meta_TransferUnitType;
+using Meta_TransferUnitType = Item_TransferUnitType_Args;
 
 DeclareFunctionArgBind(Item_TurretType, Item,
   uint, sockets,
   float, trackingSpeed)
 
-typedef Item_TurretType_Args Meta_TurretType;
+using Meta_TurretType = Item_TurretType_Args;
 
 DeclareFunction(Item_WeaponType, Item, int, id)
 

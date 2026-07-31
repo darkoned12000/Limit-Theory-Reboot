@@ -13,7 +13,7 @@
 
 const size_t kCloudCount = 4;
 const float kBaseScale = 1024;
-const float kScaleFactor = Pow(16.0f, (1.0f / (float)kCloudCount));
+const float kScaleFactor = Pow(16.0f, (1.0f / static_cast<float>(kCloudCount)));
 
 namespace {
   AutoClass(Cloud,

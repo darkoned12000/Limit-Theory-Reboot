@@ -9,7 +9,7 @@ const unsigned long long kDataMagic = 0xDAD91633BFAFC00DULL;
 namespace LTE {
   /* DataRef does not own the type's memory. */
   struct DataRef {
-    typedef DataRef SelfType;
+    using SelfType = DataRef;
 
     Type type;
     void* data;
@@ -69,8 +69,8 @@ namespace LTE {
   };
 
   struct Data : public NullBase<Data> {
-    typedef Data SelfType;
-    typedef NullBase<Data> BaseType;
+    using SelfType = Data;
+    using BaseType = NullBase<Data>;
 
     Type type;
     void* data;

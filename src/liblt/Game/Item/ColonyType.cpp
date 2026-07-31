@@ -9,14 +9,13 @@
 
 #include "UI/Glyphs.h"
 
-typedef
+using ColonyTypeBase = 
     Attribute_Icon
   < Attribute_Name
   < Attribute_Task
   < Attribute_Traits
   < ItemWrapper<ItemType_ColonyType>
-  > > > >
-  ColonyTypeBase;
+  > > > >;
 
 AutoClassDerivedEmpty(ColonyType, ColonyTypeBase)
   DERIVED_TYPE_EX(ColonyType)

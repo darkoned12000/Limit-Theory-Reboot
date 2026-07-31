@@ -23,7 +23,7 @@ namespace {
 
     uint points = rg->GetInt(6, 12);
     for (uint i = 0; i < points; ++i) {
-      float t = (float)i / (float)points;
+      float t = static_cast<float>(i) / static_cast<float>(points);
       V2 point = 0.5f * Polar(kTau * t);
       point *= Clamp(0.5f - 0.75f * (Log(Fractal(ValueNoise3D, 4.0f * V3(point, 16.0f * seed), 4, 2))), 0.0f, 2.0f);
 
@@ -40,14 +40,13 @@ namespace {
   }
 }
 
-typedef
+using OreTypeBase = 
     Attribute_Icon
   < Attribute_Mass
   < Attribute_Name
   < Attribute_Value
   < ItemWrapper<ItemType_OreType>
-  > > > >
-  OreTypeBase;
+  > > > >;
 
 AutoClassDerivedEmpty(OreType, OreTypeBase)
   DERIVED_TYPE_EX(OreType)

@@ -10,14 +10,13 @@
 #include "LTE/Pool.h"
 
 namespace {
-  typedef
+using ItemDataDestroyedBase =
       Attribute_Hash
     < Attribute_Name
     < Attribute_Object
     < Attribute_Value
     < ItemWrapper<ItemType_DataDestroyed>
-    > > > >
-    ItemDataDestroyedBase;
+    > > > >;
 
   AutoClassDerivedEmpty(ItemDataDestroyed, ItemDataDestroyedBase)
     DERIVED_TYPE_EX(ItemDataDestroyed)

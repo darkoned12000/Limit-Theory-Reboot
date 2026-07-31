@@ -7,7 +7,7 @@
 namespace LTE {
   template <class T>
   struct PriorityQueue {
-    typedef Tuple2<T, float> Element;
+    using Element = Tuple2<T, float>;
     Vector<Element> elements;
 
     float& operator[](T const& element) {

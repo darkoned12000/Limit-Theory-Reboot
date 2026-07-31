@@ -6,6 +6,7 @@
 #include "Matrix.h"
 #include "Mesh.h"
 #include "ProgramLog.h"
+#include "Shader.h"
 #include "ShaderInstance.h"
 #include "Stack.h"
 #include "Texture2D.h"
@@ -13,6 +14,8 @@
 #include "Tuple.h"
 #include "VectorMap.h"
 #include "Window.h"
+
+#include <SFML/Window/Context.hpp>
 
 const bool kAllow16BitIndices = true;
 const bool kCameraSpaceRendering = true;
@@ -31,7 +34,6 @@ namespace {
     Matrix world;
     Matrix view;
     Matrix proj;
-    Matrix worldIT;
     Matrix wvp;
     Transform viewTransform;
     int callCount;
@@ -158,20 +160,98 @@ namespace {
   }
 }
 
+// ----------------------------------------------------------------------------
+// GPU Instancing Infrastructure
+// ----------------------------------------------------------------------------
+
+namespace {
+  /* Shared SSBO for per-instance world matrices (binding point 0).
+     A dummy 128-byte buffer is bound at init so non-instanced shaders
+     never access an unbound SSBO. The real instance buffer replaces it
+     during instanced draws. */
+  const unsigned int kInstanceBindingPoint = 0;
+  GL_Buffer gDummyInstanceBuffer = GL_NullBuffer;
+  GL_Buffer gInstanceBuffer = GL_NullBuffer;
+  size_t gInstanceBufferCapacity = 0;
+
+  GL_Buffer GetDummyInstanceBuffer() {
+    if (gDummyInstanceBuffer == GL_NullBuffer) {
+      gDummyInstanceBuffer = GL_GenBuffer();
+      /* Must be at least sizeof(mat4) * 2 to match the GLSL InstanceData
+         struct { mat4 world; mat4 worldIT; }. GLSL ternaries don't guarantee
+         short-circuit, so non-instanced shaders may still touch the SSBO. */
+      float zero[32] = {};
+      GL_BindBuffer(GL_BufferTarget::ShaderStorage, gDummyInstanceBuffer);
+      GL_BufferData(GL_BufferTarget::ShaderStorage, sizeof(zero), zero,
+                    GL_BufferUsage::StaticDraw);
+      GL_BindBufferBase(GL_BufferTarget::ShaderStorage,
+                        kInstanceBindingPoint, gDummyInstanceBuffer);
+    }
+    return gDummyInstanceBuffer;
+  }
+
+  GL_Buffer GetInstanceBuffer() {
+    if (gInstanceBuffer == GL_NullBuffer)
+      gInstanceBuffer = GL_GenBuffer();
+    return gInstanceBuffer;
+  }
+
+  void SetInstancedUniform(int instanced) {
+    ShaderT* shader = Shader_GetActive();
+    if (shader) {
+      int loc = shader->QueryUniformLocation("uInstanced");
+      if (loc >= 0)
+        shader->SetInt(loc, instanced);
+    }
+  }
+
+  void SetParticleInstancedUniform(int instanced) {
+    ShaderT* shader = Shader_GetActive();
+    if (shader) {
+      int loc = shader->QueryUniformLocation("uParticleInstanced");
+      if (loc >= 0)
+        shader->SetInt(loc, instanced);
+    }
+  }
+
+  /* Particle SSBO at binding point 1 — compact per-instance data for
+     GPU-instanced billboard particles. Separate from the model instancing
+     SSBO at binding point 0. */
+  const unsigned int kParticleBindingPoint = 1;
+  GL_Buffer gParticleDummyBuffer = GL_NullBuffer;
+  GL_Buffer gParticleInstanceBuffer = GL_NullBuffer;
+  size_t gParticleInstanceBufferCapacity = 0;
+
+  GL_Buffer GetParticleDummyBuffer() {
+    if (gParticleDummyBuffer == GL_NullBuffer) {
+      gParticleDummyBuffer = GL_GenBuffer();
+      /* 2 x vec4 = 32 bytes, matches ParticleInstanceData layout. */
+      float zero[8] = {};
+      GL_BindBuffer(GL_BufferTarget::ShaderStorage, gParticleDummyBuffer);
+      GL_BufferData(GL_BufferTarget::ShaderStorage, sizeof(zero), zero,
+                    GL_BufferUsage::StaticDraw);
+      GL_BindBufferBase(GL_BufferTarget::ShaderStorage,
+                        kParticleBindingPoint, gParticleDummyBuffer);
+    }
+    return gParticleDummyBuffer;
+  }
+
+  GL_Buffer GetParticleInstanceBuffer() {
+    if (gParticleInstanceBuffer == GL_NullBuffer)
+      gParticleInstanceBuffer = GL_GenBuffer();
+    return gParticleInstanceBuffer;
+  }
+}
+
 namespace LTE {
   void Renderer_Initialize() {
+    /* Load all OpenGL function pointers via GLAD BEFORE any gl* calls.
+       Uses SFML's sf::Context::getFunction as the loader. */
+    if (!gladLoadGL((GLADloadfunc)sf::Context::getFunction))
+      Log_Critical("GLAD failed to initialize OpenGL");
+
     char const* version = (char const*)glGetString(GL_VERSION);
     Log_Message(Stringize() | "OpenGL Version " | version);
-
-    /* For OS X + Intel drivers, we need to make use of (supported) 3+
-       functions, even though the driver will claim not to support 3. */
-    glewExperimental = GL_TRUE;
-
-    GLenum err = glewInit();
-    if (err != GLEW_OK)
-      Log_Critical("GLEW failed to initialize");
-    if (!GLEW_VERSION_2_1)
-      Log_Critical("GLEW failed to support OpenGL 2.1");
 
     /* Assert every OpenGL extension function that we're going to use, just
        to be safe! May help find compatability errors on older cards. */
@@ -239,16 +319,31 @@ namespace LTE {
      * VAO for the lifetime of the renderer so the engine's attribute setup
      * (which never created VAOs) has somewhere to live. */
     GL_BindVertexArray(GL_GenVertexArray());
+
+    /* Bind a dummy SSBO at binding point 0 so non-instanced shaders
+       never access an unbound buffer object. */
+    GetDummyInstanceBuffer();
+
+    /* Bind a dummy SSBO at binding point 1 for the particle instancing
+       path (same reason — GLSL doesn't short-circuit). */
+    GetParticleDummyBuffer();
   }
 
 // ----------------------------------------------------------------------------
 
   static void InjectMatrices(ShaderT& shader) {
+    /* Compute worldIT on demand — only when the shader actually uses it.
+     * Most shaders don't need WORLDIT, so this avoids ~30K matrix inverses
+     * per frame (moved from Renderer_SetWorldTransform). */
+    Matrix worldIT;
+    if (shader.QueryUniformLocation("WORLDIT") >= 0)
+      worldIT = renderer.world.Inverse().Transpose();
+
     shader.BindMatrices(
       Renderer_GetWorldMatrix(),
       Renderer_GetViewMatrix(),
       Renderer_GetProjMatrix(),
-      Renderer_GetWorldITMatrix(),
+      worldIT,
       Renderer_GetWorldViewProjMatrix());
   }
 
@@ -404,7 +499,6 @@ namespace LTE {
     renderer.world =
     renderer.view =
     renderer.proj =
-    renderer.worldIT =
     renderer.wvp =
     Matrix::Identity();
   }
@@ -468,6 +562,139 @@ namespace LTE {
     renderer.polyCount += mesh->GetIndices() / 3;
   }
 
+  void Renderer_BeginInstancedDraw(Matrix const* interleavedData, int count) {
+    LTE_ASSERT(count > 0);
+
+    /* Upload interleaved world + worldIT matrices to the SSBO.
+       The caller provides 2 * count matrices: { world, worldIT } per instance,
+       matching the GLSL struct { mat4 world; mat4 worldIT; }. */
+    GL_Buffer buf = GetInstanceBuffer();
+    GL_BindBuffer(GL_BufferTarget::ShaderStorage, buf);
+
+    size_t needed = (size_t)count;
+    if (needed > gInstanceBufferCapacity) {
+      /* Orphan and reallocate (standard streaming pattern).
+         Capacity is in instance count (each instance = 2 mat4 = 128 bytes). */
+      gInstanceBufferCapacity = needed * 2;
+      GL_BufferData(GL_BufferTarget::ShaderStorage,
+                    (int)(sizeof(Matrix) * 2 * gInstanceBufferCapacity),
+                    nullptr, GL_BufferUsage::DynamicDraw);
+    }
+    GL_BufferSubData(GL_BufferTarget::ShaderStorage, 0,
+                     (int)(sizeof(Matrix) * 2 * count), interleavedData);
+
+    GL_BindBufferBase(GL_BufferTarget::ShaderStorage,
+                      kInstanceBindingPoint, buf);
+    /* NOTE: uInstanced is set in Renderer_DrawMeshInstanced, after the
+       model's shader is bound via Begin() -> glUseProgram. Setting it
+       here would apply to the WRONG shader (the one active before this
+       call). */
+  }
+
+  void Renderer_EndInstancedDraw() {
+    SetInstancedUniform(0);
+
+    /* Rebind the dummy SSBO so non-instanced shaders don't touch the
+       instance buffer. */
+    GL_BindBufferBase(GL_BufferTarget::ShaderStorage,
+                      kInstanceBindingPoint, GetDummyInstanceBuffer());
+  }
+
+  void Renderer_DrawMeshInstanced(MeshT const* mesh, int instanceCount) {
+    PrepareMeshForDraw(mesh);
+
+    /* Set uInstanced AFTER the model's shader is bound via Begin()->glUseProgram.
+       This ensures the uniform is set on the correct (currently active) program. */
+    SetInstancedUniform(1);
+
+    Renderer_BindVertexBuffer(mesh->vbo);
+    Renderer_BindIndexBuffer(mesh->ibo);
+
+    Renderer_EnableAttribArray(0);
+    Renderer_EnableAttribArray(1);
+    Renderer_EnableAttribArray(2);
+
+    GL_VertexAttribPointer(0, 3, GL_DataFormat::Float, false, sizeof(Vertex),
+                           (void const*)offset_of(Vertex, p));
+    GL_VertexAttribPointer(1, 3, GL_DataFormat::Float, false, sizeof(Vertex),
+                           (void const*)offset_of(Vertex, n));
+    GL_VertexAttribPointer(2, 2, GL_DataFormat::Float, false, sizeof(Vertex),
+                           (void const*)offset_of(Vertex, u));
+    GL_DrawElementsInstanced(
+      GL_DrawMode::Triangles,
+      mesh->GetIndices(),
+      mesh->indexFormat,
+      nullptr,
+      instanceCount);
+
+    renderer.callCount++;
+    renderer.polyCount += (mesh->GetIndices() / 3) * instanceCount;
+  }
+
+  void Renderer_DrawParticlesInstanced(
+    MeshT const* mesh,
+    ParticleInstanceData const* instances,
+    int count)
+  {
+    LTE_ASSERT(count > 0);
+    PrepareMeshForDraw(mesh);
+
+    /* Upload per-particle instance data to SSBO at binding point 1.
+       Layout: { vec4 posAndSize, vec4 ageAndColor } per instance = 32 bytes. */
+    GL_Buffer buf = GetParticleInstanceBuffer();
+    GL_BindBuffer(GL_BufferTarget::ShaderStorage, buf);
+
+    size_t needed = (size_t)count;
+    if (needed > gParticleInstanceBufferCapacity) {
+      gParticleInstanceBufferCapacity = needed * 2;
+      GL_BufferData(GL_BufferTarget::ShaderStorage,
+                    (int)(sizeof(ParticleInstanceData) * gParticleInstanceBufferCapacity),
+                    nullptr, GL_BufferUsage::DynamicDraw);
+    }
+    GL_BufferSubData(GL_BufferTarget::ShaderStorage, 0,
+                     (int)(sizeof(ParticleInstanceData) * count),
+                     instances);
+    GL_BindBufferBase(GL_BufferTarget::ShaderStorage,
+                      kParticleBindingPoint, buf);
+
+    /* Set uParticleInstanced AFTER the shader is bound. */
+    SetParticleInstancedUniform(1);
+
+    Renderer_BindVertexBuffer(mesh->vbo);
+    Renderer_BindIndexBuffer(mesh->ibo);
+
+    Renderer_EnableAttribArray(0);
+    Renderer_EnableAttribArray(1);
+    Renderer_EnableAttribArray(2);
+
+    /* The billboard mesh has Vertex layout: p(3), n(3), u(2), v(2), c(3).
+       Positions are at origin (all zeros), UVs provide the quad corners.
+       The particle vertex shader reads position/size/age/color from SSBO
+       instead of these attributes when uParticleInstanced > 0. */
+    GL_VertexAttribPointer(0, 3, GL_DataFormat::Float, false, sizeof(Vertex),
+                           (void const*)offset_of(Vertex, p));
+    GL_VertexAttribPointer(1, 3, GL_DataFormat::Float, false, sizeof(Vertex),
+                           (void const*)offset_of(Vertex, n));
+    GL_VertexAttribPointer(2, 2, GL_DataFormat::Float, false, sizeof(Vertex),
+                           (void const*)offset_of(Vertex, u));
+    GL_DrawElementsInstanced(
+      GL_DrawMode::Triangles,
+      mesh->GetIndices(),
+      mesh->indexFormat,
+      nullptr,
+      count);
+
+    SetParticleInstancedUniform(0);
+
+    /* Rebind the dummy SSBO so non-particle shaders don't touch the
+       instance buffer. */
+    GL_BindBufferBase(GL_BufferTarget::ShaderStorage,
+                      kParticleBindingPoint, GetParticleDummyBuffer());
+
+    renderer.callCount++;
+    renderer.polyCount += (mesh->GetIndices() / 3) * count;
+  }
+
   namespace {
     /* A single shared unit quad (pos + uv interleaved) used by Renderer_DrawQuad.
        Core profiles forbid client-side vertex arrays, so the quad lives in a VBO.
@@ -493,7 +720,7 @@ namespace LTE {
           GL_BufferTarget::Array,
           sizeof(quad),
           quad,
-          GL_BufferUsage::StaticDraw);
+          GL_BufferUsage::DynamicDraw);
       }
       return quadVBO;
     }
@@ -537,11 +764,11 @@ namespace LTE {
     Renderer_DisableAttribArray(1);
     Renderer_EnableAttribArray(2);
 
-    GL_BufferData(
+    GL_BufferSubData(
       GL_BufferTarget::Array,
+      0,
       sizeof(scratch),
-      scratch,
-      GL_BufferUsage::DynamicDraw);
+      scratch);
 
     GL_VertexAttribPointer(0, 3, GL_DataFormat::Float, false, sizeof(QuadVertex),
                            (void const*)offset_of(QuadVertex, p));
@@ -744,7 +971,8 @@ namespace LTE {
   }
 
   void Renderer_SetColor(Color const& color, float alpha) {
-    GL_Color(color.x, color.y, color.z, alpha);
+    /* No-op: glColor is removed in core profile. Shaders read color from
+       uniforms/attributes. Kept for API compatibility. */
   }
 
   void Renderer_SetShader(ShaderT& shader) {
@@ -897,7 +1125,6 @@ namespace LTE {
     if (kCameraSpaceRendering)
       newTransform.pos -= renderer.viewTransform.pos;
     renderer.world = newTransform.GetMatrix();
-    renderer.worldIT = renderer.world.Inverse().Transpose();
     renderer.wvp = renderer.proj * (renderer.view * renderer.world);
   }
 
@@ -917,10 +1144,6 @@ namespace LTE {
 
   Matrix const& Renderer_GetWorldMatrix() {
     return renderer.world;
-  }
-
-  Matrix const& Renderer_GetWorldITMatrix() {
-    return renderer.worldIT;
   }
 
   Matrix const& Renderer_GetWorldViewProjMatrix() {

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Part of the ltheory-old-test modernization effort (Revamp Work).
 # See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
-#
+
 # Debug overlay widget: shows performance stats and key scene info.
 # Created via Widget/DebugScene:Create root and toggled from the app (F3).
 # Displays: FPS, frame time, poly count, draw calls, model count,

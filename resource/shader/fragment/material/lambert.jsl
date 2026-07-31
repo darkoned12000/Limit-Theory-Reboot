@@ -27,7 +27,10 @@ void main() {
 
   c = (c / avg(c)) * pow(3.25 * avg(c), 4.0);
   vec3 bump = sampleFDMBumpmap(normalMap, vertposscaled);
-  vec3 n = normalize(mix(normalize(normal), normalize((WORLDIT * vec4(bump, 0)).xyz), 0.75));
+  mat4 effectiveWorldIT = (uInstanced > 0)
+    ? instances[fragInstanceID].worldIT
+    : WORLDIT;
+  vec3 n = normalize(mix(normalize(normal), normalize((effectiveWorldIT * vec4(bump, 0)).xyz), 0.75));
   c *= pow4(uv.x);
   float r = 1.0;
 

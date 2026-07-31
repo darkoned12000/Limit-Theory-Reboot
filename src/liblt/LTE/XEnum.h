@@ -37,7 +37,7 @@ char const* const STRING_NAME(XTYPE)[] = {
   #undef Z
 };
 
-typedef int XTYPE;
+using XTYPE = int;
 
 #undef ENUM_NAME_2
 #undef ENUM_NAME

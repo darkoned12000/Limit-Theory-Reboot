@@ -11,16 +11,17 @@
 #include "Game/Attribute/Value.h"
 
 #include "LTE/Math.h"
+#include "LTE/Pool.h"
 
-typedef ObjectWrapper
+using DroneProspectingBaseT = ObjectWrapper
   < Component_Drawable
   < Component_Orientation
   < ObjectWrapperTail<ObjectType_Drone>
-  > > >
-  DroneProspectingBaseT;
+  > > >;
 
 AutoClassDerivedEmpty(DroneProspecting, DroneProspectingBaseT)
   DERIVED_TYPE_EX(DroneProspecting)
+  POOLED_TYPE
   
   DroneProspecting() = default;
 
@@ -34,15 +35,15 @@ AutoClassDerivedEmpty(DroneProspecting, DroneProspectingBaseT)
 
 DERIVED_IMPLEMENT(DroneProspecting)
 
-typedef
+using DroneProspectingTypeBaseT = 
     Attribute_Name
   < Attribute_Value
   < ItemWrapper<ItemType_DroneType>
-  > >
-  DroneProspectingTypeBaseT;
+  > >;
 
 AutoClassDerivedEmpty(DroneProspectingType, DroneProspectingTypeBaseT)
   DERIVED_TYPE_EX(DroneProspectingType)
+  POOLED_TYPE
 
   Object Instantiate(ObjectT* parent) override {
     return new DroneProspecting(parent);

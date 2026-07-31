@@ -7,7 +7,7 @@
 
 template <class T>
 struct Attribute_Docks : public T {
-  typedef Attribute_Docks SelfType;
+  using SelfType = Attribute_Docks;
   Vector<Bound3> docks;
   uint dockCapacity;
 

@@ -10,12 +10,11 @@
 #include "LTE/Pool.h"
 #include "LTE/RNG.h"
 
-typedef ObjectWrapper
+using StarBaseT = ObjectWrapper
   < Component_Drawable
   < Component_Orientation
   < ObjectWrapperTail<ObjectType_Star>
-  > > >
-  StarBaseT;
+  > > >;
 
 AutoClassDerived(Star, StarBaseT,
   LightRef, light,

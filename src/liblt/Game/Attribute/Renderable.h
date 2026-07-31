@@ -6,7 +6,7 @@
 
 template <class T>
 struct Attribute_Renderable : public T {
-  typedef Attribute_Renderable SelfType;
+  using SelfType = Attribute_Renderable;
   ATTRIBUTE_COMMON(renderable)
   Renderable renderable;
 

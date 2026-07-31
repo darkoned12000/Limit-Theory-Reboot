@@ -5,8 +5,8 @@
 
 template <class T>
 struct RingBuffer : public Array<T> {
-  typedef Array<T> BaseType;
-  typedef RingBuffer SelfType;
+  using BaseType = Array<T>;
+  using SelfType = RingBuffer;
   size_t index;
 
   RingBuffer() :

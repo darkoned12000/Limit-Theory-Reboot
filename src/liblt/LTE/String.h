@@ -8,7 +8,7 @@
 
 namespace LTE {
   struct String : public std::string {
-    typedef NoBase BaseType;
+    using BaseType = NoBase;
     String() = default;
 
     String(std::string const& str) :

@@ -9,13 +9,13 @@ struct ExplicitTypedef {
   operator T() const {return data;}
 };
 
-typedef ExplicitTypedef<unsigned int, 0> GL_Buffer;
-typedef ExplicitTypedef<unsigned int, 1> GL_Framebuffer;
-typedef ExplicitTypedef<unsigned int, 2> GL_Program;
-typedef ExplicitTypedef<unsigned int, 3> GL_Renderbuffer;
-typedef ExplicitTypedef<unsigned int, 4> GL_Shader;
-typedef ExplicitTypedef<unsigned int, 5> GL_Texture;
-typedef ExplicitTypedef<unsigned int, 6> GL_VertexArray;
+using GL_Buffer = ExplicitTypedef<unsigned int, 0>;
+using GL_Framebuffer = ExplicitTypedef<unsigned int, 1>;
+using GL_Program = ExplicitTypedef<unsigned int, 2>;
+using GL_Renderbuffer = ExplicitTypedef<unsigned int, 3>;
+using GL_Shader = ExplicitTypedef<unsigned int, 4>;
+using GL_Texture = ExplicitTypedef<unsigned int, 5>;
+using GL_VertexArray = ExplicitTypedef<unsigned int, 6>;
 
 static const GL_Buffer       GL_NullBuffer(0);
 static const GL_Framebuffer  GL_NullFramebuffer(0);

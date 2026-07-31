@@ -36,9 +36,9 @@ Mesh Mesh_Volume(
   V3 range = bound.GetSideLengths();
   for (int i = 0; i < mc.nverts(); ++i) {
     Vertex v;
-    v.p.x = bound.lower.x + range.x * (float)verts[i].x / (float)(grid.resX - 1);
-    v.p.y = bound.lower.y + range.y * (float)verts[i].y / (float)(grid.resY - 1);
-    v.p.z = bound.lower.z + range.z * (float)verts[i].z / (float)(grid.resZ - 1);
+    v.p.x = bound.lower.x + range.x * static_cast<float>(verts[i].x) / static_cast<float>(grid.resX - 1);
+    v.p.y = bound.lower.y + range.y * static_cast<float>(verts[i].y) / static_cast<float>(grid.resY - 1);
+    v.p.z = bound.lower.z + range.z * static_cast<float>(verts[i].z) / static_cast<float>(grid.resZ - 1);
     v.n.x = verts[i].nx;
     v.n.y = verts[i].ny;
     v.n.z = verts[i].nz;

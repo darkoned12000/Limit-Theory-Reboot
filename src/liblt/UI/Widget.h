@@ -22,8 +22,8 @@ struct WidgetUpdateState {
 };
 
 struct WidgetT : public RefCounted {
-  typedef RefCounted BaseType;
-  typedef WidgetT SelfType;
+  using BaseType = RefCounted;
+  using SelfType = WidgetT;
 
   Vector<WidgetComponent> components;
   Vector<Widget> children;

@@ -5,7 +5,7 @@
 
 template <class T>
 struct Attribute_Rate : public T {
-  typedef Attribute_Rate SelfType;
+  using SelfType = Attribute_Rate;
   ATTRIBUTE_COMMON(rate)
   float rate;
 

@@ -62,7 +62,7 @@ namespace {
   }
 
   struct Texture2DImpl : public Texture2DT {
-    typedef Texture2DT BaseType;
+    using BaseType = Texture2DT;
     DERIVED_TYPE_EX(Texture2DImpl)
 
     GL_Texture glBuffer;
@@ -120,7 +120,7 @@ namespace {
       this->height = height;
       this->format = format;
 
-      glBuffer = GLU::CreateTexture2D(width, height, format);
+      glBuffer = GL_CreateTexture2D(width, height, format);
       GL_TexImage2D(
         GL_TextureTarget::T2D, 0, format, width, height,
         GL_TextureFormat::PixelFormat(format),
@@ -129,8 +129,8 @@ namespace {
 
       if (GL_SupportsAnisotropy()) {
         GLfloat fLargest;
-        glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &fLargest);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, fLargest);
+        glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &fLargest);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, fLargest);
       }
     }
 

@@ -76,5 +76,5 @@ FreeFunction(int, AssetsIterator_Size,
   "Return the total number of elements in 'iterator'",
   AssetsIterator, iterator)
 {
-  return (int)iterator.object->GetAssets()->elements.size();
+  return static_cast<int>(iterator.object->GetAssets()->elements.size());
 } FunctionAlias(AssetsIterator_Size, Size);

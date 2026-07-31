@@ -33,7 +33,7 @@ const uint kThrusterAttempts = 10;
 const uint kTurretAttempts = 100;
 const float kThrusterTolerance = 0.8f;
 
-typedef
+using ShipTypeBase = 
     Attribute_Capability
   < Attribute_Icon
   < Attribute_Integrity
@@ -45,8 +45,7 @@ typedef
   < Attribute_Sockets
   < Attribute_Value
   < ItemWrapper<ItemType_ShipType>
-  > > > > > > > > > >
-  ShipTypeBase;
+  > > > > > > > > > >;
 
 AutoClassDerived(ShipType, ShipTypeBase,
   Item, standardGenerator,
@@ -213,12 +212,12 @@ DefineFunction(Item_ShipType) { AUTO_FRAME;
   float logScale = Log(self->scale);
   int thrusterCount = 2;
   int turretCount = 4;
-  int generatorCount = (int)(rng->GetFloat(1, 2) + logScale);
-  int interiorCount = 2 * (int)(logScale / Log(10.0f));
+  int generatorCount = static_cast<int>(rng->GetFloat(1, 2) + logScale);
+  int interiorCount = 2 * static_cast<int>(logScale / Log(10.0f));
 
   Script_Reload("Item/ShipType/Generate");
   ScriptFunction_Load("Item/ShipType/Generate:Main")
-    ->Call(self->renderable, self->scale, (int)rng->GetInt());
+    ->Call(self->renderable, self->scale, static_cast<int>(rng->GetInt()));
 
   /* Sockets. */ {
     Vector<Socket> sockets;

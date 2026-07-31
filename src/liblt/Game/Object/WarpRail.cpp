@@ -8,6 +8,7 @@
 #include "LTE/Meshes.h"
 #include "LTE/Model.h"
 #include "LTE/SDFMesh.h"
+#include "LTE/Pool.h"
 #include "LTE/ShaderInstance.h"
 
 namespace {
@@ -29,18 +30,18 @@ namespace {
   }
 }
 
-typedef ObjectWrapper
+using WarpRailBaseT = ObjectWrapper
   < Component_BoundingBox
   < Component_Drawable
   < Component_Orientation
   < ObjectWrapperTail<ObjectType_WarpRail>
-  > > > >
-  WarpRailBaseT;
+  > > > >;
 
 AutoClassDerived(WarpRail, WarpRailBaseT,
   Object, node1,
   Object, node2)
   DERIVED_TYPE_EX(WarpRail)
+  POOLED_TYPE
 
   WarpRail() {
     // Drawable.renderable = GetModel;

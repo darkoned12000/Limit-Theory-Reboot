@@ -116,6 +116,82 @@ inspector (**F3**). Tweak the system via `resource/script/gameConfig.txt`
 
 ---
 
+# LTSL Editor Tooling: LSP + ZED
+
+Editing `.lts` scripts is supported in **ZED** through a language server
+(LSP) + tree-sitter extension. It gives you syntax highlighting, bracket
+matching, code outline, autocomplete, hover signatures, signature help, and
+live diagnostics — all backed by the engine's real API database.
+
+> This setup targets **Linux** with **ZED** as the editor and **opencode** for
+> the verification commands.
+
+## Prerequisites
+
+- **Node.js + npm** — to build the TypeScript LSP server
+- **Rust** (rustup) with the `wasm32-wasip2` target — to build the ZED
+  extension adapter (grammar building is automatic)
+- **ZED** — any recent release
+- An engine build (`python3 configure.py build`) — only if you need to
+  regenerate the API database
+
+## Setup
+
+```bash
+# 1. Build the LSP server (TypeScript -> JS)
+cd script/ltsl-lsp
+npm install
+npm run compile
+cd ../..
+
+# 2. Install the ZED extension as a dev extension:
+#    Zed -> Extensions (zed: extensions) -> "Install Dev Extension"
+#    -> select the `extensions/ltsl/` folder.
+#    Zed auto-compiles the tree-sitter grammar to wasm on first use.
+
+# 3. (optional, only if you rebuild the extension adapter)
+rustup target add wasm32-wasip2
+```
+
+The LSP server is a pure Node.js stdio process — no engine DLL is required at
+edit time. It reads `script/ltsl-lsp/api-database.json`, which lists every
+script-visible C++ function and type. Regenerate that file after changing
+engine APIs:
+
+```bash
+cmake --build ./build --target ltsl_api_dump -j
+LD_LIBRARY_PATH=bin:extbin/linux64 ./bin/ltsl_api_dump > script/ltsl-lsp/api-database.json
+```
+
+## Using it
+
+Open any `.lts` file (e.g. `resource/script/App/ltheory-main.lts`) in ZED:
+
+- **Highlighting / brackets / outline** — from the tree-sitter grammar
+- **Completion** — triggers on `.` (e.g. `self.`) or after a type name
+- **Hover** — full signatures, e.g. `Object Object_System(Vec3d position, Uint32 seed)`
+- **Signature help** — on typing `(`
+- **Diagnostics** — live errors/warnings as you type. The whole corpus
+  currently sits at exactly **6 known diagnostics** (4 genuine unbalanced-paren
+  bugs in shipped scripts + 2 cross-file symbol notes) — see `AGENTS.md` §6.2.
+
+## Verifying
+
+Quick checks from the repo root:
+
+```bash
+# End-to-end protocol test (initialize/hover/completion/signatureHelp/diagnostics)
+node script/ltsl-lsp/test-rpc.js
+
+# Full-corpus diagnostics (expects exactly 6)
+node script/ltsl-lsp/out/smoke.js $(find resource/script -name '*.lts' | sort)
+```
+
+In **opencode** the same checks are one command each: `/lsp-test`, `/lsp-smoke`,
+and `/lsp-build` (see `.opencode/command/`).
+
+---
+
 # Building on Windows (original instructions, untested in this fork)
 
 With the above prerequisites installed, open a **Git Bash terminal**.
@@ -184,11 +260,12 @@ python configure.py run war
   system, serializer, LTSL scripting), `Game`, `Component`, `UI`, `Module`
   (SoundEngine/FMOD, Physics, Scheduler), `Audio`, `Volume`.
 - **`src/launch/`** — the `launch` executable entry point (`main()`).
-- **`ext/SFML/`** — vendored SFML 2.6.2 (X11-only backend; runs on Wayland via
-  XWayland), built statically into `liblt.so`.
 - **`extbin/`** — shipped runtime binaries (FMOD).
 - **`resource/`** — game data: 169 `.jsl` shaders, textures, fonts, LTSL scripts.
-- **`script/`** — Python tooling (`tloc`, `assetlist`, ...).
+- **`script/`** — Python tooling (`tloc`, `assetlist`, ...) plus the LTSL LSP
+  server (`script/ltsl-lsp/`), the tree-sitter grammar
+  (`script/tree-sitter-ltsl/`), and the ZED extension (`extensions/ltsl/`) —
+  see the "LTSL Editor Tooling" section above.
 
 
 ---

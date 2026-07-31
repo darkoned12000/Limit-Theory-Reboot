@@ -22,34 +22,34 @@ struct TaskInstance;
 struct TemplateT;
 struct UpdateState;
 
-typedef Reference<struct ActionT> Action;
-typedef Reference<struct CameraT> Camera;
-typedef Reference<struct EventT> Event;
-typedef Reference<struct ItemT> Item;
-typedef Reference<struct ItemPropertyT> ItemProperty;
-typedef Reference<struct Light> LightRef;
-typedef Reference<struct MissionT> Mission;
-typedef Reference<struct MissionConstraintT> MissionConstraint;
-typedef Reference<struct ObjectT> Object;
-typedef Reference<struct OrderT> Order;
-typedef Reference<struct PlayerT> Player;
-typedef Reference<struct ProjectT> Project;
-typedef Reference<struct ResourceT> Resource;
-typedef Reference<struct TaskT> Task;
-typedef Reference<struct TemplateT> Template;
+using Action = Reference<struct ActionT>;
+using Camera = Reference<struct CameraT>;
+using Event = Reference<struct EventT>;
+using Item = Reference<struct ItemT>;
+using ItemProperty = Reference<struct ItemPropertyT>;
+using LightRef = Reference<struct Light>;
+using Mission = Reference<struct MissionT>;
+using MissionConstraint = Reference<struct MissionConstraintT>;
+using Object = Reference<struct ObjectT>;
+using Order = Reference<struct OrderT>;
+using Player = Reference<struct PlayerT>;
+using Project = Reference<struct ProjectT>;
+using Resource = Reference<struct ResourceT>;
+using Task = Reference<struct TaskT>;
+using Template = Reference<struct TemplateT>;
 
-typedef V3T<DistanceT> Position;
-typedef DistanceT Distance;
-typedef RayT<PointT, V3> WorldRay;
-typedef MatrixT<DistanceT> WorldMatrix;
+using Position = V3T<DistanceT>;
+using Distance = DistanceT;
+using WorldRay = RayT<PointT, V3>;
+using WorldMatrix = MatrixT<DistanceT>;
 
-typedef int32 Damage;
-typedef int32 Health;
-typedef int64 ItemID;
-typedef float Mass;
-typedef int64 ObjectID;
-typedef int64 Quantity;
-typedef int64 Time;
+using Damage = int32;
+using Health = int32;
+using ItemID = int64;
+using Mass = float;
+using ObjectID = int64;
+using Quantity = int64;
+using Time = int64;
 
 #define CAPABILITY_X                                                           \
   X(Attack)                                                                    \
@@ -309,7 +309,7 @@ COMPONENT_X
 #undef XTYPE
 #undef XLIST
 
-typedef unsigned char InfoLevelT;
+using InfoLevelT = unsigned char;
 const InfoLevelT InfoLevel_None       = 0; // Never heard of it in any way
 
 const InfoLevelT InfoLevel_Vague      = 1; // Might have heard rumors / vague information about it

@@ -8,13 +8,12 @@
 #include "LTE/AutoClass.h"
 #include "LTE/Vector.h"
 
-typedef
+using AssemblyChipBase = 
     Attribute_Icon
   < Attribute_Name
   < Attribute_Value
   < ItemWrapper<ItemType_AssemblyChip>
-  > > >
-  AssemblyChipBase;
+  > > >;
 
 AutoClassDerived(AssemblyChip, AssemblyChipBase,
   Item, blueprint,

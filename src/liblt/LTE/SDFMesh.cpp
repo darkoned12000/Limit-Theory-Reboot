@@ -38,7 +38,7 @@ const uint kOcclusionSamples = 2048;
 const float kBaseOcclusionRadius = 0.3f;
 const bool kPreload = false;
 
-typedef V3T<uint> SV3;
+using SV3 = V3T<uint>;
 
 namespace {
   Shader gCopyShader;

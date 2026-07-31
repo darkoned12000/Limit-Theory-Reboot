@@ -8,12 +8,11 @@
 #include "LTE/DeclareFunction.h"
 #include "Module/Common.h"
 
-typedef ObjectWrapper
+using CameraBaseT = ObjectWrapper
   < Component_Motion
   < Component_Orientation
   < ObjectWrapperTail<ObjectType_Camera>
-  > > >
-  CameraBaseT;
+  > > >;
 
 struct CameraT : public CameraBaseT {
   BASE_TYPE_EX(CameraT)

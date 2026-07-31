@@ -7,15 +7,15 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-typedef unsigned char uchar;
-typedef unsigned short ushort;
-typedef unsigned int uint;
-typedef unsigned long ulong;
+using uchar = unsigned char;
+using ushort = unsigned short;
+using uint = unsigned int;
+using ulong = unsigned long;
 
-typedef int32_t  int32;
-typedef uint32_t uint32;
-typedef int64_t  int64;
-typedef uint64_t uint64;
+using int32 = int32_t;
+using uint32 = uint32_t;
+using int64 = int64_t;
+using uint64 = uint64_t;
 
 #define LIBLT
 #define LIBLT_VERSION_MAJOR 0

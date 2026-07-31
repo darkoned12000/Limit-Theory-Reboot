@@ -7,7 +7,7 @@
 
 template <class T>
 struct Attribute_Range : public T {
-  typedef Attribute_Range SelfType;
+  using SelfType = Attribute_Range;
   ATTRIBUTE_COMMON(range)
   float range;
 

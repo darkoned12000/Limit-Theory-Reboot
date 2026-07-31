@@ -8,7 +8,7 @@
 namespace LTE {
   template <class T, int N>
   struct DefaultVecStorage {
-    typedef DefaultVecStorage SelfType;
+    using SelfType = DefaultVecStorage;
 
     T e[N];
 
@@ -30,9 +30,9 @@ namespace LTE {
 
   template <class T, int N, class VecStorageT = DefaultVecStorage<T, N> >
   struct Vec : public VecStorageT {
-    typedef VecStorageT BaseType;
-    typedef T ReturnType;
-    typedef Vec SelfType;
+    using BaseType = VecStorageT;
+    using ReturnType = T;
+    using SelfType = Vec;
 
     Vec() = default;
 

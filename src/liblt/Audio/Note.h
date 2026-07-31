@@ -25,7 +25,7 @@ namespace Audio {
     }
   };
 
-  typedef Vector<Note> Pattern;
+  using Pattern = Vector<Note>;
 }
 
 #endif

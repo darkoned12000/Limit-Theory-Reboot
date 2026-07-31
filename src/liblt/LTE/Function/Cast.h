@@ -6,7 +6,7 @@
 namespace LTE {
   template <class T, class U>
   struct CastT {
-    typedef U ReturnType;
+    using ReturnType = U;
 
     T t;
 

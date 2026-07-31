@@ -27,7 +27,7 @@
 
 const uint kTrailLength = 64;
 
-typedef ObjectWrapper
+using ShipBaseT = ObjectWrapper
   < Component_Affectable
   < Component_Asset
   < Component_BoundingBox
@@ -51,8 +51,7 @@ typedef ObjectWrapper
   < Component_Targets
   < Component_Tasks
   < ObjectWrapperTail<ObjectType_Ship>
-  > > > > > > > > > > > > > > > > > > > > > > >
-  ShipBaseT;
+  > > > > > > > > > > > > > > > > > > > > > > >;
 
 AutoClassDerived(Ship, ShipBaseT,
   Object, trail)

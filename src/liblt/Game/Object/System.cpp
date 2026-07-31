@@ -42,7 +42,7 @@ namespace {
   }
 }
 
-typedef ObjectWrapper
+using SystemBaseT = ObjectWrapper
   < Attribute_Traits
   < Component_Economy
   < Component_History
@@ -53,8 +53,7 @@ typedef ObjectWrapper
   < Component_Resources
   < Component_Seeded
   < ObjectWrapperTail<ObjectType_System>
-  > > > > > > > > > >
-  SystemBaseT;
+  > > > > > > > > > >;
 
 AutoClassDerived(System, SystemBaseT,
   Object, star)
@@ -160,7 +159,7 @@ AutoClassDerived(System, SystemBaseT,
 
     Vector<float> points;
     for (size_t i = 0; i < kColorPoints; ++i) {
-      float t = (float)i / (float)(kColorPoints - 1);
+      float t = static_cast<float>(i) / static_cast<float>(kColorPoints - 1);
       Vector<float> interpolated = controlPoints;
 
       while (interpolated.size() > 1) {
@@ -206,7 +205,7 @@ AutoClassDerived(System, SystemBaseT,
     DrawState_Push("rDir", rDir);
     DrawState_Push("gDir", gDir);
     DrawState_Push("bDir", bDir);
-    DrawState_Push("colorPoints", (float)kColorPoints);
+    DrawState_Push("colorPoints", static_cast<float>(kColorPoints));
   }
 
   void OnDrawInterior(DrawState* state) override {

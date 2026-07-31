@@ -4,7 +4,7 @@
 namespace LTE {
   template <class T>
   struct FreeFnT {
-    typedef typename GetReturnType<T>::Result ReturnType;
+    using ReturnType = typename GetReturnType<T>::Result;
 
     T* t;
 

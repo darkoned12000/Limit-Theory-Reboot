@@ -18,12 +18,11 @@ const double kEfficiencyFactor = 1.0;
 const float kCapacitance = 8.0f;
 const double kChangeSpeed = 2.0;
 
-typedef ObjectWrapper
+using PowerGeneratorBaseT = ObjectWrapper
   < Component_Pluggable
   < Component_Supertyped
   < ObjectWrapperTail<ObjectType_PowerGenerator>
-  > > >
-  PowerGeneratorBaseT;
+  > > >;
 
 AutoClassDerived(PowerGenerator, PowerGeneratorBaseT,
   float, capacitance,
@@ -52,7 +51,7 @@ AutoClassDerived(PowerGenerator, PowerGeneratorBaseT,
       Pointer<ComponentPluggable> plug = o->GetPluggable();
       if (plug) {
         double allocated = plug->priority * plug->powerRequest * mult;
-        plug->powerIn = Mix((double)plug->powerIn, allocated, factor);
+        plug->powerIn = Mix(static_cast<double>(plug->powerIn), allocated, factor);
       }
 
       Allocate(o, mult, factor);
