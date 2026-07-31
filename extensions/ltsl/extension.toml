@@ -1,0 +1,20 @@
+# Copyright (C) 2025  darkoned12000
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Part of the ltheory-old-test modernization effort (Revamp Work).
+# See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
+
+id = "ltsl"
+name = "LTSL"
+description = "Limit Theory Scripting Language (LTSL): syntax highlighting + LSP integration"
+version = "0.1.0"
+schema_version = 1
+authors = ["darkoned12000"]
+repository = "https://github.com/darkoned12000/ltheory-old-test"
+
+[grammars.ltsl]
+repository = "file:///home/rhague/Documents/Code_Projects/ltheory-old-test/script/tree-sitter-ltsl"
+rev = "dcf2e94a7b96260583219413b3bf4e1fd77832ad"
+
+[language_servers.ltsl-lsp]
+name = "LTSL Language Server"
+languages = ["LTSL"]
