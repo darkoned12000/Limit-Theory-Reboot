@@ -1,3 +1,14 @@
+---
+name: ltheory
+description: >-
+  Master reference for the Limit Theory engine (ltheory-old-test) and LTSL
+  scripting. Load when working on or answering questions about engine
+  subsystems (LTE, rendering, shaders, physics, audio, UI, procedural
+  universe generation), writing or debugging LTSL scripts, the LSP tooling,
+  or the game vision/PRD. Also references AGENTS.md, the LSP guide,
+  ltsl-docs, and the PRD.
+---
+
 # SKILL.md - Limit Theory Engine & LTSL Scripting
 
 **Purpose:** Master reference for AI agents helping with Limit Theory engine development and gameplay scripting.  

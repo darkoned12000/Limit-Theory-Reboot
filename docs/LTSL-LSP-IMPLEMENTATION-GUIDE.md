@@ -2219,4 +2219,4 @@ zed resource/script/App/ltheory-main.lts
 **Last Updated:** 2026-07-30  
 **Contributors:** darkoned12000, AI agents  
 **License:** GPL-3.0  
-**See Also:** [SKILL.md](../SKILL.md), [AGENTS.md](../AGENTS.md), [ltsl-docs.md](./ltsl-docs.md)
+**See Also:** [SKILL.md](../.opencode/skills/ltheory/SKILL.md), [AGENTS.md](../AGENTS.md), [ltsl-docs.md](./ltsl-docs.md)

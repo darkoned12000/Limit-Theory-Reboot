@@ -1069,7 +1069,7 @@ Sockets are **typed slots** on ships/stations:
 
 **Last Updated:** 2026-07-30  
 **Contributors:** darkoned12000, AI agents  
-**See Also:** [SKILL.md](../SKILL.md), [AGENTS.md](../AGENTS.md), [PRD-LIMIT-THEORY-REBOOT.md](../PRD-LIMIT-THEORY-REBOOT.md)
+**See Also:** [SKILL.md](../.opencode/skills/ltheory/SKILL.md), [AGENTS.md](../AGENTS.md), [PRD-LIMIT-THEORY-REBOOT.md](../PRD-LIMIT-THEORY-REBOOT.md)
 
 ### Weapon Firing
 
