@@ -8,6 +8,10 @@
 > **Convention used in this doc:** every example is taken (or lightly adapted)
 > from a real script. File paths are given so you can read the originals.
 > Where the engine is picky, the gotcha is called out explicitly.
+>
+> **Want to understand LTSL internals?** See [LTSL-ARCHITECTURE-AND-IMPROVEMENTS.md](../LTSL-ARCHITECTURE-AND-IMPROVEMENTS.md) 
+> for a deep-dive into the tree-walking interpreter, the 26 expression types, 
+> compilation pipeline, and how to make LTSL more user-friendly.
 
 ---
 
