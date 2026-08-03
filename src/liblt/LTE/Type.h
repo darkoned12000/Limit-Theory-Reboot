@@ -157,7 +157,7 @@ struct TypeT {
 
   TypeT() : refCount(0) {}
 
-  LT_API ~TypeT();
+  LT_API virtual ~TypeT();
 
   LT_API void AddConversion(ConversionType const& cast);
   LT_API void AddDerived(Type const& type);

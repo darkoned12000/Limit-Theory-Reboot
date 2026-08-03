@@ -5,6 +5,7 @@
 
 # Build outputs (generated locally by `python3 configure.py`)
 build/
+build-*/
 bin/
 cache/
 run.log

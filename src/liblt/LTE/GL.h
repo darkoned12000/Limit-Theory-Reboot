@@ -595,6 +595,16 @@ inline void GL_Scissor(int x, int y, int width, int height) {
   DEBUG_GL_ERRORS;
 }
 
+/* Set the unpack row alignment. The engine always uploads tightly packed
+   pixel rows (pitch == width * bytes-per-pixel), so alignment must be 1;
+   the GL default of 4 otherwise makes drivers read past the end of buffers
+   whose row pitch is not a multiple of 4. */
+inline void GL_SetUnpackAlignment(GL_DataFormat::Enum dataFormat) {
+  (void)dataFormat;
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  DEBUG_GL_ERRORS;
+}
+
 /* MODIFIED STANDARD
    Replaces the source code in a shader object.
    Modified for easier use. Original function specification is silly. */
@@ -616,6 +626,7 @@ inline void GL_TexImage2D(
   GL_DataFormat::Enum dataFormat,
   void const* uploadData)
 {
+  GL_SetUnpackAlignment(dataFormat);
   glTexImage2D(target, level, internalFormat,
     (int)width, (int)height, 0,
     pixelFormat, dataFormat, uploadData);
@@ -634,6 +645,7 @@ inline void GL_TexImage3D(
   GL_DataFormat::Enum dataFormat,
   void const* uploadData)
 {
+  GL_SetUnpackAlignment(dataFormat);
   glTexImage3D(target, level, internalFormat,
     (int)width, (int)height, (int)depth, 0,
     pixelFormat, dataFormat, uploadData);
@@ -671,6 +683,7 @@ inline void GL_TexSubImage2D(
   GL_DataFormat::Enum dataFormat,
   void const* uploadData)
 {
+  GL_SetUnpackAlignment(dataFormat);
   glTexSubImage2D(target, level, xOffset, yOffset, (int)width, (int)height,
                   pixelFormat, dataFormat, uploadData);
   DEBUG_GL_ERRORS;
@@ -690,6 +703,7 @@ inline void GL_TexSubImage3D(
   GL_DataFormat::Enum dataFormat,
   void const* uploadData)
 {
+  GL_SetUnpackAlignment(dataFormat);
   glTexSubImage3D(target, level, xOffset, yOffset, zOffset,
     (int)width, (int)height, (int)depth, pixelFormat, dataFormat, uploadData);
   DEBUG_GL_ERRORS;

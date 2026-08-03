@@ -1,0 +1,10 @@
+type TTypeTest
+  function Void Initialize ()
+    var w Widget
+    var c Icon
+    var v (Vec2 0 32)
+    File_Write "cache/typetest_out.txt" ("w=" + w.IsNotNull + " vx=" + v.x)
+
+function TTypeTest Main ()
+  var self TTypeTest
+  self

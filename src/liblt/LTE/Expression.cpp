@@ -32,6 +32,11 @@ namespace LTE {
     SFRAME("Compile Expression");
 
     if (list->IsAtom()) {
+      /* Return with no value. */ {
+        if (list->GetValue() == "return")
+          return Expression_Return(Expression_Noop());
+      }
+
       /* Variable. */ {
         Expression e = Expression_Variable(list, env);
         if (e) return e;

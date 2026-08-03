@@ -48,6 +48,7 @@ namespace {
     }
 
     void Evaluate(void* returnValue, Environment& env) const override {
+      uint base = env.registers.size();
       for (size_t i = 0; i < expressions.size(); ++i) {
         if (i + 1 == expressions.size())
           expressions[i]->Evaluate(returnValue, env);
@@ -63,14 +64,19 @@ namespace {
 
         /* A `return` anywhere in the block (or a nested block) sets this
            flag; stop evaluating subsequent expressions but still run the
-           local-destruction loop below so registers stay balanced. */
+           local-destruction loop below so registers stay balanced. Locals
+           declared after the `return` were never pushed, so the loop must
+           only destruct the registers that this block actually pushed. */
         if (env.returnSignal)
           break;
       }
 
       /* Destruct all locals that were constructed in this scope. */ {
-        for (size_t i = 0; i < locals.size(); ++i) {
-          Type const& local = locals[locals.size() - (i + 1)];
+        uint count = env.registers.size() - base;
+        if (count > locals.size())
+          count = locals.size();
+        for (size_t i = 0; i < count; ++i) {
+          Type const& local = locals[count - (i + 1)];
           if (local)
             env.Free(local, env.registers.back());
           env.registers.pop();

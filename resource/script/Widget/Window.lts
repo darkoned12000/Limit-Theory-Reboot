@@ -48,8 +48,8 @@ type WidgetWindow
     ClipRegion_Pop
 
   function Void PrePosition (Widget self)
-    self.minSize = size
-    self.pos = pos
+    self.minSize = self.size
+    self.pos = self.pos
 
   function Void PreUpdate (Widget self)
     var factor 1.0 - (ExpDecay FrameTimer_Get 0.25)

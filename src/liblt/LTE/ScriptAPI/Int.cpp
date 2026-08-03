@@ -42,6 +42,18 @@ DefineConversion(int64_to_int, int64, int) {
   dest = (int)src;
 }
 
+DefineConversion(int64_to_float, int64, float) {
+  dest = (float)src;
+}
+
+DefineConversion(int64_to_double, int64, double) {
+  dest = (double)src;
+}
+
+DefineConversion(int64_to_uint, int64, unsigned int) {
+  dest = (unsigned int)src;
+}
+
 FreeFunction(int, Int_Abs,
   "Return the absolute value of 'i'",
   int, i)

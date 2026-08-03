@@ -45,7 +45,7 @@ type GameMenu
         i = i + 1
 
   function Void Receive (Widget self Data data)
-    if data.IsType "MessageAddWidget"
+    if (data.IsType "MessageAddWidget")
       openSettings = true
 
 function Widget Create ()

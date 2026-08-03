@@ -11,10 +11,9 @@ type MenuOption
 
   function List CreateChildren (Widget self)
     var l List
-    var c
-      switch
-        self.focusMouse (Vec3 -1.0)
-        otherwise 2.0 * Colors:Primary
+    var c 2.0 * Colors:Primary
+    if self.focusMouse
+      c = (Vec3 -1.0)
     l +=
       Components:MinSize 36
         Widgets:Icon icon c

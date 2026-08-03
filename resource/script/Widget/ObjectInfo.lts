@@ -73,9 +73,6 @@ type Ribbon
 
     # Contacts
 
-    if object.HasComponentProjects
-      # Projects
-
     if object.HasComponentSockets
       l +=
         Components:AlignCenter
@@ -94,9 +91,6 @@ type Ribbon
         Components:AlignCenter
           Components:MinSize size
             Widgets:TabIcon "objectinfo" "Tasks" Icons:Gear c1 c2 true true false
-
-    if object.HasComponentStorage
-      # Storage
 
     l +=
       Components:GreedyX
