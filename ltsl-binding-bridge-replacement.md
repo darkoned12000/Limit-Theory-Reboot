@@ -941,15 +941,17 @@ ArgBind structs live in `UI/Glyphs.h` and `Game/{Items,Events,Tasks,Renderables,
 3. **API DB byte-diff (critical regression net):**
    ```bash
    cmake --build ./build --target ltsl_api_dump -j
-   LD_LIBRARY_PATH=bin:extbin/linux64 ./bin/ltsl_api_dump /tmp/api-baseline.json
+   LD_LIBRARY_PATH=bin:extbin/linux64 ./bin/ltsl_api_dump build/api-baseline.json
    # regenerate AFTER each chunk and diff against the ORIGINAL pre-migration baseline
-   diff <(python3 -m json.tool /tmp/api-baseline.json) <(python3 -m json.tool /tmp/api-after.json)
+   diff <(python3 -m json.tool build/api-baseline.json) <(python3 -m json.tool build/api-after.json)
    ```
    The DB must be **byte-identical** except where a migration intentionally
    changes it — currently the single expected diff is `Vec3_Distance` gaining a
    second overload entry (§6.8). (Save the baseline NOW, before any migration —
    regenerate from the **current working tree**: the committed
-   `api-database.json` is stale, 1843/444 vs 1849/445 fresh; §6.8.)
+   `api-database.json` is stale, 1843/444 vs 1849/445 fresh; §6.8.) The durable
+   copy lives in `build/api-baseline.json` (gitignored, survives /tmp cleanup;
+   also mirrored to `/tmp/api-baseline.json`).
 4. **LSP regression:** `node script/ltsl-lsp/test-rpc.js` and
    `node script/ltsl-lsp/out/smoke.js $(find resource/script -name '*.lts' | sort)`
    must stay at exactly **6 diagnostics** (see AGENTS.md §6.2).
@@ -985,9 +987,27 @@ ArgBind structs live in `UI/Glyphs.h` and `Game/{Items,Events,Tasks,Renderables,
    (`A→B`, then `B→C`) are handled because aliases contribute *both* their
    names. It is intentionally lenient (permissive regexes) — its job is to catch
    ordering regressions, not to be a full parser.
+   - **`KNOWN_EXCEPTIONS`:** two pre-existing broken aliases were found when the
+     checker was first run and are whitelisted (reported, not failing) because
+     fixing them changes the API DB (gate-3 whitelist, §11): `V2.cpp`'s
+     `Vec2_Distance` (the §6.8 copy-paste bug) and **`V4.cpp`'s `Vec4_Dot`**
+     (registers `Vec4f_Dot` but aliases `Vec4_Dot` → the V4F `Dot` overload is
+     missing today; found by this checker, scheduled to be fixed during
+     migration). Any *new* violation is a hard failure. Baseline run (committed
+     with the script): `OK: 515 alias sites follow their source (2 known
+     exceptions)`.
 
    ```python
-   # script/check_binding_alias_order.py
+   # script/check_binding_alias_order.py  (committed file is authoritative)
+   # Alias-ordering invariant checker. Function_AddAlias copies the *current*
+   # source bucket (Function.cpp:62); an alias before its source silently
+   # registers an empty bucket. Fails any alias whose source is not registered
+   # (or itself aliased) textually earlier in the same file. Understands both
+   # old (FunctionAlias(A, B)) and new (Function_Alias("A", "B")) syntax.
+   # KNOWN_EXCEPTIONS: pre-existing broken aliases whitelisted because fixing
+   # them changes the API DB (gate-3 whitelist, SS11) - V2.cpp 'Vec2_Distance'
+   # (SS6.8 copy-paste) and V4.cpp 'Vec4_Dot' (registers Vec4f_Dot; the V4F
+   # 'Dot' overload is missing today). New violations are hard failures.
    import re, sys
    ALIAS_NEW = re.compile(r'Function_Alias\(\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\)')
    ALIAS_OLD = re.compile(r'\bFunctionAlias\(([A-Za-z_]\w*)\s*,')
@@ -997,9 +1017,13 @@ ArgBind structs live in `UI/Glyphs.h` and `Game/{Items,Events,Tasks,Renderables,
      re.compile(r'\bFunctionAlias\(([A-Za-z_]\w*)\s*,\s*([A-Za-z_]\w*)'),
      re.compile(r'\bDefineFunction\(([A-Za-z_]\w*)'),
      re.compile(r'\bDeclareFunction(?:ArgBind)?\(([A-Za-z_]\w*)'),
-     re.compile(r'\bVoidFreeFunction\(([A-Za-z_]\w*)'),
-     re.compile(r'\bFreeFunction\([^,]+,\s*([A-Za-z_]\w*)'),
+     re.compile(r'\bVoidFreeFunction(?:NoParams)?\(([A-Za-z_]\w*)'),
+     re.compile(r'\bFreeFunction(?:NoParams)?\([^,]+,\s*([A-Za-z_]\w*)'),
    ]
+   KNOWN_EXCEPTIONS = {
+     ('src/liblt/LTE/ScriptAPI/V2.cpp', 'Vec2_Distance'),
+     ('src/liblt/LTE/ScriptAPI/V4.cpp', 'Vec4_Dot'),
+   }
    def names_on(line):
      out = set()
      for p in NAMES:
@@ -1007,23 +1031,30 @@ ArgBind structs live in `UI/Glyphs.h` and `Game/{Items,Events,Tasks,Renderables,
          out.update(g for g in m.groups() if g)
      return out
    def main(paths):
-     bad, checked = [], 0
+     bad, known, checked = [], [], 0
      for path in paths:
        lines = open(path, encoding='utf-8').read().splitlines()
        seen = set()
        for i, line in enumerate(lines):
+         if line.lstrip().startswith('#define'):
+           continue
          m = ALIAS_NEW.search(line) or ALIAS_OLD.search(line)
          if m:
            checked += 1
            if m.group(1) not in seen:
-             bad.append((path, i + 1, m.group(1), line.strip()))
+             if (path, m.group(1)) in KNOWN_EXCEPTIONS:
+               known.append((path, i + 1, m.group(1), line.strip()))
+             else:
+               bad.append((path, i + 1, m.group(1), line.strip()))
          seen |= names_on(line)
+     for p, ln, src, line in known:
+       print(f"KNOWN: {p}:{ln}: alias of {src!r} before its source (documented exception): {line}")
      if bad:
        for p, ln, src, line in bad:
-         print(f"{p}:{ln}: alias of {src!r} appears before its source: {line}")
-       print(f"FAIL: {len(bad)}/{checked} alias sites violate the invariant")
+         print(f"FAIL: {p}:{ln}: alias of {src!r} appears before its source: {line}")
+       print(f"FAIL: {len(bad)} new violation(s) of {checked} alias sites ({len(known)} known exceptions)")
        sys.exit(1)
-     print(f"OK: {checked} alias sites follow their source")
+     print(f"OK: {checked} alias sites follow their source ({len(known)} known exceptions)")
    if __name__ == '__main__':
      main(sys.argv[1:])
    ```
@@ -1138,6 +1169,14 @@ commit a red build.
     V2 params and aliases the nonexistent `Vec2_Distance` → `Distance`; the
     intent was likely a `Vec2_Distance` binding). Defer — changes the API DB
     more (adds a new name, drops a `Distance` alias entry).
+- **`Vec4_Dot` broken alias (found by gate-6 checker, `V4.cpp:102`):** the file
+  registers `FreeFunction(float, Vec4f_Dot, ...)` but aliases
+  `FunctionAlias(Vec4_Dot, Dot)` — `Vec4_Dot` is never registered, so the V4F
+  `Dot` overload is missing today (the `Dot` bucket has 4 valid entries: Vec2,
+  Vec3f, Vec3d, Vec4d). Fix during migration: change the alias source to
+  `Vec4f_Dot`. This adds one `Dot` entry to the API DB — whitelist in the
+  gate-3 diff. Default: fix in the vector-cleanup chunk alongside the
+  `Vec3_Distance` handling.
 - **Commit discipline during review gates:** the user may run each revision
   past another AI. Keep the doc's design-review sections (§4, §8 rows, §6.8)
   as a running log so reviewer findings are never re-derived.
@@ -1146,9 +1185,19 @@ commit a red build.
 
 ## 12. Progress Checklist
 
-- [ ] Save API-DB baseline (`/tmp/api-baseline.json`) **regenerated from the
-      current working tree** (committed `api-database.json` is stale — §6.8).
-- [ ] Commit `script/check_binding_alias_order.py` (§8 gate 6).
+- [x] Save API-DB baseline (`build/api-baseline.json`, durable gitignored copy
+      + `/tmp/api-baseline.json`) **regenerated from the current working tree**
+      (committed `api-database.json` is stale — §6.8). Fresh dump = 1849 fns /
+      445 types; diff vs committed 1843/444 is exactly +6 fns (`ClearAssets`,
+      `LoadGame`, `Object_ClearAssets`, `SaveGame`, `SaveGame_Create`,
+      `SaveGame_Load`) + 1 type (`SaveGameData`) — all WIP; zero existing
+      entries changed.
+- [x] Commit `script/check_binding_alias_order.py` (§8 gate 6). Baseline run:
+      `OK: 515 alias sites follow their source (2 known exceptions)` — the
+      exceptions are the pre-existing `V2.cpp` `Vec2_Distance` (deferred, §11)
+      and `V4.cpp` `Vec4_Dot` (new finding, fix during migration). Also added
+      `FreeFunctionNoParams`/`VoidFreeFunctionNoParams` capture + `#define` skip
+      (fixes false positives); chain and failure paths verified.
 - [ ] Step 1 — core `FunctionBind.h` (+ `remove_cvref_t` polyfill) + `FunctionT`
       contract + §5.1a compatibility shim + island updates (incl. the 4
       `fn->call` sites in `TestStringBindings.cpp` — deferred until that file is
