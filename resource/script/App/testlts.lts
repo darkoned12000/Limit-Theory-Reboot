@@ -1,0 +1,12 @@
+function App Main ()
+  function Widget CreateTest (Widget self)
+    var l List
+    l +=
+      Components:Margin (Vec2 0 4) (Vec2 0 4)
+        ToggleButton:Create "Test"
+    self.Add l
+    self
+
+  Widgets:RadialList 96.0 Custom Widget CreateTest
+  var self App
+  self

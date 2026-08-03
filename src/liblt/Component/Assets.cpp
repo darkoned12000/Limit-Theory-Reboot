@@ -1,3 +1,8 @@
+// Copyright (C) 2025  darkoned12000
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Part of the ltheory-old-test modernization effort (Revamp Work).
+// See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
+
 #include "Assets.h"
 #include "Asset.h"
 
@@ -35,6 +40,24 @@ VoidFreeFunction(Object_AddAsset,
 {
   object->AddAsset(asset);
 } FunctionAlias(Object_AddAsset, AddAsset);
+
+VoidFreeFunction(Object_ClearAssets,
+  "Release ownership of all assets owned by 'object'",
+  Object, object)
+{
+  Pointer<ComponentAssets> assets = object->GetAssets();
+  if (!assets)
+    return;
+  for (size_t i = 0; i < assets->elements.size(); ++i) {
+    Object const& o = assets->elements[i];
+    if (o) {
+      Pointer<ComponentAsset> as = o->GetAsset();
+      if (as)
+        as->owner = nullptr;
+    }
+  }
+  assets->elements.clear();
+} FunctionAlias(Object_ClearAssets, ClearAssets);
 
 AutoClass(AssetsIterator,
   Object, object,

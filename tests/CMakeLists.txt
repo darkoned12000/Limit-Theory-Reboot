@@ -21,6 +21,7 @@ set(TEST_SRC
   TestShaderAudit.cpp
   TestSFML.cpp
   TestSound.cpp
+  TestSerializer.cpp
   TestTexture2D.cpp
   TestWindowInput.cpp)
 

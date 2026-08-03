@@ -64,10 +64,9 @@ namespace {
     return new StringListList(elements);
   }
 
-  StringList StringList_ParseBlock(Tokenizer& tokenizer, uint indent, uint32_t startLine) {
+  StringList StringList_ParseBlock(Tokenizer& tokenizer, uint indent, uint32_t& currentLine) {
     Vector<StringList> elements;
     Vector<StringList> current;
-    uint32_t currentLine = startLine;
 
     while (tokenizer.HasMore()) {
       current.clear();
@@ -100,7 +99,6 @@ namespace {
         tokenizer.SetCursor(cursor2);
 
         if (nextIndent > indent) {
-          currentLine++;
           StringList list = StringList_ParseBlock(tokenizer, nextIndent, currentLine);
           StringListList* l = (StringListList*)list.t;
           for (size_t i = 0; i < l->elements.size(); ++i)
@@ -119,7 +117,8 @@ namespace {
 
 StringList StringList_Create(String const& source) {
   Tokenizer tokenizer(source);
-  return StringList_ParseBlock(tokenizer, 0, 0);
+  uint32_t currentLine = 0;
+  return StringList_ParseBlock(tokenizer, 0, currentLine);
 }
 
 StringList StringList_Load(Location const& location) {
