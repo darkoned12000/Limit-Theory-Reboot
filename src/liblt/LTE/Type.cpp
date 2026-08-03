@@ -107,7 +107,8 @@ Type Type_Create(String const& name, size_t size) {
 
 TypeT::~TypeT() {
   LTE_ASSERT(refCount == 0);
-  ((TypeImpl*)this)->extra.~TypeExtra();
+  /* `extra` lives in the derived TypeImpl; with a virtual destructor its
+     implicit destructor destroys the members for us. */
 }
 
 Data& TypeT::GetAux() {

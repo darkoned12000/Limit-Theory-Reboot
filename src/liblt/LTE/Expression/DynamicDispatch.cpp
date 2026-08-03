@@ -106,6 +106,10 @@ namespace {
       } else {
         fn->expression->Evaluate(0, env);
       }
+      /* A `return` inside the dispatched body only applies to that body;
+         clear the flag so the caller (which reuses this Environment) is
+         not affected. */
+      env.returnSignal = false;
 
       for (size_t i = 0; i < args.size(); ++i) {
         size_t index = args.size() - i - 1;
