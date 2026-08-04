@@ -3,6 +3,7 @@
 #include "Interior.h"
 
 #include "Game/Object.h"
+#include "LTE/FunctionBind.h"
 #include "LTE/Transform.h"
 
 float ComponentZoned::GetContainment(ObjectT* self, Position const& point) {
@@ -11,12 +12,12 @@ float ComponentZoned::GetContainment(ObjectT* self, Position const& point) {
   return Exp(-16.0f * Max(0.0f, region->Evaluate((V3)relative)));
 }
 
-DefineFunction(Object_GetZone) {
-  ObjectT* container = args.object->GetContainer();
+Object Object_GetZone(Object const& object) {
+  ObjectT* container = object->GetContainer();
   if (!container)
     return nullptr;
 
-  Position const& pos = args.object->GetPos();
+  Position const& pos = object->GetPos();
   Object maxZone;
   float maxContainment = 0.5f;
 
@@ -38,4 +39,11 @@ DefineFunction(Object_GetZone) {
   }
 
   return maxZone;
-} FunctionAlias(Object_GetZone, GetZone);
+}
+
+static Function const Object_GetZone_Registration = Function_Bind(
+  "Object_GetZone",
+  "None",
+  &Object_GetZone,
+  "object");
+static int const Object_GetZone_Alias = Function_Alias("Object_GetZone", "GetZone");

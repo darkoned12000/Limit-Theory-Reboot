@@ -6,11 +6,17 @@
 void ComponentHistory::Run(ObjectT* self, UpdateState& state) {
 }
 
-DefineFunction(Object_AddHistory) {
-  ComponentHistory* history = args.object->GetHistory();
+void Object_AddHistory(Object const& object, Event const& event) {
+  ComponentHistory* history = object->GetHistory();
   LTE_ASSERT(history != nullptr);
-  history->elements.push(args.event);
+  history->elements.push(event);
 }
+
+static Function const Object_AddHistory_Registration = Function_Bind(
+  "Object_AddHistory",
+  "None",
+  &Object_AddHistory,
+  "object", "event");
 
 AutoClass(HistoryIterator,
   Object, object,

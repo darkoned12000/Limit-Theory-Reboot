@@ -1177,6 +1177,22 @@ commit a red build.
   line following the call-open). Current state: `OK: 509 alias sites follow
   their source (1 known exception)` — the lone exception is the deferred
   `V2.cpp 'Vec2_Distance'` copy-paste bug (§11).
+- **`DeclareFunction`/`DefineFunction` migration pattern (validated Step 4,
+  Component — use for Steps 5/6):** header `DeclareFunction(Name, RT, T0, N0, …)`
+  → `LT_API RT Name(T0 const& N0, …);` + drop `#include "LTE/DeclareFunction.h"`;
+  cpp `DefineFunction(Name) { …args.N0… }` → plain `RT Name(T0 const& N0, …) { …N0… }`
+  with an `args.`-prefix-strip rewrite (only the declared param names), then
+  `static Function const Name_Registration = Function_Bind("Name", "None", &Name, "N0", …)`
+  (+ `Function_Alias("Name", "Alias")` when a `FunctionAlias(Name, Alias)` line
+  follows the body). Description must stay `"None"` (old `RegisterFunction`
+  hardcodes it — needed for the API-DB byte-diff). Type visibility at the
+  DeclareFunction point is guaranteed: the old macro already required the
+  param/return type NAMES there (`typedef T0 Name##_ParamType0;` etc.), so the
+  new declaration compiles wherever the old one did. C++ call sites are
+  unchanged — the old inline convenience overload `RT Name(T0 const& N0, …)` has
+  the exact signature of the new real function. Validated on `Object_AddHistory`
+  (external C++ caller `Game/Action/Mine.cpp:40`) and `Object_GetZone` (script
+  caller `Widget/HUD/Container.lts:18` via the `GetZone` alias).
 
 ---
 
@@ -1271,8 +1287,17 @@ commit a red build.
       app-specific, not header-caused. `threads.lts` runs after header removal.
       Remaining `#`-header apps: not yet re-verified (see note in §10).
 - [x] Step 4 — Component subsystem **FF/VFF family done** (same bulk run).
-      Component's 2 `DefineFunction` sites (Zoned.cpp) are part of the
-      DefineFunction family migration, still pending.
+      **DefineFunction family done** — the 2 `DeclareFunction`/`DefineFunction`
+      sites (`Object_AddHistory` in `History.h/cpp`, `Object_GetZone` in
+      `Zoned.h/cpp`) migrated to the §6.2 pattern: header decl
+      `LT_API RT Name(T0 const& N0, …);` (dropped the
+      `#include "LTE/DeclareFunction.h"`), cpp body becomes a plain function
+      with direct params (`args.N0` → `N0`), then
+      `Function_Bind("Name", "None", &Name, "N0", …)` + `Function_Alias`.
+      Gate: build 100%, 317 checks / 0 failures, API-DB **byte-identical**
+      (1852/445), alias-order OK (509/1), LSP smoke 6, `war` run clean (exit 0,
+      exercises the `GetZone` alias via `Widget/HUD/Container.lts`). This was the
+      canary for the §6.2 pattern — see §10 facts log before doing Steps 5/6.
 - [x] Step 7 — Module subsystem **FF/VFF family done** (same bulk run).
 - [x] Step 9 — ObjectComponents.cpp X-macro body rewritten to the new API
       (kept the `#define X(x) … COMPONENT_X` list skeleton).

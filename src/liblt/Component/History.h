@@ -6,7 +6,6 @@
 #include "Game/Event.h"
 
 #include "LTE/AutoClass.h"
-#include "LTE/DeclareFunction.h"
 #include "LTE/Vector.h"
 
 AutoClass(ComponentHistory,
@@ -24,8 +23,6 @@ AutoComponent(History)
   }
 };
 
-DeclareFunction(Object_AddHistory, void,
-  Object, object,
-  Event, event)
+LT_API void Object_AddHistory(Object const& object, Event const& event);
 
 #endif
