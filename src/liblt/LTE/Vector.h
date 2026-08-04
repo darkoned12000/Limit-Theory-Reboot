@@ -7,6 +7,7 @@
 // See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
 
 #include "Function.h"
+#include "FunctionBind.h"
 #include <vector>
 
 template <class T>
@@ -296,39 +297,63 @@ struct Vector : public NullBase<Vector<T> > {
       m(&(*self)[i], "data", Type_Get<T>(), aux);
   }
 
-  VoidMemberFunction(Append,
-    "Append 'element' to the back of the vector",
-    T, element)
-  {
+  void Append_Impl(T const& element) {
     this->push(element);
   }
 
-  MemberFunction(T, Get,
-    "Return the element at 'index' in the vector",
-    int, index)
-  {
+  T Get_Impl(int index) const {
     return (*this)[index];
   }
 
-  VoidMemberFunction(Set,
-    "Set the number of elements in the vector",
-    int, index,
-    T, element)
-  {
+  void Set_Impl(int index, T const& element) {
     (*this)[index] = element;
   }
 
-  MemberFunctionNoParams(int, Size,
-    "Return the number of elements in the vector")
-  {
+  int Size_Impl() const {
     return (int)this->size();
   }
 
-  METADATA {
-    MEMBERFUNCTION(Append)
-    MEMBERFUNCTION(Get)
-    MEMBERFUNCTION(Size)
-    MEMBERFUNCTION(Set)
+  static Function Append_GetMetadata() {
+    static Function fn;
+    if (!fn)
+      fn = Function_Bind_Member("Append",
+        "Append 'element' to the back of the vector",
+        &Vector::Append_Impl, "element");
+    return fn;
+  }
+
+  static Function Get_GetMetadata() {
+    static Function fn;
+    if (!fn)
+      fn = Function_Bind_Member("Get",
+        "Return the element at 'index' in the vector",
+        &Vector::Get_Impl, "index");
+    return fn;
+  }
+
+  static Function Size_GetMetadata() {
+    static Function fn;
+    if (!fn)
+      fn = Function_Bind_Member("Size",
+        "Return the number of elements in the vector",
+        &Vector::Size_Impl);
+    return fn;
+  }
+
+  static Function Set_GetMetadata() {
+    static Function fn;
+    if (!fn)
+      fn = Function_Bind_Member("Set",
+        "Set the number of elements in the vector",
+        &Vector::Set_Impl, "index", "element");
+    return fn;
+  }
+
+  static void FillMetadata(Type const& type) {
+    type->AddFunction(Append_GetMetadata());
+    type->AddFunction(Get_GetMetadata());
+    type->AddFunction(Size_GetMetadata());
+    type->AddFunction(Set_GetMetadata());
   }
 
   template <class StreamT>

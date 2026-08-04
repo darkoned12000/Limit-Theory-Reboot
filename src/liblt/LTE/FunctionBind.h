@@ -18,29 +18,29 @@ using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
  * functor) via their operator(); explicit specializations below cover free
  * functions and member functions. */
 template <class T>
-struct FunctionTraits : FunctionTraits<decltype(&T::operator())> {};
+struct BindingTraits : BindingTraits<decltype(&T::operator())> {};
 
 template <class RT, class... ArgT>
-struct FunctionTraits<RT (*)(ArgT...)> {
+struct BindingTraits<RT (*)(ArgT...)> {
   using ReturnType = RT;
   using Args = std::tuple<ArgT...>;
 };
 
 template <class RT, class... ArgT>
-struct FunctionTraits<RT (ArgT...)> {           // function reference form
+struct BindingTraits<RT (ArgT...)> {           // function reference form
   using ReturnType = RT;
   using Args = std::tuple<ArgT...>;
 };
 
 template <class RT, class C, class... ArgT>     // member fn (non-const)
-struct FunctionTraits<RT (C::*)(ArgT...)> {
+struct BindingTraits<RT (C::*)(ArgT...)> {
   using ReturnType = RT;
   using Class = C;
   using Args = std::tuple<ArgT...>;
 };
 
 template <class RT, class C, class... ArgT>     // member fn (const)
-struct FunctionTraits<RT (C::*)(ArgT...) const> {
+struct BindingTraits<RT (C::*)(ArgT...) const> {
   using ReturnType = RT;
   using Class = C;
   using Args = std::tuple<ArgT...>;
@@ -87,7 +87,7 @@ void FillParams(Parameter* params, std::index_sequence<Is...>,
 template <class FnT, class... NameT>
 Function Function_Bind(String const& name, String const& desc, FnT&& fn,
                        NameT const&... names) {
-  using Traits = FunctionTraits<std::remove_reference_t<FnT>>;
+  using Traits = BindingTraits<std::remove_reference_t<FnT>>;
   using RT = typename Traits::ReturnType;
   using ArgsTuple = typename Traits::Args;
   static constexpr size_t kArity = std::tuple_size_v<ArgsTuple>;
@@ -147,7 +147,7 @@ struct FunctionMemberBinding : BindingBase {
 template <class MemT, class... NameT>
 Function Function_Bind_Member(String const& name, String const& desc,
                               MemT mem, NameT const&... names) {
-  using Traits = FunctionTraits<MemT>;   // member-fn pointer
+  using Traits = BindingTraits<MemT>;   // member-fn pointer
   using RT = typename Traits::ReturnType;
   using C = typename Traits::Class;
   using ArgsTuple = typename Traits::Args;

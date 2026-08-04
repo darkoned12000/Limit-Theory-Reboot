@@ -1131,6 +1131,12 @@ commit a red build.
 - `remove_cvref_t`: **no polyfill exists anywhere in `src/`** (grep verified).
   `std::remove_cvref_t` is C++20 (P0550R2); this build is C++17
   (`CMakeLists.txt:195`). The local polyfill in `FunctionBind.h` is the only one.
+- **§5.2's `FunctionTraits` name collides** with the unrelated pre-existing
+  `LTE::FunctionTraits<ReturnT>` (`Generic.h:10`), which becomes visible at
+  global scope via `Common.h:352`'s `using namespace LTE;` → `-Wtemplate-body`
+  "ambiguous" errors in every TU that sees both. The binder's introspection
+  trait (internal detail) was renamed to `BindingTraits` (Step 2, first build
+  failure). Note in §5.2/§6.4 examples when reviewing.
 - The committed `script/ltsl-lsp/api-database.json` is **stale**: 1843 fns / 444
   types vs **1849 / 445** from a fresh dump of the current tree (uncommitted WIP
   adds bindings — `SaveGame.cpp`, `Int.cpp`, `StringList.cpp`). Regenerate the
@@ -1198,16 +1204,21 @@ commit a red build.
       and `V4.cpp` `Vec4_Dot` (new finding, fix during migration). Also added
       `FreeFunctionNoParams`/`VoidFreeFunctionNoParams` capture + `#define` skip
       (fixes false positives); chain and failure paths verified.
-- [ ] Step 1 — core `FunctionBind.h` (+ `remove_cvref_t` polyfill) + `FunctionT`
+- [x] Step 1 — core `FunctionBind.h` (+ `remove_cvref_t` polyfill) + `FunctionT`
       contract + §5.1a compatibility shim + island updates (incl. the 4
       `fn->call` sites in `TestStringBindings.cpp` — deferred until that file is
       registered, §4 baseline note).
-- [ ] Step 1 — new `tests/TestFunctionBind.cpp` (§5.4) registered in
+- [x] Step 1 — new `tests/TestFunctionBind.cpp` (§5.4) registered in
       `tests/CMakeLists.txt`.
-- [ ] Step 1 gate — build, tests (incl. new binder tests), alias-order script,
-      LSP smoke (6).
+- [x] Step 1 gate — build, tests (incl. new binder tests), alias-order script,
+      LSP smoke (6). Verified: 317 checks / 0 failures; API dump byte-identical
+      to baseline; alias-order OK (515 sites, 2 known exceptions); smoke 6.
 - [ ] Decide `Vec3_Distance` outcome (§11) before Step 3.
-- [ ] Step 2 — Vector.h members.
+- [x] Step 2 — Vector.h members. `Function_Bind_Member` lazy `GetMetadata`
+      statics replace the 4 MemberFunction macros; §5.2's `FunctionTraits`
+      renamed to `BindingTraits` (collision with `LTE::FunctionTraits`,
+      `Generic.h:10` — see §10 facts log). Gate: build, 317 checks / 0
+      failures, API dump byte-identical, alias-order OK, LSP smoke 6.
 - [ ] Step 3 — LTE FreeFunction family.
 - [ ] Step 4 — Component subsystem.
 - [ ] Step 5 — Game subsystem (incl. ArgBind).
