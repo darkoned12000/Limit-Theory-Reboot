@@ -7,6 +7,7 @@
 #include "Game/SaveGame.h"
 
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 #include "LTE/Location.h"
 #include "LTE/OS.h"
 #include "LTE/Serializer.h"
@@ -14,11 +15,11 @@
 namespace LTE {
   const char* kSaveGameFile = "savegame.bin";
 
-  FreeFunction(bool, SaveGame_Create,
-    "Write the current game state (player credits, ship position/look, and the"
+  static Function const SaveGame_Create_Registration = Function_Bind(
+  "SaveGame_Create",
+  "Write the current game state (player credits, ship position/look, and the"
     " universe seed) to the persistent save file. Returns true on success.",
-    Player, player,
-    Object, root)
+  [](Player const& player, Object const& root) -> bool
   {
     Object ship = player->piloting;
     SaveGameData d;
@@ -39,17 +40,24 @@ namespace LTE {
       d.playerPos.x, d.playerPos.y, d.playerPos.z,
       d.playerLook.x, d.playerLook.y, d.playerLook.z, (void*)&*ship);
     return true;
-  } FunctionAlias(SaveGame_Create, SaveGame);
+  
+  },
+  "player", "root");
+static int const SaveGame_Create_Alias = Function_Alias("SaveGame_Create", "SaveGame");
 
-  FreeFunctionNoParams(SaveGameData, SaveGame_Load,
-    "Read the saved game state from the persistent save file. Returns a"
+  static Function const SaveGame_Load_Registration = Function_Bind(
+  "SaveGame_Load",
+  "Read the saved game state from the persistent save file. Returns a"
     " SaveGameData whose 'version' is 0 when no save exists (or it is corrupt"
-    " / from an incompatible version).")
+    " / from an incompatible version).",
+  []() -> SaveGameData
   {
     SaveGameData d;
     Location location = Location_File(OS_GetUserDataPath() + kSaveGameFile);
     if (!LoadFrom(d, location, kSaveGameVersion, kSaveGameVersion))
       return SaveGameData();
     return d;
-  } FunctionAlias(SaveGame_Load, LoadGame);
+  
+  });
+static int const SaveGame_Load_Alias = Function_Alias("SaveGame_Load", "LoadGame");
 }

@@ -7,6 +7,7 @@
 #include "Orientation.h"
 #include "Game/Object.h"
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 #include "LTE/Math.h"
 #include "LTE/Matrix.h"
 
@@ -15,79 +16,105 @@ void ComponentOrientation::Rotate(V3 const& rotation) {
   version++;
 }
 
-FreeFunction(V3, Object_GetLook,
+static Function const Object_GetLook_Registration = Function_Bind(
+  "Object_GetLook",
   "Return the look direction of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> V3
+  {
   return object->GetLook();
-} FunctionAlias(Object_GetLook, GetLook);
+  },
+  "object");
+static int const Object_GetLook_Alias = Function_Alias("Object_GetLook", "GetLook");
 
-FreeFunction(Position, Object_GetPos,
+static Function const Object_GetPos_Registration = Function_Bind(
+  "Object_GetPos",
   "Return the position of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> Position
+  {
   return object->GetPos();
-} FunctionAlias(Object_GetPos, GetPos);
+  },
+  "object");
+static int const Object_GetPos_Alias = Function_Alias("Object_GetPos", "GetPos");
 
-FreeFunction(V3, Object_GetRight,
+static Function const Object_GetRight_Registration = Function_Bind(
+  "Object_GetRight",
   "Return the right direction of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> V3
+  {
   return object->GetRight();
-} FunctionAlias(Object_GetRight, GetRight);
+  },
+  "object");
+static int const Object_GetRight_Alias = Function_Alias("Object_GetRight", "GetRight");
 
-FreeFunction(V3, Object_GetScale,
+static Function const Object_GetScale_Registration = Function_Bind(
+  "Object_GetScale",
   "Return the axial scaling of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> V3
+  {
   return object->GetScale();
-} FunctionAlias(Object_GetScale, GetScale);
+  },
+  "object");
+static int const Object_GetScale_Alias = Function_Alias("Object_GetScale", "GetScale");
 
-FreeFunction(Transform, Object_GetTransform,
+static Function const Object_GetTransform_Registration = Function_Bind(
+  "Object_GetTransform",
   "Return the global transform of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> Transform
+  {
   return object->GetTransform();
-} FunctionAlias(Object_GetTransform, GetTransform);
+  },
+  "object");
+static int const Object_GetTransform_Alias = Function_Alias("Object_GetTransform", "GetTransform");
 
-FreeFunction(V3, Object_GetUp,
+static Function const Object_GetUp_Registration = Function_Bind(
+  "Object_GetUp",
   "Return the up direction of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> V3
+  {
   return object->GetUp();
-} FunctionAlias(Object_GetUp, GetUp);
+  },
+  "object");
+static int const Object_GetUp_Alias = Function_Alias("Object_GetUp", "GetUp");
 
-VoidFreeFunction(Object_SetLook,
+static Function const Object_SetLook_Registration = Function_Bind(
+  "Object_SetLook",
   "Orient 'object' to face towards 'look' direction",
-  Object, object,
-  V3, look)
-{
+  [](Object const& object, V3 const& look)
+  {
   object->SetLook(look);
-} FunctionAlias(Object_SetLook, SetLook);
+  },
+  "object", "look");
+static int const Object_SetLook_Alias = Function_Alias("Object_SetLook", "SetLook");
 
 /* Overload of SetLook for a double-precision Position direction (see
  * AGENTS.md §8d #1). Added as a function overload rather than a V3D -> V3F
  * conversion because the latter corrupts the engine's global conversion table. */
-VoidFreeFunction(Object_SetLook_Position,
+static Function const Object_SetLook_Position_Registration = Function_Bind(
+  "Object_SetLook_Position",
   "Orient 'object' to face towards 'look' direction (Position)",
-  Object, object,
-  V3D, look)
-{
+  [](Object const& object, V3D const& look)
+  {
   object->SetLook(V3(look));
-} FunctionAlias(Object_SetLook_Position, SetLook);
+  },
+  "object", "look");
+static int const Object_SetLook_Position_Alias = Function_Alias("Object_SetLook_Position", "SetLook");
 
-VoidFreeFunction(Object_SetPos,
+static Function const Object_SetPos_Registration = Function_Bind(
+  "Object_SetPos",
   "Move 'object' to 'position'",
-  Object, object,
-  Position, position)
-{
+  [](Object const& object, Position const& position)
+  {
   object->SetPos(position);
-} FunctionAlias(Object_SetPos, SetPos);
+  },
+  "object", "position");
+static int const Object_SetPos_Alias = Function_Alias("Object_SetPos", "SetPos");
 
-VoidFreeFunction(Object_SetScale,
+static Function const Object_SetScale_Registration = Function_Bind(
+  "Object_SetScale",
   "Set the axial scaling of 'object' to 'scale'",
-  Object, object,
-  V3, scale)
-{
+  [](Object const& object, V3 const& scale)
+  {
   object->SetScale(scale);
-} FunctionAlias(Object_SetScale, SetScale);
+  },
+  "object", "scale");
+static int const Object_SetScale_Alias = Function_Alias("Object_SetScale", "SetScale");

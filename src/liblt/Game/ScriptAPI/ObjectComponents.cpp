@@ -44,22 +44,27 @@
 #include "Component/Zoned.h"
 
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 
 #if 1
 #define X(x)                                                                   \
-  FreeFunction(Component##x*, Object_GetComponent##x,                          \
-    "Return the " #x " component of 'object'",                                 \
-    Object, object)                                                            \
-  {                                                                            \
-    return object->Get##x();                                                   \
-  } FunctionAlias(Object_GetComponent##x, GetComponent##x);                    \
+  static Function const Object_GetComponent##x##_Registration =                \
+    Function_Bind(                                                             \
+      "Object_GetComponent" #x,                                                \
+      "Return the " #x " component of 'object'",                               \
+      [](Object const& object) -> Component##x* { return object->Get##x(); },  \
+      "object");                                                               \
+  static int const Object_GetComponent##x##_Alias = Function_Alias(            \
+    "Object_GetComponent" #x, "GetComponent" #x);                              \
                                                                                \
-  FreeFunction(bool, Object_HasComponent##x,                                   \
-    "Return whether 'object' has a " #x " component",                          \
-    Object, object)                                                            \
-  {                                                                            \
-    return object->Get##x() != nullptr;                                        \
-  } FunctionAlias(Object_HasComponent##x, HasComponent##x);
+  static Function const Object_HasComponent##x##_Registration =                \
+    Function_Bind(                                                             \
+      "Object_HasComponent" #x,                                                \
+      "Return whether 'object' has a " #x " component",                        \
+      [](Object const& object) -> bool { return object->Get##x() != nullptr; },\
+      "object");                                                               \
+  static int const Object_HasComponent##x##_Alias = Function_Alias(            \
+    "Object_HasComponent" #x, "HasComponent" #x);
 #define Y(x, y) X(x)
 COMPONENT_X
 #undef X

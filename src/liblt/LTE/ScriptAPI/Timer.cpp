@@ -1,22 +1,31 @@
 #include "LTE/Timer.h"
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 
-FreeFunctionNoParams(Timer*, Timer,
-  "Create and reset a new timer")
-{
+static Function const Timer_Registration = Function_Bind(
+  "Timer",
+  "Create and reset a new timer",
+  []() -> Timer*
+  {
   return new Timer;
-}
+  });
 
-FreeFunction(float, Timer_GetElapsed,
+static Function const Timer_GetElapsed_Registration = Function_Bind(
+  "Timer_GetElapsed",
   "Return the number of seconds elapsed since 'timer' was reset",
-  Timer*, timer)
-{
+  [](Timer* const& timer) -> float
+  {
   return timer->GetElapsed();
-} FunctionAlias(Timer_GetElapsed, GetElapsed);
+  },
+  "timer");
+static int const Timer_GetElapsed_Alias = Function_Alias("Timer_GetElapsed", "GetElapsed");
 
-VoidFreeFunction(Timer_Reset,
+static Function const Timer_Reset_Registration = Function_Bind(
+  "Timer_Reset",
   "Reset 'timer'",
-  Timer*, timer)
-{
+  [](Timer* const& timer)
+  {
   Mutable(*timer).Reset();
-} FunctionAlias(Timer_Reset, Reset);
+  },
+  "timer");
+static int const Timer_Reset_Alias = Function_Alias("Timer_Reset", "Reset");

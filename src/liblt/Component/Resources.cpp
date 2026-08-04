@@ -4,14 +4,16 @@
 #include "Game/Object.h"
 
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 
-VoidFreeFunction(Object_AddResource,
+static Function const Object_AddResource_Registration = Function_Bind(
+  "Object_AddResource",
   "Add 'item' to 'objects' list of natural resources with weight 'w'",
-  Object, object,
-  Item, item,
-  float, weight)
-{
+  [](Object const& object, Item const& item, float const& weight)
+  {
   ComponentResources* resources = object->GetResources();
   LTE_ASSERT(resources != nullptr);
   resources->elements[item] = weight;
-} FunctionAlias(Object_AddResource, AddResource);
+  },
+  "object", "item", "weight");
+static int const Object_AddResource_Alias = Function_Alias("Object_AddResource", "AddResource");

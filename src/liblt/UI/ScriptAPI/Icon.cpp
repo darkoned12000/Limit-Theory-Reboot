@@ -1,44 +1,47 @@
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 
 #include "UI/Icon.h"
 
 TypeAlias(Reference<GlyphT>, Glyph);
 TypeAlias(Reference<IconT>, Icon);
 
-VoidFreeFunction(Icon_AddGlyph,
+static Function const Icon_AddGlyph_Registration = Function_Bind(
+  "Icon_AddGlyph",
   "Add 'glyph' to 'icon'",
-  Icon, icon,
-  Glyph, glyph)
-{
+  [](Icon const& icon, Glyph const& glyph)
+  {
   icon->Add(glyph);
-} FunctionAlias(Icon_AddGlyph, +=);
+  },
+  "icon", "glyph");
+static int const Icon_AddGlyph_Alias = Function_Alias("Icon_AddGlyph", "+=");
 
-VoidFreeFunction(Icon_AddIcon,
+static Function const Icon_AddIcon_Registration = Function_Bind(
+  "Icon_AddIcon",
   "Add a copy of 'source' to 'icon' with translation 'offset' and scale 'scale'",
-  Icon, icon,
-  Icon, source,
-  V2, offset,
-  V2, scale)
-{
+  [](Icon const& icon, Icon const& source, V2 const& offset, V2 const& scale)
+  {
   icon->Add(source, offset, scale);
-} FunctionAlias(Icon_AddIcon, +=);
+  },
+  "icon", "source", "offset", "scale");
+static int const Icon_AddIcon_Alias = Function_Alias("Icon_AddIcon", "+=");
 
-VoidFreeFunction(Icon_Draw,
+static Function const Icon_Draw_Registration = Function_Bind(
+  "Icon_Draw",
   "Draw 'icon' to the screen at 'center' with 'scale,' 'color,' and 'alpha'",
-  Icon, icon,
-  V2, center,
-  V2, scale,
-  Color, color,
-  float, alpha)
-{
+  [](Icon const& icon, V2 const& center, V2 const& scale, Color const& color, float const& alpha)
+  {
   icon->Draw(GlyphState(center, scale, color, alpha));
-} FunctionAlias(Icon_Draw, Draw);
+  },
+  "icon", "center", "scale", "color", "alpha");
+static int const Icon_Draw_Alias = Function_Alias("Icon_Draw", "Draw");
 
-VoidFreeFunction(Icon_Transform,
+static Function const Icon_Transform_Registration = Function_Bind(
+  "Icon_Transform",
   "Scale 'icon' by 'scale,' then move by 'offset'",
-  Icon, icon,
-  V2, offset,
-  V2, scale)
-{
+  [](Icon const& icon, V2 const& offset, V2 const& scale)
+  {
   icon->Transform(offset, scale);
-} FunctionAlias(Icon_Transform, Transform);
+  },
+  "icon", "offset", "scale");
+static int const Icon_Transform_Alias = Function_Alias("Icon_Transform", "Transform");

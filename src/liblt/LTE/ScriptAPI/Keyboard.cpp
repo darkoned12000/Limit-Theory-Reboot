@@ -1,67 +1,85 @@
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 #include "LTE/Keyboard.h"
 #include "LTE/Vector.h"
 
 namespace Priv1 {
   #define X(x)                                                                   \
-    FreeFunctionNoParams(Key, Key_##x,                                           \
-      "Return the " #x " key")                                                   \
-    {                                                                            \
-      return Key_##x;                                                            \
-    }
+    static Function const Key_##x##_Registration = Function_Bind(               \
+      "Key_" #x,                                                                 \
+      "Return the " #x " key",                                                   \
+      []() -> Key { return Key_##x; });
   KEY_X
   #undef X
 }
 
-FreeFunctionNoParams(bool, Key_Alt,
-  "Return whether an alt key is down")
-{
+static Function const Key_Alt_Registration = Function_Bind(
+  "Key_Alt",
+  "Return whether an alt key is down",
+  []() -> bool
+  {
   return Keyboard_Alt();
-}
+  });
 
-FreeFunctionNoParams(bool, Key_Control,
-  "Return whether a control key is down")
-{
+static Function const Key_Control_Registration = Function_Bind(
+  "Key_Control",
+  "Return whether a control key is down",
+  []() -> bool
+  {
   return Keyboard_Control();
-}
+  });
 
-FreeFunction(bool, Key_Down,
+static Function const Key_Down_Registration = Function_Bind(
+  "Key_Down",
   "Return whether 'key' is currently down",
-  Key, key)
-{
+  [](Key const& key) -> bool
+  {
   return Keyboard_Down(key);
-} FunctionAlias(Key_Down, Down);
+  },
+  "key");
+static int const Key_Down_Alias = Function_Alias("Key_Down", "Down");
 
-FreeFunctionNoParams(Vector<Key>, Keyboard_GetPressed,
-  "Return a list of all keys pressed this frame")
-{
+static Function const Keyboard_GetPressed_Registration = Function_Bind(
+  "Keyboard_GetPressed",
+  "Return a list of all keys pressed this frame",
+  []() -> Vector<Key>
+  {
   return Keyboard_GetKeysPressed();
-}
+  });
 
-VoidFreeFunction(Keyboard_ModifyString,
+static Function const Keyboard_ModifyString_Registration = Function_Bind(
+  "Keyboard_ModifyString",
   "Modify the 's' according to keys pressed this frame",
-  String, s,
-  int, cursor)
-{
+  [](String const& s, int const& cursor)
+  {
   Keyboard_ModifyString(Mutable(s), Mutable(cursor));
-}
+  },
+  "s", "cursor");
 
-FreeFunction(bool, Key_Pressed,
+static Function const Key_Pressed_Registration = Function_Bind(
+  "Key_Pressed",
   "Return whether 'key' was pressed this frame",
-  Key, key)
-{
+  [](Key const& key) -> bool
+  {
   return Keyboard_Pressed(key);
-} FunctionAlias(Key_Pressed, Pressed);
+  },
+  "key");
+static int const Key_Pressed_Alias = Function_Alias("Key_Pressed", "Pressed");
 
-FreeFunction(bool, Key_Released,
+static Function const Key_Released_Registration = Function_Bind(
+  "Key_Released",
   "Return whether 'key' was released this frame",
-  Key, key)
-{
+  [](Key const& key) -> bool
+  {
   return Keyboard_Released(key);
-} FunctionAlias(Key_Released, Released);
+  },
+  "key");
+static int const Key_Released_Alias = Function_Alias("Key_Released", "Released");
 
-FreeFunctionNoParams(bool, Key_Shift,
-  "Return whether a shift key is down")
-{
+static Function const Key_Shift_Registration = Function_Bind(
+  "Key_Shift",
+  "Return whether a shift key is down",
+  []() -> bool
+  {
   return Keyboard_Shift();
-}
+  });

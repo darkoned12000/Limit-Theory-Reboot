@@ -1,51 +1,88 @@
 #include "Messages.h"
+#include "LTE/FunctionBind.h"
 
-FreeFunction(MessageLink, MessageLink, "", Object, object) {
+static Function const MessageLink_Registration = Function_Bind(
+  "MessageLink",
+  "",
+  [](Object const& object) -> MessageLink
+  {
   return MessageLink(object);
-}
+  },
+  "object");
 
-FreeFunctionNoParams(MessageBoost, MessageBoost, "Use Boost Capacitor") {
+static Function const MessageBoost_Registration = Function_Bind(
+  "MessageBoost",
+  "Use Boost Capacitor",
+  []() -> MessageBoost
+  {
   return MessageBoost();
-}
+  });
 
-FreeFunctionNoParams(MessageCruise, MessageCruise, "Engage Cruise") {
+static Function const MessageCruise_Registration = Function_Bind(
+  "MessageCruise",
+  "Engage Cruise",
+  []() -> MessageCruise
+  {
   return MessageCruise();
-}
+  });
 
-FreeFunctionNoParams(MessageFire, MessageFire, "Fire") {
+static Function const MessageFire_Registration = Function_Bind(
+  "MessageFire",
+  "Fire",
+  []() -> MessageFire
+  {
   return MessageFire();
-}
+  });
 
-FreeFunctionNoParams(MessageReload, MessageReload, "Reload") {
+static Function const MessageReload_Registration = Function_Bind(
+  "MessageReload",
+  "Reload",
+  []() -> MessageReload
+  {
   return MessageReload();
-}
+  });
 
-FreeFunction(MessageStartUsing, MessageStartUsing, "", Object, object) {
+static Function const MessageStartUsing_Registration = Function_Bind(
+  "MessageStartUsing",
+  "",
+  [](Object const& object) -> MessageStartUsing
+  {
   return MessageStartUsing(object, nullptr);
-}
+  },
+  "object");
 
-FreeFunction(MessageStopUsing, MessageStopUsing, "", Object, object) {
+static Function const MessageStopUsing_Registration = Function_Bind(
+  "MessageStopUsing",
+  "",
+  [](Object const& object) -> MessageStopUsing
+  {
   return MessageStopUsing(object);
-}
+  },
+  "object");
 
-FreeFunction(MessageTargetPosition, MessageTargetPosition,
+static Function const MessageTargetPosition_Registration = Function_Bind(
+  "MessageTargetPosition",
   "Target 'position'",
-  Position, position)
-{
+  [](Position const& position) -> MessageTargetPosition
+  {
   return MessageTargetPosition(position);
-}
+  },
+  "position");
 
-FreeFunction(MessageThrustAngular, MessageThrustAngular,
+static Function const MessageThrustAngular_Registration = Function_Bind(
+  "MessageThrustAngular",
   "Apply an angular thrust of 'magnitude' in the 'dir' local-space direction",
-  V3, dir,
-  float, magnitude)
-{
+  [](V3 const& dir, float const& magnitude) -> MessageThrustAngular
+  {
   return MessageThrustAngular(dir, magnitude);
-}
+  },
+  "dir", "magnitude");
 
-FreeFunction(MessageThrustLinear, MessageThrustLinear,
+static Function const MessageThrustLinear_Registration = Function_Bind(
+  "MessageThrustLinear",
   "Apply a linear thrust in the 'dir' world-space direction",
-  V3, dir)
-{
+  [](V3 const& dir) -> MessageThrustLinear
+  {
   return MessageThrustLinear(dir);
-}
+  },
+  "dir");

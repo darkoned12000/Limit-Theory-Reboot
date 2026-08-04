@@ -4,12 +4,16 @@
 // See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
 
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 #include "LTE/Program.h"
 
-VoidFreeFunctionNoParams(Program_Delete,
-  "Request that the running application exit (clean shutdown)")
-{
+static Function const Program_Delete_Registration = Function_Bind(
+  "Program_Delete",
+  "Request that the running application exit (clean shutdown)",
+  []()
+  {
   Program* p = Program_GetCurrent();
   if (p)
     p->Delete();
-} FunctionAlias(Program_Delete, Exit);
+  });
+static int const Program_Delete_Alias = Function_Alias("Program_Delete", "Exit");

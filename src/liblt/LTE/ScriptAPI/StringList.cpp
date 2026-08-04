@@ -1,33 +1,45 @@
 #include "LTE/StringList.h"
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 
 TypeAlias(Reference<StringListT>, StringList);
 
-FreeFunction(StringList, StringList_Get,
+static Function const StringList_Get_Registration = Function_Bind(
+  "StringList_Get",
   "Return the 'i'th child of 'list'",
-  StringList, list,
-  int, i)
-{
+  [](StringList const& list, int const& i) -> StringList
+  {
   return list->Get(i);
-} FunctionAlias(StringList_Get, Get);
+  },
+  "list", "i");
+static int const StringList_Get_Alias = Function_Alias("StringList_Get", "Get");
 
-FreeFunction(String, StringList_GetValue,
+static Function const StringList_GetValue_Registration = Function_Bind(
+  "StringList_GetValue",
   "Return the value of 'list'",
-  StringList, list)
-{
+  [](StringList const& list) -> String
+  {
   return list->GetValue();
-} FunctionAlias(StringList_GetValue, GetValue);
+  },
+  "list");
+static int const StringList_GetValue_Alias = Function_Alias("StringList_GetValue", "GetValue");
 
-FreeFunction(bool, StringList_IsAtom,
+static Function const StringList_IsAtom_Registration = Function_Bind(
+  "StringList_IsAtom",
   "Return whether 'list' is an atom",
-  StringList, list)
-{
+  [](StringList const& list) -> bool
+  {
   return list->IsAtom();
-} FunctionAlias(StringList_IsAtom, IsAtom);
+  },
+  "list");
+static int const StringList_IsAtom_Alias = Function_Alias("StringList_IsAtom", "IsAtom");
 
-FreeFunction(int, StringList_Size,
+static Function const StringList_Size_Registration = Function_Bind(
+  "StringList_Size",
   "Return the size of 'list'",
-  StringList, list)
-{
+  [](StringList const& list) -> int
+  {
   return list->GetSize();
-} FunctionAlias(StringList_Size, Size);
+  },
+  "list");
+static int const StringList_Size_Alias = Function_Alias("StringList_Size", "Size");

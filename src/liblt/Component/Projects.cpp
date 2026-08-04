@@ -1,6 +1,7 @@
 #include "Projects.h"
 
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 
 AutoClass(ProjectsIterator,
   Object, object,
@@ -8,39 +9,54 @@ AutoClass(ProjectsIterator,
   ProjectsIterator() = default;
 };
 
-FreeFunction(ProjectsIterator, Object_GetProjects,
+static Function const Object_GetProjects_Registration = Function_Bind(
+  "Object_GetProjects",
   "Return an iterator to the projects managed by 'object'",
-  Object, object)
-{
+  [](Object const& object) -> ProjectsIterator
+  {
   return ProjectsIterator(object, 0);
-} FunctionAlias(Object_GetProjects, GetProjects);
+  },
+  "object");
+static int const Object_GetProjects_Alias = Function_Alias("Object_GetProjects", "GetProjects");
 
-FreeFunction(Project, ProjectsIterator_Access,
+static Function const ProjectsIterator_Access_Registration = Function_Bind(
+  "ProjectsIterator_Access",
   "Return the contents of 'iterator'",
-  ProjectsIterator, iterator)
-{
+  [](ProjectsIterator const& iterator) -> Project
+  {
   return iterator.object->GetProjects()->elements[iterator.index];
-} FunctionAlias(ProjectsIterator_Access, Get);
+  },
+  "iterator");
+static int const ProjectsIterator_Access_Alias = Function_Alias("ProjectsIterator_Access", "Get");
 
-VoidFreeFunction(ProjectsIterator_Advance,
+static Function const ProjectsIterator_Advance_Registration = Function_Bind(
+  "ProjectsIterator_Advance",
   "Advance 'iterator'",
-  ProjectsIterator, iterator)
-{
+  [](ProjectsIterator const& iterator)
+  {
   Mutable(iterator).index++;
-} FunctionAlias(ProjectsIterator_Advance, Advance);
+  },
+  "iterator");
+static int const ProjectsIterator_Advance_Alias = Function_Alias("ProjectsIterator_Advance", "Advance");
 
-FreeFunction(bool, ProjectsIterator_HasMore,
+static Function const ProjectsIterator_HasMore_Registration = Function_Bind(
+  "ProjectsIterator_HasMore",
   "Return whether 'iterator' has more elements",
-  ProjectsIterator, iterator)
-{
+  [](ProjectsIterator const& iterator) -> bool
+  {
   return 
     iterator.object->GetProjects() &&
     iterator.index < iterator.object->GetProjects()->elements.size();
-} FunctionAlias(ProjectsIterator_HasMore, HasMore);
+  },
+  "iterator");
+static int const ProjectsIterator_HasMore_Alias = Function_Alias("ProjectsIterator_HasMore", "HasMore");
 
-FreeFunction(int, ProjectsIterator_Size,
+static Function const ProjectsIterator_Size_Registration = Function_Bind(
+  "ProjectsIterator_Size",
   "Return the total number of elements in 'iterator'",
-  ProjectsIterator, iterator)
-{
+  [](ProjectsIterator const& iterator) -> int
+  {
   return static_cast<int>(iterator.object->GetProjects()->elements.size());
-} FunctionAlias(ProjectsIterator_Size, Size);
+  },
+  "iterator");
+static int const ProjectsIterator_Size_Alias = Function_Alias("ProjectsIterator_Size", "Size");

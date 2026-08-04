@@ -3,6 +3,7 @@
 #include "Info.h"
 
 #include "LTE/StackFrame.h"
+#include "LTE/FunctionBind.h"
 
 void ComponentAsset::Run(ObjectT* self, UpdateState& state) { AUTO_FRAME;
   if (owner) {
@@ -19,9 +20,12 @@ void ComponentAsset::Run(ObjectT* self, UpdateState& state) { AUTO_FRAME;
   }
 }
 
-FreeFunction(Player, Object_GetOwner,
+static Function const Object_GetOwner_Registration = Function_Bind(
+  "Object_GetOwner",
   "Return the owner of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> Player
+  {
   return object->GetOwner();
-} FunctionAlias(Object_GetOwner, GetOwner);
+  },
+  "object");
+static int const Object_GetOwner_Alias = Function_Alias("Object_GetOwner", "GetOwner");

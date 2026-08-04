@@ -2061,6 +2061,16 @@
       "source": ""
     },
     {
+      "name": "ClearAssets",
+      "signature": "void Object_ClearAssets(Object object)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "object", "type": "Object"}
+      ],
+      "documentation": "Release ownership of all assets owned by 'object'",
+      "source": ""
+    },
+    {
       "name": "ClearTasks",
       "signature": "void Object_ClearTasks(Object object)",
       "returnType": "void",
@@ -2455,6 +2465,17 @@
     },
     {
       "name": "Distance",
+      "signature": "Float Vec3_Distance(Vec3f a, Vec3f b)",
+      "returnType": "Float",
+      "parameters": [
+        {"name": "a", "type": "Vec3f"},
+        {"name": "b", "type": "Vec3f"}
+      ],
+      "documentation": "Return the distance between a 'a' and 'b'",
+      "source": ""
+    },
+    {
+      "name": "Distance",
       "signature": "Float Vec4_Distance(Vec4f a, Vec4f b)",
       "returnType": "Float",
       "parameters": [
@@ -2493,6 +2514,17 @@
       "parameters": [
         {"name": "a", "type": "Vec3d"},
         {"name": "b", "type": "Vec3d"}
+      ],
+      "documentation": "Return the dot product of 'a' and 'b'",
+      "source": ""
+    },
+    {
+      "name": "Dot",
+      "signature": "Float Vec4f_Dot(Vec4f a, Vec4f b)",
+      "returnType": "Float",
+      "parameters": [
+        {"name": "a", "type": "Vec4f"},
+        {"name": "b", "type": "Vec4f"}
       ],
       "documentation": "Return the dot product of 'a' and 'b'",
       "source": ""
@@ -9999,6 +10031,15 @@
       "source": ""
     },
     {
+      "name": "LoadGame",
+      "signature": "SaveGameData SaveGame_Load()",
+      "returnType": "SaveGameData",
+      "parameters": [
+      ],
+      "documentation": "Read the saved game state from the persistent save file. Returns a SaveGameData whose 'version' is 0 when no save exists (or it is corrupt / from an incompatible version).",
+      "source": ""
+    },
+    {
       "name": "Location_Cache",
       "signature": "Location Location_Cache(String name)",
       "returnType": "Location",
@@ -11129,6 +11170,16 @@
         {"name": "message", "type": "Data"}
       ],
       "documentation": "Broadcast 'message' to 'object'",
+      "source": ""
+    },
+    {
+      "name": "Object_ClearAssets",
+      "signature": "void Object_ClearAssets(Object object)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "object", "type": "Object"}
+      ],
+      "documentation": "Release ownership of all assets owned by 'object'",
       "source": ""
     },
     {
@@ -14909,6 +14960,37 @@
       "source": ""
     },
     {
+      "name": "SaveGame",
+      "signature": "Bool SaveGame_Create(Player player, Object root)",
+      "returnType": "Bool",
+      "parameters": [
+        {"name": "player", "type": "Player"},
+        {"name": "root", "type": "Object"}
+      ],
+      "documentation": "Write the current game state (player credits, ship position/look, and the universe seed) to the persistent save file. Returns true on success.",
+      "source": ""
+    },
+    {
+      "name": "SaveGame_Create",
+      "signature": "Bool SaveGame_Create(Player player, Object root)",
+      "returnType": "Bool",
+      "parameters": [
+        {"name": "player", "type": "Player"},
+        {"name": "root", "type": "Object"}
+      ],
+      "documentation": "Write the current game state (player credits, ship position/look, and the universe seed) to the persistent save file. Returns true on success.",
+      "source": ""
+    },
+    {
+      "name": "SaveGame_Load",
+      "signature": "SaveGameData SaveGame_Load()",
+      "returnType": "SaveGameData",
+      "parameters": [
+      ],
+      "documentation": "Read the saved game state from the persistent save file. Returns a SaveGameData whose 'version' is 0 when no save exists (or it is corrupt / from an incompatible version).",
+      "source": ""
+    },
+    {
       "name": "SaveTo",
       "signature": "void Data_SaveTo(Data data, String path)",
       "returnType": "void",
@@ -17818,6 +17900,17 @@
       "source": ""
     },
     {
+      "name": "Vec3_Distance",
+      "signature": "Float Vec3_Distance(Vec3f a, Vec3f b)",
+      "returnType": "Float",
+      "parameters": [
+        {"name": "a", "type": "Vec3f"},
+        {"name": "b", "type": "Vec3f"}
+      ],
+      "documentation": "Return the distance between a 'a' and 'b'",
+      "source": ""
+    },
+    {
       "name": "Vec3_Floor",
       "signature": "Vec3f Vec3_Floor(Vec3f v)",
       "returnType": "Vec3f",
@@ -19247,6 +19340,15 @@
   ],
   "types": [
     {
+      "name": "void",
+      "description": "",
+      "fields": [
+      ],
+      "methods": [
+      ],
+      "documentation": ""
+    },
+    {
       "name": "ObjectT",
       "description": "",
       "fields": [
@@ -19275,15 +19377,6 @@
     },
     {
       "name": "Int64",
-      "description": "",
-      "fields": [
-      ],
-      "methods": [
-      ],
-      "documentation": ""
-    },
-    {
-      "name": "void",
       "description": "",
       "fields": [
       ],
@@ -19544,7 +19637,7 @@
       "documentation": ""
     },
     {
-      "name": "Vec3d",
+      "name": "Impact",
       "description": "",
       "fields": [
       ],
@@ -19553,7 +19646,7 @@
       "documentation": ""
     },
     {
-      "name": "Impact",
+      "name": "Vec3d",
       "description": "",
       "fields": [
       ],
@@ -20858,7 +20951,7 @@
       "documentation": ""
     },
     {
-      "name": "Vec2",
+      "name": "Ray",
       "description": "",
       "fields": [
       ],
@@ -20867,7 +20960,7 @@
       "documentation": ""
     },
     {
-      "name": "Ray",
+      "name": "Vec2",
       "description": "",
       "fields": [
       ],
@@ -21741,6 +21834,15 @@
     },
     {
       "name": "ComponentZoned*",
+      "description": "",
+      "fields": [
+      ],
+      "methods": [
+      ],
+      "documentation": ""
+    },
+    {
+      "name": "SaveGameData",
       "description": "",
       "fields": [
       ],

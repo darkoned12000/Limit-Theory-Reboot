@@ -1,4 +1,5 @@
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 #include "LTE/String.h"
 #include "LTE/Vector.h"
 
@@ -23,143 +24,188 @@ DefineConversion(int64_to_string, int64, String) { dest = ToString<int64>(src); 
 DefineConversion(uint32_to_string, int32, String) { dest = ToString<uint32>(src); }
 DefineConversion(uint64_to_string, int64, String) { dest = ToString<uint64>(src); }
 
-VoidFreeFunction(String_Append,
+static Function const String_Append_Registration = Function_Bind(
+  "String_Append",
   "Append 'b' to 'a'",
-  String, a,
-  String, b)
-{
+  [](String const& a, String const& b)
+  {
   (String&)a += b;
-} FunctionAlias(String_Append, +=);
+  },
+  "a", "b");
+static int const String_Append_Alias = Function_Alias("String_Append", "+=");
 
-FreeFunction(String, String_CapitalCase,
+static Function const String_CapitalCase_Registration = Function_Bind(
+  "String_CapitalCase",
   "Return a new version of 's' where each word is capitalized",
-  String, s)
-{
+  [](String const& s) -> String
+  {
   return String_Capital(s);
-} FunctionAlias(String_CapitalCase, CapitalCase);
+  },
+  "s");
+static int const String_CapitalCase_Alias = Function_Alias("String_CapitalCase", "CapitalCase");
 
-FreeFunction(String, String_Concat,
+static Function const String_Concat_Registration = Function_Bind(
+  "String_Concat",
   "Return the concatenation of the strings 'a' and 'b'",
-  String, a,
-  String, b)
-{
+  [](String const& a, String const& b) -> String
+  {
   return a + b;
-} FunctionAlias(String_Concat, +);
+  },
+  "a", "b");
+static int const String_Concat_Alias = Function_Alias("String_Concat", "+");
 
-FreeFunction(bool, String_Contains,
+static Function const String_Contains_Registration = Function_Bind(
+  "String_Contains",
   "Return whether 's' contains 'substring'",
-  String, s,
-  String, substring)
-{
+  [](String const& s, String const& substring) -> bool
+  {
   if (substring.size() == 0)
     return true;
   return s.contains(substring);
-} FunctionAlias(String_Contains, Contains);
+  },
+  "s", "substring");
+static int const String_Contains_Alias = Function_Alias("String_Contains", "Contains");
 
-FreeFunction(bool, String_IsEmpty,
+static Function const String_IsEmpty_Registration = Function_Bind(
+  "String_IsEmpty",
   "Return whether 's' is of zero length",
-  String, s)
-{
+  [](String const& s) -> bool
+  {
   return s.size() == 0;
-} FunctionAlias(String_IsEmpty, IsEmpty);
+  },
+  "s");
+static int const String_IsEmpty_Alias = Function_Alias("String_IsEmpty", "IsEmpty");
 
-FreeFunction(bool, String_Equal,
+static Function const String_Equal_Registration = Function_Bind(
+  "String_Equal",
   "Return a == b",
-  String, a,
-  String, b)
-{
+  [](String const& a, String const& b) -> bool
+  {
   return a == b;
-} FunctionAlias(String_Equal, ==);
+  },
+  "a", "b");
+static int const String_Equal_Alias = Function_Alias("String_Equal", "==");
 
-FreeFunction(char, String_Get,
+static Function const String_Get_Registration = Function_Bind(
+  "String_Get",
   "Return the 'i'th character in 's'",
-  String, s,
-  int, i)
-{
+  [](String const& s, int const& i) -> char
+  {
   return s[size_t(i)];
-} FunctionAlias(String_Get, Get);
+  },
+  "s", "i");
+static int const String_Get_Alias = Function_Alias("String_Get", "Get");
 
-FreeFunction(HashT, String_GetHash,
+static Function const String_GetHash_Registration = Function_Bind(
+  "String_GetHash",
   "Return a hash for 's'",
-  String, s)
-{
+  [](String const& s) -> HashT
+  {
   return String_Hash(s);
-} FunctionAlias(String_GetHash, GetHash);
+  },
+  "s");
+static int const String_GetHash_Alias = Function_Alias("String_GetHash", "GetHash");
 
-FreeFunction(int, String_Length,
+static Function const String_Length_Registration = Function_Bind(
+  "String_Length",
   "Return the number of characters in 's'",
-  String, s)
-{
+  [](String const& s) -> int
+  {
   return s.size();
-} FunctionAlias(String_Length, Length);
+  },
+  "s");
+static int const String_Length_Alias = Function_Alias("String_Length", "Length");
 
-FreeFunction(String, String_LowerCase,
+static Function const String_LowerCase_Registration = Function_Bind(
+  "String_LowerCase",
   "Return a new version of 's' where each letter is lower case",
-  String, s)
-{
+  [](String const& s) -> String
+  {
   return String_Lower(s);
-} FunctionAlias(String_LowerCase, LowerCase);
+  },
+  "s");
+static int const String_LowerCase_Alias = Function_Alias("String_LowerCase", "LowerCase");
 
-FreeFunction(bool, String_NotEqual,
+static Function const String_NotEqual_Registration = Function_Bind(
+  "String_NotEqual",
   "Return a != b",
-  String, a,
-  String, b)
-{
+  [](String const& a, String const& b) -> bool
+  {
   return a != b;
-} FunctionAlias(String_NotEqual, !=);
+  },
+  "a", "b");
+static int const String_NotEqual_Alias = Function_Alias("String_NotEqual", "!=");
 
-VoidFreeFunction(String_Pop,
+static Function const String_Pop_Registration = Function_Bind(
+  "String_Pop",
   "Delete the last character of 's'",
-  String, s)
-{
+  [](String const& s)
+  {
   Mutable(s).pop();
-} FunctionAlias(String_Pop, Pop);
+  },
+  "s");
+static int const String_Pop_Alias = Function_Alias("String_Pop", "Pop");
 
-FreeFunction(Vector<String>, String_Split,
+static Function const String_Split_Registration = Function_Bind(
+  "String_Split",
   "Split 's' into pieces using 'delimiter'",
-  String, s,
-  char, delimiter)
-{
+  [](String const& s, char const& delimiter) -> Vector<String>
+  {
   Vector<String> result;
   String_Split(result, s, delimiter);
   return result;
-} FunctionAlias(String_Split, Split);
+  },
+  "s", "delimiter");
+static int const String_Split_Alias = Function_Alias("String_Split", "Split");
 
-FreeFunction(Vector<String>, String_SplitLines,
+static Function const String_SplitLines_Registration = Function_Bind(
+  "String_SplitLines",
   "Split 's' into pieces using newline as a delimiter",
-  String, s)
-{
+  [](String const& s) -> Vector<String>
+  {
   Vector<String> result;
   String_Split(result, s, '\n');
   return result;
-} FunctionAlias(String_SplitLines, SplitLines);
+  },
+  "s");
+static int const String_SplitLines_Alias = Function_Alias("String_SplitLines", "SplitLines");
 
-FreeFunction(String, String_Substring,
+static Function const String_Substring_Registration = Function_Bind(
+  "String_Substring",
   "Return the substring of 'length' from 's' starting at 'start'",
-  String, s,
-  int, start,
-  int, length)
-{
+  [](String const& s, int const& start, int const& length) -> String
+  {
   return s.substr(0, length);
-} FunctionAlias(String_Substring, Substring);
+  },
+  "s", "start", "length");
+static int const String_Substring_Alias = Function_Alias("String_Substring", "Substring");
 
-FreeFunction(float, String_ToFloat,
+static Function const String_ToFloat_Registration = Function_Bind(
+  "String_ToFloat",
   "Return 's' converted to a float",
-  String, s)
-{
+  [](String const& s) -> float
+  {
   return FromString<float>(s);
-} FunctionAlias(String_ToFloat, ToFloat);
+  },
+  "s");
+static int const String_ToFloat_Alias = Function_Alias("String_ToFloat", "ToFloat");
 
-FreeFunction(int, String_ToInt,
+static Function const String_ToInt_Registration = Function_Bind(
+  "String_ToInt",
   "Return 's' converted to an int",
-  String, s)
-{
+  [](String const& s) -> int
+  {
   return FromString<int>(s);
-} FunctionAlias(String_ToInt, ToInt);
+  },
+  "s");
+static int const String_ToInt_Alias = Function_Alias("String_ToInt", "ToInt");
 
-FreeFunction(String, String_UpperCase,
+static Function const String_UpperCase_Registration = Function_Bind(
+  "String_UpperCase",
   "Return a new version of 's' where each letter is upper case",
-  String, s)
-{
+  [](String const& s) -> String
+  {
   return String_Upper(s);
-} FunctionAlias(String_UpperCase, UpperCase);
+  },
+  "s");
+static int const String_UpperCase_Alias = Function_Alias("String_UpperCase", "UpperCase");

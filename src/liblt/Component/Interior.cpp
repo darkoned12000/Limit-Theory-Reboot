@@ -2,6 +2,7 @@
 #include "Queryable.h"
 #include "LTE/DrawState.h"
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 #include "LTE/Iterator.h"
 #include "LTE/RenderStyle.h"
 #include "LTE/StackFrame.h"
@@ -95,39 +96,58 @@ namespace {
     InteriorIterator() = default;
   };
 
-  VoidFreeFunction(Object_AddInterior,
-    "Add 'object' to the interior of 'interior'",
-    Object, interior,
-    Object, object)
+  static Function const Object_AddInterior_Registration = Function_Bind(
+  "Object_AddInterior",
+  "Add 'object' to the interior of 'interior'",
+  [](Object const& interior, Object const& object)
   {
     interior->AddInterior(object);
-  } FunctionAlias(Object_AddInterior, AddInterior);
+  
+  },
+  "interior", "object");
+static int const Object_AddInterior_Alias = Function_Alias("Object_AddInterior", "AddInterior");
 
-  FreeFunction(InteriorIterator, Object_GetInteriorObjects,
-    "Return an iterator to the objects inside 'container'",
-    Object, container)
+  static Function const Object_GetInteriorObjects_Registration = Function_Bind(
+  "Object_GetInteriorObjects",
+  "Return an iterator to the objects inside 'container'",
+  [](Object const& container) -> InteriorIterator
   {
     return InteriorIterator(container, 0);
-  } FunctionAlias(Object_GetInteriorObjects, GetInteriorObjects);
+  
+  },
+  "container");
+static int const Object_GetInteriorObjects_Alias = Function_Alias("Object_GetInteriorObjects", "GetInteriorObjects");
 
-  FreeFunction(Object, InteriorIterator_Access,
-    "Return the contents of 'iterator'",
-    InteriorIterator, iterator)
+  static Function const InteriorIterator_Access_Registration = Function_Bind(
+  "InteriorIterator_Access",
+  "Return the contents of 'iterator'",
+  [](InteriorIterator const& iterator) -> Object
   {
     return iterator.object->GetInterior()->objects[iterator.index];
-  } FunctionAlias(InteriorIterator_Access, Get);
+  
+  },
+  "iterator");
+static int const InteriorIterator_Access_Alias = Function_Alias("InteriorIterator_Access", "Get");
 
-  VoidFreeFunction(InteriorIterator_Advance,
-    "Advance 'iterator'",
-    InteriorIterator, iterator)
+  static Function const InteriorIterator_Advance_Registration = Function_Bind(
+  "InteriorIterator_Advance",
+  "Advance 'iterator'",
+  [](InteriorIterator const& iterator)
   {
     Mutable(iterator).index++;
-  } FunctionAlias(InteriorIterator_Advance, Advance);
+  
+  },
+  "iterator");
+static int const InteriorIterator_Advance_Alias = Function_Alias("InteriorIterator_Advance", "Advance");
 
-  FreeFunction(bool, InteriorIterator_HasMore,
-    "Return whether 'iterator' has more elements",
-    InteriorIterator, iterator)
+  static Function const InteriorIterator_HasMore_Registration = Function_Bind(
+  "InteriorIterator_HasMore",
+  "Return whether 'iterator' has more elements",
+  [](InteriorIterator const& iterator) -> bool
   {
     return iterator.index < iterator.object->GetInterior()->objects.size();
-  } FunctionAlias(InteriorIterator_HasMore, HasMore);
+  
+  },
+  "iterator");
+static int const InteriorIterator_HasMore_Alias = Function_Alias("InteriorIterator_HasMore", "HasMore");
 }

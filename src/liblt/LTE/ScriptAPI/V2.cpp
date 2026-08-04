@@ -1,4 +1,5 @@
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 #include "LTE/V2.h"
 
 DefineConversion(float_to_V2F, float, V2F) {
@@ -11,271 +12,347 @@ DefineConversion(int_to_V2F, int, V2F) {
 
 TypeAlias(V2, Vec2);
 
-FreeFunction(V2, Vec2,
+static Function const Vec2_Registration = Function_Bind(
+  "Vec2",
   "Create a 2D vector ('x', 'y')",
-  float, x,
-  float, y)
-{
+  [](float const& x, float const& y) -> V2
+  {
   return V2(x, y);
-}
+  },
+  "x", "y");
 
-FreeFunction(float, Vec3_Distance,
+static Function const Vec3_Distance_Registration = Function_Bind(
+  "Vec3_Distance",
   "Return the distance between a 'a' and 'b'",
-  V2, a,
-  V2, b)
-{
+  [](V2 const& a, V2 const& b) -> float
+  {
   return Length(a - b);
-} FunctionAlias(Vec2_Distance, Distance);
+  },
+  "a", "b");
+static int const Vec2_Distance_Alias = Function_Alias("Vec2_Distance", "Distance");
 
-FreeFunction(V2, Vec2_Float,
+static Function const Vec2_Float_Registration = Function_Bind(
+  "Vec2_Float",
   "Create a 2D vector ('f', 'f')",
-  float, f)
-{
+  [](float const& f) -> V2
+  {
   return V2(f, f);
-} FunctionAlias(Vec2_Float, Vec2);
+  },
+  "f");
+static int const Vec2_Float_Alias = Function_Alias("Vec2_Float", "Vec2");
 
-FreeFunction(V2, Vec2_Abs,
+static Function const Vec2_Abs_Registration = Function_Bind(
+  "Vec2_Abs",
   "Return the component-wise absolute value of 'v'",
-  V2, v)
-{
+  [](V2 const& v) -> V2
+  {
   return Abs(v);
-} FunctionAlias(Vec2_Abs, Abs);
+  },
+  "v");
+static int const Vec2_Abs_Alias = Function_Alias("Vec2_Abs", "Abs");
 
-FreeFunction(V2, Vec2_Add,
+static Function const Vec2_Add_Registration = Function_Bind(
+  "Vec2_Add",
   "Return the sum of 'a' and 'b'",
-  V2, a,
-  V2, b)
-{
+  [](V2 const& a, V2 const& b) -> V2
+  {
   return a + b;
-} FunctionAlias(Vec2_Add, +);
+  },
+  "a", "b");
+static int const Vec2_Add_Alias = Function_Alias("Vec2_Add", "+");
 
-VoidFreeFunction(Vec2_AddInPlace,
+static Function const Vec2_AddInPlace_Registration = Function_Bind(
+  "Vec2_AddInPlace",
   "Add 'b' to 'a'",
-  V2, a,
-  V2, b)
-{
+  [](V2 const& a, V2 const& b)
+  {
   Mutable(a) += b;
-} FunctionAlias(Vec2_AddInPlace, +=);
+  },
+  "a", "b");
+static int const Vec2_AddInPlace_Alias = Function_Alias("Vec2_AddInPlace", "+=");
 
-FreeFunction(V2, Vec2_Clamp,
+static Function const Vec2_Clamp_Registration = Function_Bind(
+  "Vec2_Clamp",
   "Return the component-wise clamp of 'v' and ['lower', 'upper']",
-  V2, v,
-  V2, lower,
-  V2, upper)
-{
+  [](V2 const& v, V2 const& lower, V2 const& upper) -> V2
+  {
   return Clamp(v, lower, upper);
-} FunctionAlias(Vec2_Clamp, Clamp);
+  },
+  "v", "lower", "upper");
+static int const Vec2_Clamp_Alias = Function_Alias("Vec2_Clamp", "Clamp");
 
-FreeFunction(float, Vec2_Dot,
+static Function const Vec2_Dot_Registration = Function_Bind(
+  "Vec2_Dot",
   "Return the dot product of 'a' and 'b'",
-  V2, a,
-  V2, b)
-{
+  [](V2 const& a, V2 const& b) -> float
+  {
   return Dot(a, b);
-} FunctionAlias(Vec2_Dot, Dot);
+  },
+  "a", "b");
+static int const Vec2_Dot_Alias = Function_Alias("Vec2_Dot", "Dot");
 
-FreeFunction(V2, Vec2_Floor,
+static Function const Vec2_Floor_Registration = Function_Bind(
+  "Vec2_Floor",
   "Return the component-wise floor of 'v'",
-  V2, v)
-{
+  [](V2 const& v) -> V2
+  {
   return Floor(v);
-} FunctionAlias(Vec2_Floor, Floor);
+  },
+  "v");
+static int const Vec2_Floor_Alias = Function_Alias("Vec2_Floor", "Floor");
 
-FreeFunction(bool, Vec2_Greater,
+static Function const Vec2_Greater_Registration = Function_Bind(
+  "Vec2_Greater",
   "Return whether each component of 'a' is greater than the component of 'b'",
-  V2, a,
-  V2, b)
-{
+  [](V2 const& a, V2 const& b) -> bool
+  {
   return a > b;
-} FunctionAlias(Vec2_Greater, >);
+  },
+  "a", "b");
+static int const Vec2_Greater_Alias = Function_Alias("Vec2_Greater", ">");
 
-FreeFunction(bool, Vec2_GreaterEqual,
+static Function const Vec2_GreaterEqual_Registration = Function_Bind(
+  "Vec2_GreaterEqual",
   "Return whether each component of 'a' is greater or equal to the component of 'b'",
-  V2, a,
-  V2, b)
-{
+  [](V2 const& a, V2 const& b) -> bool
+  {
   return a >= b;
-} FunctionAlias(Vec2_GreaterEqual, >=);
+  },
+  "a", "b");
+static int const Vec2_GreaterEqual_Alias = Function_Alias("Vec2_GreaterEqual", ">=");
 
-FreeFunction(float, Vec2_Length,
+static Function const Vec2_Length_Registration = Function_Bind(
+  "Vec2_Length",
   "Return the length of 'v'",
-  V2, v)
-{
+  [](V2 const& v) -> float
+  {
   return Length(v);
-} FunctionAlias(Vec2_Length, Length);
+  },
+  "v");
+static int const Vec2_Length_Alias = Function_Alias("Vec2_Length", "Length");
 
-FreeFunction(bool, Vec2_Less,
+static Function const Vec2_Less_Registration = Function_Bind(
+  "Vec2_Less",
   "Return whether each component of 'a' is less than the component of 'b'",
-  V2, a,
-  V2, b)
-{
+  [](V2 const& a, V2 const& b) -> bool
+  {
   return a < b;
-} FunctionAlias(Vec2_Less, <);
+  },
+  "a", "b");
+static int const Vec2_Less_Alias = Function_Alias("Vec2_Less", "<");
 
-FreeFunction(bool, Vec2_LessEqual,
+static Function const Vec2_LessEqual_Registration = Function_Bind(
+  "Vec2_LessEqual",
   "Return whether each component of 'a' is less or equal to the component of 'b'",
-  V2, a,
-  V2, b)
-{
+  [](V2 const& a, V2 const& b) -> bool
+  {
   return a <= b;
-} FunctionAlias(Vec2_LessEqual, <=);
+  },
+  "a", "b");
+static int const Vec2_LessEqual_Alias = Function_Alias("Vec2_LessEqual", "<=");
 
-FreeFunction(V2, Vec2_Max,
+static Function const Vec2_Max_Registration = Function_Bind(
+  "Vec2_Max",
   "Return the component-wise max of 'a' and 'b'",
-  V2, a,
-  V2, b)
-{
+  [](V2 const& a, V2 const& b) -> V2
+  {
   return Max(a, b);
-} FunctionAlias(Vec2_Max, Max);
+  },
+  "a", "b");
+static int const Vec2_Max_Alias = Function_Alias("Vec2_Max", "Max");
 
-FreeFunction(V2, Vec2_Min,
+static Function const Vec2_Min_Registration = Function_Bind(
+  "Vec2_Min",
   "Return the component-wise min of 'a' and 'b'",
-  V2, a,
-  V2, b)
-{
+  [](V2 const& a, V2 const& b) -> V2
+  {
   return Min(a, b);
-} FunctionAlias(Vec2_Min, Min);
+  },
+  "a", "b");
+static int const Vec2_Min_Alias = Function_Alias("Vec2_Min", "Min");
 
-FreeFunction(float, Vec2_MinComponent,
+static Function const Vec2_MinComponent_Registration = Function_Bind(
+  "Vec2_MinComponent",
   "Return the minimum component of 'v'",
-  V2, v)
-{
+  [](V2 const& v) -> float
+  {
   return Min(v.x, v.y);
-} FunctionAlias(Vec2_MinComponent, MinComponent);
+  },
+  "v");
+static int const Vec2_MinComponent_Alias = Function_Alias("Vec2_MinComponent", "MinComponent");
 
 namespace Priv1 {
-  FreeFunction(V2, Vec2_Divide,
-    "Return the 'vec' divided by 'f'",
-    V2, v,
-    float, f)
+  static Function const Vec2_Divide_Registration = Function_Bind(
+  "Vec2_Divide",
+  "Return the 'vec' divided by 'f'",
+  [](V2 const& v, float const& f) -> V2
   {
     return v / f;
-  }
+  
+  },
+  "v", "f");
 
-  VoidFreeFunction(Vec2_DivideInPlace,
-    "Divide 'v' by 'f'",
-    V2, v,
-    float, f)
+  static Function const Vec2_DivideInPlace_Registration = Function_Bind(
+  "Vec2_DivideInPlace",
+  "Divide 'v' by 'f'",
+  [](V2 const& v, float const& f)
   {
     Mutable(v) /= f;
-  }
+  
+  },
+  "v", "f");
 
-  FreeFunction(V2, Vec2_Mix,
-    "Return the component-wise linear interpolation of 'a' and 'b' with interpolant 't'",
-    V2, a,
-    V2, b,
-    float, t)
+  static Function const Vec2_Mix_Registration = Function_Bind(
+  "Vec2_Mix",
+  "Return the component-wise linear interpolation of 'a' and 'b' with interpolant 't'",
+  [](V2 const& a, V2 const& b, float const& t) -> V2
   {
     return Mix(a, b, t);
-  }
+  
+  },
+  "a", "b", "t");
 
-  FreeFunction(V2, Vec2_Mult,
-    "Return the product of 'f' and 'v'",
-    float, f,
-    V2, v)
+  static Function const Vec2_Mult_Registration = Function_Bind(
+  "Vec2_Mult",
+  "Return the product of 'f' and 'v'",
+  [](float const& f, V2 const& v) -> V2
   {
     return f * v;
-  }
+  
+  },
+  "f", "v");
 
-  VoidFreeFunction(Vec2_MultInPlace,
-    "Multiply 'v' by 'f'",
-    V2, v,
-    float, f)
+  static Function const Vec2_MultInPlace_Registration = Function_Bind(
+  "Vec2_MultInPlace",
+  "Multiply 'v' by 'f'",
+  [](V2 const& v, float const& f)
   {
     Mutable(v) *= f;
-  }
+  
+  },
+  "v", "f");
 }
 
 namespace Priv2 {
-  FreeFunction(V2, Vec2_Divide,
-    "Return the dividend of 'a' and 'b'",
-    V2, a,
-    V2, b)
+  static Function const Vec2_Divide_Registration = Function_Bind(
+  "Vec2_Divide",
+  "Return the dividend of 'a' and 'b'",
+  [](V2 const& a, V2 const& b) -> V2
   {
     return a / b;
-  }
+  
+  },
+  "a", "b");
 
-  VoidFreeFunction(Vec2_DivideInPlace,
-    "Divide 'a' by 'b'",
-    V2, a,
-    V2, b)
+  static Function const Vec2_DivideInPlace_Registration = Function_Bind(
+  "Vec2_DivideInPlace",
+  "Divide 'a' by 'b'",
+  [](V2 const& a, V2 const& b)
   {
     Mutable(a) /= b;
-  }
+  
+  },
+  "a", "b");
 
-  FreeFunction(V2, Vec2_Mix,
-    "Return the component-wise linear interpolation of 'a' and 'b' with interpolant 'v'",
-    V2, a,
-    V2, b,
-    V2, v)
+  static Function const Vec2_Mix_Registration = Function_Bind(
+  "Vec2_Mix",
+  "Return the component-wise linear interpolation of 'a' and 'b' with interpolant 'v'",
+  [](V2 const& a, V2 const& b, V2 const& v) -> V2
   {
     return Mix(a, b, v);
-  } 
+  
+  },
+  "a", "b", "v"); 
 
-  FreeFunction(V2, Vec2_Mult,
-    "Return the product of 'a' and 'b'",
-    V2, a,
-    V2, b)
+  static Function const Vec2_Mult_Registration = Function_Bind(
+  "Vec2_Mult",
+  "Return the product of 'a' and 'b'",
+  [](V2 const& a, V2 const& b) -> V2
   {
     return a * b;
-  }
+  
+  },
+  "a", "b");
 
-  VoidFreeFunction(Vec2_MultInPlace,
-    "Multiply 'a' by 'b'",
-    V2, a,
-    V2, b)
+  static Function const Vec2_MultInPlace_Registration = Function_Bind(
+  "Vec2_MultInPlace",
+  "Multiply 'a' by 'b'",
+  [](V2 const& a, V2 const& b)
   {
     Mutable(a) *= b;
-  }
+  
+  },
+  "a", "b");
 }
 
-FunctionAlias(Vec2_Divide, /);
-FunctionAlias(Vec2_DivideInPlace, /=);
-FunctionAlias(Vec2_Mix, Mix);
-FunctionAlias(Vec2_Mult, *);
-FunctionAlias(Vec2_MultInPlace, *=);
 
-FreeFunction(V2, Vec2_Normalize,
+static int const Vec2_Divide_Alias = Function_Alias("Vec2_Divide", "/");
+
+static int const Vec2_DivideInPlace_Alias = Function_Alias("Vec2_DivideInPlace", "/=");
+
+static int const Vec2_Mix_Alias = Function_Alias("Vec2_Mix", "Mix");
+
+static int const Vec2_Mult_Alias = Function_Alias("Vec2_Mult", "*");
+
+static int const Vec2_MultInPlace_Alias = Function_Alias("Vec2_MultInPlace", "*=");
+
+static Function const Vec2_Normalize_Registration = Function_Bind(
+  "Vec2_Normalize",
   "Return a unit-length vector pointing in the same direction as 'vec'",
-  V2, v)
-{
+  [](V2 const& v) -> V2
+  {
   return Normalize(v);
-} FunctionAlias(Vec2_Normalize, Normalize);
+  },
+  "v");
+static int const Vec2_Normalize_Alias = Function_Alias("Vec2_Normalize", "Normalize");
 
-FreeFunction(V2, Vec2_Round,
+static Function const Vec2_Round_Registration = Function_Bind(
+  "Vec2_Round",
   "Return the component-wise round of 'v'",
-  V2, v)
-{
+  [](V2 const& v) -> V2
+  {
   return Round(v);
-} FunctionAlias(Vec2_Round, Round);
+  },
+  "v");
+static int const Vec2_Round_Alias = Function_Alias("Vec2_Round", "Round");
 
-FreeFunction(V2, Vec2_Polar,
+static Function const Vec2_Polar_Registration = Function_Bind(
+  "Vec2_Polar",
   "Return the cartesian coordinates of the unit vector with 'angle'",
-  float, angle)
-{
+  [](float const& angle) -> V2
+  {
   return V2(Cos(angle), Sin(angle));
-} FunctionAlias(Vec2_Polar, Polar);
+  },
+  "angle");
+static int const Vec2_Polar_Alias = Function_Alias("Vec2_Polar", "Polar");
 
-FreeFunction(V2, Vec2_Sign,
+static Function const Vec2_Sign_Registration = Function_Bind(
+  "Vec2_Sign",
   "Return the component-wise sign of 'v'",
-  V2, v)
-{
+  [](V2 const& v) -> V2
+  {
   return Sign(v);
-} FunctionAlias(Vec2_Sign, Sign);
+  },
+  "v");
+static int const Vec2_Sign_Alias = Function_Alias("Vec2_Sign", "Sign");
 
-FreeFunction(V2, Vec2_Subtract,
+static Function const Vec2_Subtract_Registration = Function_Bind(
+  "Vec2_Subtract",
   "Return the difference of 'a' and 'b'",
-  V2, a,
-  V2, b)
-{
+  [](V2 const& a, V2 const& b) -> V2
+  {
   return a - b;
-} FunctionAlias(Vec2_Subtract, -);
+  },
+  "a", "b");
+static int const Vec2_Subtract_Alias = Function_Alias("Vec2_Subtract", "-");
 
-VoidFreeFunction(Vec2_SubtractInPlace,
+static Function const Vec2_SubtractInPlace_Registration = Function_Bind(
+  "Vec2_SubtractInPlace",
   "Subtract 'b' from 'a'",
-  V2, a,
-  V2, b)
-{
+  [](V2 const& a, V2 const& b)
+  {
   Mutable(a) -= b;
-} FunctionAlias(Vec2_SubtractInPlace, -=);
+  },
+  "a", "b");
+static int const Vec2_SubtractInPlace_Alias = Function_Alias("Vec2_SubtractInPlace", "-=");
 

@@ -25,10 +25,10 @@
 #     Vec3_Distance with V2 params); alias of a never-registered name. See
 #     ltsl-binding-bridge-replacement.md SS6.8 / SS11 (default: keep both,
 #     whitelist +1 in gate 3; deferred).
-#   src/liblt/LTE/ScriptAPI/V4.cpp  'Vec4_Dot'  - copy-paste bug (registers
-#     Vec4f_Dot, alias references Vec4_Dot, so the V4F 'Dot' overload is
-#     missing today). Found by this checker; fixed during migration (adds one
-#     'Dot' entry to the API DB, whitelisted in gate 3).
+#   (V4.cpp 'Vec4_Dot' was a known exception pre-migration: it registered
+#     Vec4f_Dot but aliased the never-registered Vec4_Dot, so the V4F 'Dot'
+#     overload was missing. FIXED during migration by pointing the alias at
+#     Vec4f_Dot - adds one 'Dot' entry to the API DB, whitelisted in gate 3.)
 #
 # Usage:
 #   python3 script/check_binding_alias_order.py $(git ls-files 'src/liblt/**/*.cpp' 'src/liblt/**/*.h')
@@ -37,8 +37,10 @@ import re, sys
 
 ALIAS_NEW = re.compile(r'Function_Alias\(\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\)')
 ALIAS_OLD = re.compile(r'\bFunctionAlias\(([A-Za-z_]\w*)\s*,')
+BIND_OPEN = re.compile(r'Function_(?:Bind|Bind_Member|Create)\(')
+BIND_NAME = re.compile(r'Function_(?:Bind|Bind_Member|Create)\(\s*"([^"]+)"')
 NAMES = [
-  re.compile(r'Function_(?:Bind|Bind_Member|Create)\(\s*"([^"]+)"'),
+  BIND_NAME,
   re.compile(r'Function_Alias\(\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\)'),
   re.compile(r'\bFunctionAlias\(([A-Za-z_]\w*)\s*,\s*([A-Za-z_]\w*)'),
   re.compile(r'\bDefineFunction\(([A-Za-z_]\w*)'),
@@ -47,9 +49,10 @@ NAMES = [
   re.compile(r'\bFreeFunction(?:NoParams)?\([^,]+,\s*([A-Za-z_]\w*)'),
 ]
 
+NAME_STR = re.compile(r'"([A-Za-z_]\w*)"')
+
 KNOWN_EXCEPTIONS = {
   ('src/liblt/LTE/ScriptAPI/V2.cpp', 'Vec2_Distance'),
-  ('src/liblt/LTE/ScriptAPI/V4.cpp', 'Vec4_Dot'),
 }
 
 def names_on(line):
@@ -64,9 +67,18 @@ def main(paths):
   for path in paths:
     lines = open(path, encoding='utf-8').read().splitlines()
     seen = set()
+    pending_bind = False
     for i, line in enumerate(lines):
       if line.lstrip().startswith('#define'):
         continue
+      # Multiline Function_Bind( / Function_Alias( whose name is on the next
+      # line (the migration emits `Function_Bind(` then the name on its own
+      # line). Capture the first string literal of the call as the name.
+      if pending_bind:
+        m2 = NAME_STR.search(line)
+        if m2:
+          seen.add(m2.group(1))
+          pending_bind = False
       m = ALIAS_NEW.search(line) or ALIAS_OLD.search(line)
       if m:
         checked += 1
@@ -75,6 +87,8 @@ def main(paths):
             known.append((path, i + 1, m.group(1), line.strip()))
           else:
             bad.append((path, i + 1, m.group(1), line.strip()))
+      if BIND_OPEN.search(line) and not BIND_NAME.search(line):
+        pending_bind = True
       seen |= names_on(line)
   for p, ln, src, line in known:
     print(f"KNOWN: {p}:{ln}: alias of {src!r} before its source (documented exception): {line}")

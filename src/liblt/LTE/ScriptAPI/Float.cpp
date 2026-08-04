@@ -1,4 +1,5 @@
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 #include "LTE/Math.h"
 
 TypeAlias(float, Float);
@@ -11,281 +12,426 @@ DefineConversion(float_to_int, float, int) {
   dest = (int)src;
 }
 
-FreeFunction(float, Float_Abs,
+static Function const Float_Abs_Registration = Function_Bind(
+  "Float_Abs",
   "Return the absolute value of 't'",
-  float, t)
-{
+  [](float const& t) -> float
+  {
   return Abs(t);
-} FunctionAlias(Float_Abs, Abs);
+  },
+  "t");
+static int const Float_Abs_Alias = Function_Alias("Float_Abs", "Abs");
 
-FreeFunction(float, Float_Add,
+static Function const Float_Add_Registration = Function_Bind(
+  "Float_Add",
   "Return the sum of 'a' and 'b'",
-  float, a,
-  float, b)
-{
+  [](float const& a, float const& b) -> float
+  {
   return a + b;
-} FunctionAlias(Float_Add, +);
+  },
+  "a", "b");
+static int const Float_Add_Alias = Function_Alias("Float_Add", "+");
 
-VoidFreeFunction(Float_AddInPlace,
+static Function const Float_AddInPlace_Registration = Function_Bind(
+  "Float_AddInPlace",
   "Add 'b' to 'a'",
-  float, a,
-  float, b)
-{
+  [](float const& a, float const& b)
+  {
   (float&)a += b;
-} FunctionAlias(Float_AddInPlace, +=);
+  },
+  "a", "b");
+static int const Float_AddInPlace_Alias = Function_Alias("Float_AddInPlace", "+=");
 
-FreeFunction(float, Float_Atan,
+static Function const Float_Atan_Registration = Function_Bind(
+  "Float_Atan",
   "Return the quadrant-correct atan of 'y' / 'x'",
-  float, y,
-  float, x)
-{
+  [](float const& y, float const& x) -> float
+  {
   return Atan(y, x);
-} FunctionAlias(Float_Atan, Atan);
+  },
+  "y", "x");
+static int const Float_Atan_Alias = Function_Alias("Float_Atan", "Atan");
 
-FreeFunction(float, Float_Ceil,
+static Function const Float_Ceil_Registration = Function_Bind(
+  "Float_Ceil",
   "Return 'f' rounded up to the nearest integer",
-  float, f)
-{
+  [](float const& f) -> float
+  {
   return Ceil(f);
-} FunctionAlias(Float_Ceil, Ceil);
+  },
+  "f");
+static int const Float_Ceil_Alias = Function_Alias("Float_Ceil", "Ceil");
 
-FreeFunction(float, Float_Clamp,
+static Function const Float_Clamp_Registration = Function_Bind(
+  "Float_Clamp",
   "Return 'f' clamped to the range [lower, upper]",
-  float, f,
-  float, lower,
-  float, upper)
-{
+  [](float const& f, float const& lower, float const& upper) -> float
+  {
   return Clamp(f, lower, upper);
-} FunctionAlias(Float_Clamp, Clamp);
+  },
+  "f", "lower", "upper");
+static int const Float_Clamp_Alias = Function_Alias("Float_Clamp", "Clamp");
 
-FreeFunction(float, Float_Cos,
+static Function const Float_Cos_Registration = Function_Bind(
+  "Float_Cos",
   "Return the cosine of 'angle' (radians)",
-  float, angle)
-{
+  [](float const& angle) -> float
+  {
   return Cos(angle);
-} FunctionAlias(Float_Cos, Cos);
+  },
+  "angle");
+static int const Float_Cos_Alias = Function_Alias("Float_Cos", "Cos");
 
-FreeFunction(float, Float_Divide,
+static Function const Float_Divide_Registration = Function_Bind(
+  "Float_Divide",
   "Return the dividend of 'a' and 'b'",
-  float, a,
-  float, b)
-{
+  [](float const& a, float const& b) -> float
+  {
   return a / b;
-} FunctionAlias(Float_Divide, /);
+  },
+  "a", "b");
+static int const Float_Divide_Alias = Function_Alias("Float_Divide", "/");
 
-VoidFreeFunction(Float_DivideInPlace,
+static Function const Float_DivideInPlace_Registration = Function_Bind(
+  "Float_DivideInPlace",
   "Divide 'b' by 'a'",
-  float, a,
-  float, b)
-{
+  [](float const& a, float const& b)
+  {
   (float&)a /= b;
-} FunctionAlias(Float_DivideInPlace, /=);
+  },
+  "a", "b");
+static int const Float_DivideInPlace_Alias = Function_Alias("Float_DivideInPlace", "/=");
 
-FreeFunction(float, Float_Exp, "Return the e raised to the 't' power",
-  float, t)
-{
+static Function const Float_Exp_Registration = Function_Bind(
+  "Float_Exp",
+  "Return the e raised to the 't' power",
+  [](float const& t) -> float
+  {
   return Exp(t);
-} FunctionAlias(Float_Exp, Exp);
+  },
+  "t");
+static int const Float_Exp_Alias = Function_Alias("Float_Exp", "Exp");
 
-FreeFunction(float, Float_ExpDecay,
+static Function const Float_ExpDecay_Registration = Function_Bind(
+  "Float_ExpDecay",
   "Return the e raised to the '-t / rate' power",
-  float, t,
-  float, rate)
-{
+  [](float const& t, float const& rate) -> float
+  {
   return Exp(-t / rate);
-} FunctionAlias(Float_ExpDecay, ExpDecay);
+  },
+  "t", "rate");
+static int const Float_ExpDecay_Alias = Function_Alias("Float_ExpDecay", "ExpDecay");
 
-FreeFunction(float, Float_Fract, "Return the fractional part of 't'",
-  float, t)
-{
+static Function const Float_Fract_Registration = Function_Bind(
+  "Float_Fract",
+  "Return the fractional part of 't'",
+  [](float const& t) -> float
+  {
   return Fract(t);
-} FunctionAlias(Float_Fract, Fract);
+  },
+  "t");
+static int const Float_Fract_Alias = Function_Alias("Float_Fract", "Fract");
 
-FreeFunction(float, Float_Float, "Construct a float from 'f'", float, f) {
+static Function const Float_Float_Registration = Function_Bind(
+  "Float_Float",
+  "Construct a float from 'f'",
+  [](float const& f) -> float
+  {
   return f;
-} FunctionAlias(Float_Float, Float);
+  },
+  "f");
+static int const Float_Float_Alias = Function_Alias("Float_Float", "Float");
 
-FreeFunction(float, Float_Int, "Convert 'i' into a float", int, i) {
+static Function const Float_Int_Registration = Function_Bind(
+  "Float_Int",
+  "Convert 'i' into a float",
+  [](int const& i) -> float
+  {
   return (float)i;
-} FunctionAlias(Float_Int, Float);
+  },
+  "i");
+static int const Float_Int_Alias = Function_Alias("Float_Int", "Float");
 
-FreeFunction(float, Float_Floor,
+static Function const Float_Floor_Registration = Function_Bind(
+  "Float_Floor",
   "Return 'f' rounded down to the nearest integer",
-  float, f)
-{
+  [](float const& f) -> float
+  {
   return Floor(f);
-} FunctionAlias(Float_Floor, Floor);
+  },
+  "f");
+static int const Float_Floor_Alias = Function_Alias("Float_Floor", "Floor");
 
-FreeFunction(bool, Float_Greater, "Return a > b", float, a, float, b) {
+static Function const Float_Greater_Registration = Function_Bind(
+  "Float_Greater",
+  "Return a > b",
+  [](float const& a, float const& b) -> bool
+  {
   return a > b;
-} FunctionAlias(Float_Greater, >);
+  },
+  "a", "b");
+static int const Float_Greater_Alias = Function_Alias("Float_Greater", ">");
 
-FreeFunction(bool, Float_GreaterEqual, "Return a >= b", float, a, float, b) {
+static Function const Float_GreaterEqual_Registration = Function_Bind(
+  "Float_GreaterEqual",
+  "Return a >= b",
+  [](float const& a, float const& b) -> bool
+  {
   return a >= b;
-} FunctionAlias(Float_GreaterEqual, >=);
+  },
+  "a", "b");
+static int const Float_GreaterEqual_Alias = Function_Alias("Float_GreaterEqual", ">=");
 
-FreeFunction(bool, Float_Less, "Return a < b", float, a, float, b) {
+static Function const Float_Less_Registration = Function_Bind(
+  "Float_Less",
+  "Return a < b",
+  [](float const& a, float const& b) -> bool
+  {
   return a < b;
-} FunctionAlias(Float_Less, <);
+  },
+  "a", "b");
+static int const Float_Less_Alias = Function_Alias("Float_Less", "<");
 
-FreeFunction(bool, Float_LessEqual, "Return a <= b", float, a, float, b) {
+static Function const Float_LessEqual_Registration = Function_Bind(
+  "Float_LessEqual",
+  "Return a <= b",
+  [](float const& a, float const& b) -> bool
+  {
   return a <= b;
-} FunctionAlias(Float_LessEqual, <=);
+  },
+  "a", "b");
+static int const Float_LessEqual_Alias = Function_Alias("Float_LessEqual", "<=");
 
-FreeFunction(float, Float_Max, "Return the maximum of 'a' and 'b'",
-  float, a,
-  float, b)
-{
+static Function const Float_Max_Registration = Function_Bind(
+  "Float_Max",
+  "Return the maximum of 'a' and 'b'",
+  [](float const& a, float const& b) -> float
+  {
   return Max(a, b);
-} FunctionAlias(Float_Max, Max);
+  },
+  "a", "b");
+static int const Float_Max_Alias = Function_Alias("Float_Max", "Max");
 
-FreeFunction(float, Float_Mix,
+static Function const Float_Mix_Registration = Function_Bind(
+  "Float_Mix",
   "Return a linear interpolation 'a' and 'b' with interpolant 't'",
-  float, a,
-  float, b,
-  float, t)
-{
+  [](float const& a, float const& b, float const& t) -> float
+  {
   return Mix(a, b, t);
-} FunctionAlias(Float_Mix, Mix);
+  },
+  "a", "b", "t");
+static int const Float_Mix_Alias = Function_Alias("Float_Mix", "Mix");
 
-FreeFunction(float, Float_Log, "Return the logarithm of 'f'", float, f) {
+static Function const Float_Log_Registration = Function_Bind(
+  "Float_Log",
+  "Return the logarithm of 'f'",
+  [](float const& f) -> float
+  {
   return Log(f);
-} FunctionAlias(Float_Log, Log);
+  },
+  "f");
+static int const Float_Log_Alias = Function_Alias("Float_Log", "Log");
 
-FreeFunction(float, Float_Min,
+static Function const Float_Min_Registration = Function_Bind(
+  "Float_Min",
   "Return the minimum of 'a' and 'b'",
-  float, a,
-  float, b)
-{
+  [](float const& a, float const& b) -> float
+  {
   return Min(a, b);
-} FunctionAlias(Float_Min, Min);
+  },
+  "a", "b");
+static int const Float_Min_Alias = Function_Alias("Float_Min", "Min");
 
-FreeFunction(float, Float_Mod, "Return the remaind of 'a' / 'b'",
-  float, a,
-  float, b)
-{
+static Function const Float_Mod_Registration = Function_Bind(
+  "Float_Mod",
+  "Return the remaind of 'a' / 'b'",
+  [](float const& a, float const& b) -> float
+  {
   return Mod(a, b);
-} FunctionAlias(Float_Mod, Mod);
+  },
+  "a", "b");
+static int const Float_Mod_Alias = Function_Alias("Float_Mod", "Mod");
 
-FreeFunction(float, Float_Mult,
+static Function const Float_Mult_Registration = Function_Bind(
+  "Float_Mult",
   "Return the product of 'a' and 'b'",
-  float, a,
-  float, b)
-{
+  [](float const& a, float const& b) -> float
+  {
   return a * b;
-} FunctionAlias(Float_Mult, *);
+  },
+  "a", "b");
+static int const Float_Mult_Alias = Function_Alias("Float_Mult", "*");
 
-VoidFreeFunction(Float_MultInPlace,
+static Function const Float_MultInPlace_Registration = Function_Bind(
+  "Float_MultInPlace",
   "Multiply 'a' by 'b'",
-  float, a,
-  float, b)
-{
+  [](float const& a, float const& b)
+  {
   (float&)a *= b;
-} FunctionAlias(Float_MultInPlace, *=);
+  },
+  "a", "b");
+static int const Float_MultInPlace_Alias = Function_Alias("Float_MultInPlace", "*=");
 
-FreeFunctionNoParams(float, Float_2Pi, "Return the value of 2 * pi") {
+static Function const Float_2Pi_Registration = Function_Bind(
+  "Float_2Pi",
+  "Return the value of 2 * pi",
+  []() -> float
+  {
   return kTau;
-} FunctionAlias(Float_2Pi, 2Pi);
+  });
+static int const Float_2Pi_Alias = Function_Alias("Float_2Pi", "2Pi");
 
-FreeFunctionNoParams(float, Float_Pi, "Return the value of pi") {
+static Function const Float_Pi_Registration = Function_Bind(
+  "Float_Pi",
+  "Return the value of pi",
+  []() -> float
+  {
   return kPi;
-} FunctionAlias(Float_Pi, Pi);
+  });
+static int const Float_Pi_Alias = Function_Alias("Float_Pi", "Pi");
 
-FreeFunctionNoParams(float, Float_Pi2, "Return the value of pi / 2") {
+static Function const Float_Pi2_Registration = Function_Bind(
+  "Float_Pi2",
+  "Return the value of pi / 2",
+  []() -> float
+  {
   return kPi2;
-} FunctionAlias(Float_Pi2, Pi2);
+  });
+static int const Float_Pi2_Alias = Function_Alias("Float_Pi2", "Pi2");
 
-FreeFunctionNoParams(float, Float_Pi4, "Return the value of pi / 4") {
+static Function const Float_Pi4_Registration = Function_Bind(
+  "Float_Pi4",
+  "Return the value of pi / 4",
+  []() -> float
+  {
   return kPi4;
-} FunctionAlias(Float_Pi4, Pi4);
+  });
+static int const Float_Pi4_Alias = Function_Alias("Float_Pi4", "Pi4");
 
-FreeFunctionNoParams(float, Float_Pi6, "Return the value of pi / 6") {
+static Function const Float_Pi6_Registration = Function_Bind(
+  "Float_Pi6",
+  "Return the value of pi / 6",
+  []() -> float
+  {
   return kPi6;
-} FunctionAlias(Float_Pi6, Pi6);
+  });
+static int const Float_Pi6_Alias = Function_Alias("Float_Pi6", "Pi6");
 
-FreeFunction(float, Float_Pow,
+static Function const Float_Pow_Registration = Function_Bind(
+  "Float_Pow",
   "Return 'a' raised to the 'b'",
-  float, a,
-  float, b)
-{
+  [](float const& a, float const& b) -> float
+  {
   return Pow(a, b);
-} FunctionAlias(Float_Pow, ^);
+  },
+  "a", "b");
+static int const Float_Pow_Alias = Function_Alias("Float_Pow", "^");
 
-FreeFunction(float, Float_Pow2,
+static Function const Float_Pow2_Registration = Function_Bind(
+  "Float_Pow2",
   "Return f to the 2nd power",
-  float, f)
-{
+  [](float const& f) -> float
+  {
   return f * f;
-} FunctionAlias(Float_Pow2, Pow2);
+  },
+  "f");
+static int const Float_Pow2_Alias = Function_Alias("Float_Pow2", "Pow2");
 
-FreeFunction(float, Float_Pow4,
+static Function const Float_Pow4_Registration = Function_Bind(
+  "Float_Pow4",
   "Return f to the 4th power",
-  float, f)
-{
+  [](float const& f) -> float
+  {
   float s = f * f;
   return s * s;
-} FunctionAlias(Float_Pow4, Pow4);
+  },
+  "f");
+static int const Float_Pow4_Alias = Function_Alias("Float_Pow4", "Pow4");
 
-FreeFunctionNoParams(float, Float_Random,
-  "Return a random between 0 (inclusive) and 1 (exclusive)")
-{
+static Function const Float_Random_Registration = Function_Bind(
+  "Float_Random",
+  "Return a random between 0 (inclusive) and 1 (exclusive)",
+  []() -> float
+  {
   return Rand();
-}
+  });
 
-FreeFunction(float, Float_Round,
+static Function const Float_Round_Registration = Function_Bind(
+  "Float_Round",
   "Return 'f' rounded to the nearest integer",
-  float, f)
-{
+  [](float const& f) -> float
+  {
   return Round(f);
-} FunctionAlias(Float_Round, Round);
+  },
+  "f");
+static int const Float_Round_Alias = Function_Alias("Float_Round", "Round");
 
-FreeFunction(float, Float_Saturate,
+static Function const Float_Saturate_Registration = Function_Bind(
+  "Float_Saturate",
   "Return 'f' clamped to the range [0, 1]",
-  float, f)
-{
+  [](float const& f) -> float
+  {
   return Saturate(f);
-} FunctionAlias(Float_Saturate, Saturate);
+  },
+  "f");
+static int const Float_Saturate_Alias = Function_Alias("Float_Saturate", "Saturate");
 
-FreeFunction(float, Float_Sign,
+static Function const Float_Sign_Registration = Function_Bind(
+  "Float_Sign",
   "Return the sign (-1, 0, or +1) of 'f'",
-  float, f)
-{
+  [](float const& f) -> float
+  {
   return Sign(f);
-} FunctionAlias(Float_Sign, Sign);
+  },
+  "f");
+static int const Float_Sign_Alias = Function_Alias("Float_Sign", "Sign");
 
-FreeFunction(float, Float_Sin,
+static Function const Float_Sin_Registration = Function_Bind(
+  "Float_Sin",
   "Return the sine of 'angle' (radians)",
-  float, angle)
-{
+  [](float const& angle) -> float
+  {
   return Sin(angle);
-} FunctionAlias(Float_Sin, Sin);
+  },
+  "angle");
+static int const Float_Sin_Alias = Function_Alias("Float_Sin", "Sin");
 
-FreeFunction(float, Float_Sqrt,
+static Function const Float_Sqrt_Registration = Function_Bind(
+  "Float_Sqrt",
   "Return the square root of 'f'",
-  float, f)
-{
+  [](float const& f) -> float
+  {
   return Sqrt(f);
-} FunctionAlias(Float_Sqrt, Sqrt);
+  },
+  "f");
+static int const Float_Sqrt_Alias = Function_Alias("Float_Sqrt", "Sqrt");
 
-FreeFunction(float, Float_Subtract,
+static Function const Float_Subtract_Registration = Function_Bind(
+  "Float_Subtract",
   "Return the difference of 'a' and 'b'",
-  float, a,
-  float, b)
-{
+  [](float const& a, float const& b) -> float
+  {
   return a - b;
-} FunctionAlias(Float_Subtract, -);
+  },
+  "a", "b");
+static int const Float_Subtract_Alias = Function_Alias("Float_Subtract", "-");
 
-VoidFreeFunction(Float_SubtractInPlace,
+static Function const Float_SubtractInPlace_Registration = Function_Bind(
+  "Float_SubtractInPlace",
   "Subtract 'b' from 'a'",
-  float, a,
-  float, b)
-{
+  [](float const& a, float const& b)
+  {
   (float&)a -= b;
-} FunctionAlias(Float_SubtractInPlace, -=);
+  },
+  "a", "b");
+static int const Float_SubtractInPlace_Alias = Function_Alias("Float_SubtractInPlace", "-=");
 
-FreeFunction(float, Float_Tan,
+static Function const Float_Tan_Registration = Function_Bind(
+  "Float_Tan",
   "Return the tangent of 'angle' (radians)",
-  float, angle)
-{
+  [](float const& angle) -> float
+  {
   return Tan(angle);
-} FunctionAlias(Float_Tan, Tan);
+  },
+  "angle");
+static int const Float_Tan_Alias = Function_Alias("Float_Tan", "Tan");

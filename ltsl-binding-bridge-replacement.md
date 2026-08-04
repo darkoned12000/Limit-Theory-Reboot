@@ -946,12 +946,16 @@ ArgBind structs live in `UI/Glyphs.h` and `Game/{Items,Events,Tasks,Renderables,
    diff <(python3 -m json.tool build/api-baseline.json) <(python3 -m json.tool build/api-after.json)
    ```
    The DB must be **byte-identical** except where a migration intentionally
-   changes it — currently the single expected diff is `Vec3_Distance` gaining a
-   second overload entry (§6.8). (Save the baseline NOW, before any migration —
-   regenerate from the **current working tree**: the committed
-   `api-database.json` is stale, 1843/444 vs 1849/445 fresh; §6.8.) The durable
-   copy lives in `build/api-baseline.json` (gitignored, survives /tmp cleanup;
-   also mirrored to `/tmp/api-baseline.json`).
+   changes it — currently the expected diffs are all in the gate-3 whitelist
+   (§11): `Vec3_Distance` gaining a second overload entry (the previously
+   weak-merged V3 overload; appears twice — once under its own name, once as
+   the `Distance` alias copy) and the `Dot(Vec4f)` entry restored by the
+   `Vec4_Dot` fix. Actual Step-3 result: **+3 lines, 0 removed** (verified).
+   (Save the baseline NOW, before any migration — regenerate from the
+   **current working tree**: the committed `api-database.json` is stale,
+   1843/444 vs 1849/445 fresh; §6.8.) The durable copy lives in
+   `build/api-baseline.json` (gitignored, survives /tmp cleanup; also mirrored
+   to `/tmp/api-baseline.json`).
 4. **LSP regression:** `node script/ltsl-lsp/test-rpc.js` and
    `node script/ltsl-lsp/out/smoke.js $(find resource/script -name '*.lts' | sort)`
    must stay at exactly **6 diagnostics** (see AGENTS.md §6.2).
@@ -1151,6 +1155,28 @@ commit a red build.
   entries (both overloads live) — the one intentional API-DB change.
 - `Common.h:352` puts `using namespace LTE;` at global scope — call sites
   (global scope) resolve `String`/`Function`/`Object` unqualified.
+- **`#` is not a comment in the engine's LTSL lexer** — but it only bites some
+  files. `war`/`map`/`rails` (no `#`) and `ltheory-main` (has a `#` header)
+  all compiled and ran clean, while `threads.lts` (has a `#` header) failed
+  with `unknown reference '#'` / `no native function named '#'` until its
+  header was removed. The tokenizer treats `#` as a token (`Grammar.cpp:150`
+  `#` handling is grammar-rule tags, not script comments); the ZED/extension
+  `#`-comment rule is editor syntax only. So the trigger is not simply
+  "a `#` line exists" — likely a specific token/context in the failing file.
+  **Deferred — user: "ignore the '#' for now".** Open question: teach the
+  engine lexer to strip `#` line comments (small C++ change).
+- **`script/migrate_freefunction.py`** (untracked tool, Step 3) — mechanical
+  transformer for the four FreeFunction-family macros → multiline
+  `static Function const X_Registration = Function_Bind("X", "desc", [](…)…, "p", …);`
+  + `static int const X_Alias = Function_Alias("X", "alias");`, plus
+  `ensure_include` for `#include "LTE/FunctionBind.h"`. Not idempotent-safe to
+  re-run (skips files with no macros). Validated against hand-migrated
+  `Bool.cpp`/`Timer.cpp`.
+- **`script/check_binding_alias_order.py`** (Step 3 update) — now understands the
+  migration's multiline `Function_Bind(\n "Name",` layout (name captured from the
+  line following the call-open). Current state: `OK: 509 alias sites follow
+  their source (1 known exception)` — the lone exception is the deferred
+  `V2.cpp 'Vec2_Distance'` copy-paste bug (§11).
 
 ---
 
@@ -1180,10 +1206,10 @@ commit a red build.
   registers `FreeFunction(float, Vec4f_Dot, ...)` but aliases
   `FunctionAlias(Vec4_Dot, Dot)` — `Vec4_Dot` is never registered, so the V4F
   `Dot` overload is missing today (the `Dot` bucket has 4 valid entries: Vec2,
-  Vec3f, Vec3d, Vec4d). Fix during migration: change the alias source to
-  `Vec4f_Dot`. This adds one `Dot` entry to the API DB — whitelist in the
-  gate-3 diff. Default: fix in the vector-cleanup chunk alongside the
-  `Vec3_Distance` handling.
+  Vec3f, Vec3d, Vec4d). **FIXED (Step 3, vector chunk):** alias source changed
+  to `Vec4f_Dot` (V4.cpp, `Vec4f_Dot_Alias`). This adds one `Dot` entry to the
+  API DB — whitelisted in the gate-3 diff. Removed from the checker's
+  `KNOWN_EXCEPTIONS`.
 - **Commit discipline during review gates:** the user may run each revision
   past another AI. Keep the doc's design-review sections (§4, §8 rows, §6.8)
   as a running log so reviewer findings are never re-derived.
@@ -1222,12 +1248,38 @@ commit a red build.
       `Generic.h:10` — see §10 facts log). Gate: build, 317 checks / 0
       failures, API dump byte-identical, alias-order OK, LSP smoke 6, all app
       runs OK (user-verified).
-- [ ] Step 3 — LTE FreeFunction family.
-- [ ] Step 4 — Component subsystem.
-- [ ] Step 5 — Game subsystem (incl. ArgBind).
-- [ ] Step 6 — UI subsystem (incl. Glyphs).
-- [ ] Step 7 — Module subsystem.
+- [x] **Step 3 — LTE FreeFunction family (+ the FF/VFF/NoP families across ALL
+      subsystems).** Bulk-migrated every `FreeFunction`/`VoidFreeFunction`/
+      `FreeFunctionNoParams`/`VoidFreeFunctionNoParams` site outside
+      `Function_Generated.h` (~61 `.cpp` files: LTE, Component, Game, UI,
+      Module) via `script/migrate_freefunction.py` (tool, §10 below), plus
+      hand-rewrote the 6 token-paste generator sites (ObjectComponents,
+      Item, Object, Widget, Keyboard, ShaderInstance block). Compile fixes:
+      `#include "LTE/FunctionBind.h"` in 5 files, `Motion.cpp`
+      `Position hitPoint = {};`. Gate: build 100%, 317 checks / 0 failures,
+      API-DB diff = **3 added / 0 removed** (the sanctioned whitelist:
+      `Vec3_Distance(Vec3f)` under its own name + its `Distance` alias copy,
+      and the `Dot(Vec4f)` restored by the `Vec4_Dot` fix), alias-order
+      **OK: 509 sites / 1 known exception** (checker updated for the migration's
+      multiline `Function_Bind(\n "Name",` format; `Vec4_Dot` exception
+      removed), LSP smoke 6, app runs `war`/`map`/`rails`/`threads` clean
+      (      exit 0). `threads.lts` comment header removed (engine does not lex `#`
+      comments; see note in §10). The `#`-header apps (`ltheory-main`, `ui`,
+      `market`, `hud`, …) were originally assumed blocked by the same `#` lexer
+      quirk — but **`ltheory-main` ran clean for the user (verified)** despite
+      its `#` header, so the `#` compile error seen in `threads.lts` was
+      app-specific, not header-caused. `threads.lts` runs after header removal.
+      Remaining `#`-header apps: not yet re-verified (see note in §10).
+- [x] Step 4 — Component subsystem **FF/VFF family done** (same bulk run).
+      Component's 2 `DefineFunction` sites (Zoned.cpp) are part of the
+      DefineFunction family migration, still pending.
+- [x] Step 7 — Module subsystem **FF/VFF family done** (same bulk run).
+- [x] Step 9 — ObjectComponents.cpp X-macro body rewritten to the new API
+      (kept the `#define X(x) … COMPONENT_X` list skeleton).
+- [ ] Step 5 — Game subsystem **FF/VFF done**; DefineFunction/ArgBind
+      families pending.
+- [ ] Step 6 — UI subsystem **FF/VFF done**; DefineFunction/ArgBind families
+      (incl. Glyphs) pending.
 - [ ] Step 8 — DefineConversion.
-- [ ] Step 9 — ObjectComponents.cpp.
 - [ ] Step 10 — delete generator + old headers; update AGENTS.md + this doc.
 - [ ] Full verification: build, tests, API-DB diff, LSP smoke (6), 8 app runs.

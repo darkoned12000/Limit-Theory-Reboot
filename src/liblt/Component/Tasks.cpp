@@ -1,6 +1,7 @@
 #include "Tasks.h"
 #include "Game/Tasks.h"
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 
 void ComponentTasks::Clear(ObjectT* self) {
   while (elements.size()) {
@@ -21,24 +22,32 @@ void ComponentTasks::Run(ObjectT* self, UpdateState& state) {
   }
 }
 
-VoidFreeFunction(Object_ClearTasks,
+static Function const Object_ClearTasks_Registration = Function_Bind(
+  "Object_ClearTasks",
   "Clear all tasks from 'object's task stack",
-  Object, object)
-{
+  [](Object const& object)
+  {
   object->ClearTasks();
-} FunctionAlias(Object_ClearTasks, ClearTasks);
+  },
+  "object");
+static int const Object_ClearTasks_Alias = Function_Alias("Object_ClearTasks", "ClearTasks");
 
-FreeFunction(TaskInstance*, Object_GetCurrentTask,
+static Function const Object_GetCurrentTask_Registration = Function_Bind(
+  "Object_GetCurrentTask",
   "Return 'object's active task",
-  Object, object)
-{
+  [](Object const& object) -> TaskInstance*
+  {
   return (TaskInstance*)object->GetCurrentTask();
-} FunctionAlias(Object_GetCurrentTask, GetCurrentTask);
+  },
+  "object");
+static int const Object_GetCurrentTask_Alias = Function_Alias("Object_GetCurrentTask", "GetCurrentTask");
 
-VoidFreeFunction(Object_PushTask,
+static Function const Object_PushTask_Registration = Function_Bind(
+  "Object_PushTask",
   "Push 'task' to 'object's task stack",
-  Object, object,
-  Task, task)
-{
+  [](Object const& object, Task const& task)
+  {
   object->PushTask(task);
-} FunctionAlias(Object_PushTask, PushTask);
+  },
+  "object", "task");
+static int const Object_PushTask_Alias = Function_Alias("Object_PushTask", "PushTask");

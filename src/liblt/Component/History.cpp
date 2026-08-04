@@ -1,6 +1,7 @@
 #include "History.h"
 
 #include "Game/Object.h"
+#include "LTE/FunctionBind.h"
 
 void ComponentHistory::Run(ObjectT* self, UpdateState& state) {
 }
@@ -17,40 +18,55 @@ AutoClass(HistoryIterator,
   HistoryIterator() = default;
 };
 
-FreeFunction(HistoryIterator, Object_GetHistory,
+static Function const Object_GetHistory_Registration = Function_Bind(
+  "Object_GetHistory",
   "Return an iterator to the elements of 'object's history",
-  Object, object)
-{
+  [](Object const& object) -> HistoryIterator
+  {
   return HistoryIterator(object, 0);
-} FunctionAlias(Object_GetHistory, GetHistory);
+  },
+  "object");
+static int const Object_GetHistory_Alias = Function_Alias("Object_GetHistory", "GetHistory");
 
-VoidFreeFunction(HistoryIterator_Advance,
+static Function const HistoryIterator_Advance_Registration = Function_Bind(
+  "HistoryIterator_Advance",
   "Advance 'iterator'",
-  HistoryIterator, iterator)
-{
+  [](HistoryIterator const& iterator)
+  {
   Mutable(iterator).index++;
-} FunctionAlias(HistoryIterator_Advance, Advance);
+  },
+  "iterator");
+static int const HistoryIterator_Advance_Alias = Function_Alias("HistoryIterator_Advance", "Advance");
 
-FreeFunction(Event, HistoryIterator_Get,
+static Function const HistoryIterator_Get_Registration = Function_Bind(
+  "HistoryIterator_Get",
   "Return the contents of 'iterator'",
-  HistoryIterator, iterator)
-{
+  [](HistoryIterator const& iterator) -> Event
+  {
   return iterator.object->GetHistory()->elements[iterator.index];
-} FunctionAlias(HistoryIterator_Get, Get);
+  },
+  "iterator");
+static int const HistoryIterator_Get_Alias = Function_Alias("HistoryIterator_Get", "Get");
 
-FreeFunction(bool, HistoryIterator_HasMore,
+static Function const HistoryIterator_HasMore_Registration = Function_Bind(
+  "HistoryIterator_HasMore",
   "Return whether 'iterator' has more elements",
-  HistoryIterator, iterator)
-{
+  [](HistoryIterator const& iterator) -> bool
+  {
   return iterator.object->GetHistory() &&
     iterator.index < iterator.object->GetHistory()->elements.size();
-} FunctionAlias(HistoryIterator_HasMore, HasMore);
+  },
+  "iterator");
+static int const HistoryIterator_HasMore_Alias = Function_Alias("HistoryIterator_HasMore", "HasMore");
 
-FreeFunction(int, HistoryIterator_Size,
+static Function const HistoryIterator_Size_Registration = Function_Bind(
+  "HistoryIterator_Size",
   "Return the total number of elements in 'iterator'",
-  HistoryIterator, iterator)
-{
+  [](HistoryIterator const& iterator) -> int
+  {
   return iterator.object->GetHistory()
     ? static_cast<int>(iterator.object->GetHistory()->elements.size())
     : 0;
-} FunctionAlias(HistoryIterator_Size, Size);
+  },
+  "iterator");
+static int const HistoryIterator_Size_Alias = Function_Alias("HistoryIterator_Size", "Size");

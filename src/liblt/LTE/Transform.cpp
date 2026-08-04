@@ -1,5 +1,6 @@
 #include "Transform.h"
 #include "Math.h"
+#include "LTE/FunctionBind.h"
 
 /* TODO : Analytic mult. */
 Transform operator*(Transform const& a, Transform const& b) {
@@ -16,37 +17,45 @@ Transform Mix(Transform const& a, Transform const& b, double t) {
   return self;
 }
 
-FreeFunction(V3F, Transform_GetDir,
+static Function const Transform_GetDir_Registration = Function_Bind(
+  "Transform_GetDir",
   "Return the direction 'dir' under 'transform'",
-  Transform, transform,
-  V3F, dir)
-{
+  [](Transform const& transform, V3F const& dir) -> V3F
+  {
   return transform.TransformDir(dir);
-} FunctionAlias(Transform_GetDir, GetDir);
+  },
+  "transform", "dir");
+static int const Transform_GetDir_Alias = Function_Alias("Transform_GetDir", "GetDir");
 
-FreeFunction(V3F, Transform_GetVector,
+static Function const Transform_GetVector_Registration = Function_Bind(
+  "Transform_GetVector",
   "Return the vector 'vector' under 'transform'",
-  Transform, transform,
-  V3F, vector)
-{
+  [](Transform const& transform, V3F const& vector) -> V3F
+  {
   return transform.TransformVector(vector);
-} FunctionAlias(Transform_GetVector, GetVector);
+  },
+  "transform", "vector");
+static int const Transform_GetVector_Alias = Function_Alias("Transform_GetVector", "GetVector");
 
-FreeFunction(V3F, Transform_GetPoint,
+static Function const Transform_GetPoint_Registration = Function_Bind(
+  "Transform_GetPoint",
   "Return the point 'point' under 'transform'",
-  Transform, transform,
-  V3D, point)
-{
+  [](Transform const& transform, V3D const& point) -> V3F
+  {
   return transform.TransformPoint(point);
-} FunctionAlias(Transform_GetPoint, GetPoint);
+  },
+  "transform", "point");
+static int const Transform_GetPoint_Alias = Function_Alias("Transform_GetPoint", "GetPoint");
 
-FreeFunction(V3F, Transform_GetInverseDir,
+static Function const Transform_GetInverseDir_Registration = Function_Bind(
+  "Transform_GetInverseDir",
   "Return the direction that, under 'transform', yields 'dir",
-  Transform, transform,
-  V3F, dir)
-{
+  [](Transform const& transform, V3F const& dir) -> V3F
+  {
   return transform.InverseDir(dir);
-} FunctionAlias(Transform_GetInverseDir, GetInverseDir);
+  },
+  "transform", "dir");
+static int const Transform_GetInverseDir_Alias = Function_Alias("Transform_GetInverseDir", "GetInverseDir");
 
 DefineFunction(Transform_Identity) {
   return Transform(0, V3F(1, 0, 0), V3F(0, 1, 0), V3F(0, 0, 1), V3F(1));

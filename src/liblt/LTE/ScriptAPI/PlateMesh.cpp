@@ -1,63 +1,77 @@
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 #include "LTE/Mesh.h"
 #include "LTE/PlateMesh.h"
 #include "LTE/Warp.h"
 
 TypeAlias(Reference<PlateMeshT>, PlateMesh);
 
-VoidFreeFunction(PlateMesh_AddPlate,
+static Function const PlateMesh_AddPlate_Registration = Function_Bind(
+  "PlateMesh_AddPlate",
   "Add a plate with 'center,' 'scale,' 'rotation,' and 'bevel' to 'plateMesh'",
-  PlateMesh, plateMesh,
-  V3, center,
-  V3, scale,
-  V3, rotation,
-  float, bevel)
-{
+  [](PlateMesh const& plateMesh, V3 const& center, V3 const& scale, V3 const& rotation, float const& bevel)
+  {
   plateMesh->Add(center, scale, rotation, bevel);
-} FunctionAlias(PlateMesh_AddPlate, Add);
+  },
+  "plateMesh", "center", "scale", "rotation", "bevel");
+static int const PlateMesh_AddPlate_Alias = Function_Alias("PlateMesh_AddPlate", "Add");
 
-VoidFreeFunction(PlateMesh_AddPlateMesh,
+static Function const PlateMesh_AddPlateMesh_Registration = Function_Bind(
+  "PlateMesh_AddPlateMesh",
   "Add 'source' to 'plateMesh' with translation 'offset' and scale 'scale'",
-  PlateMesh, plateMesh,
-  PlateMesh, source,
-  V3, offset,
-  V3, scale)
-{
+  [](PlateMesh const& plateMesh, PlateMesh const& source, V3 const& offset, V3 const& scale)
+  {
   plateMesh->Add(source, offset, scale);
-} FunctionAlias(PlateMesh_AddPlateMesh, Add);
+  },
+  "plateMesh", "source", "offset", "scale");
+static int const PlateMesh_AddPlateMesh_Alias = Function_Alias("PlateMesh_AddPlateMesh", "Add");
 
-VoidFreeFunction(PlateMesh_AddWarp,
+static Function const PlateMesh_AddWarp_Registration = Function_Bind(
+  "PlateMesh_AddWarp",
   "Add 'warp' to 'plateMesh'",
-  PlateMesh, plateMesh,
-  Warp, warp)
-{
+  [](PlateMesh const& plateMesh, Warp const& warp)
+  {
   plateMesh->Add(warp);
-} FunctionAlias(PlateMesh_AddWarp, Add);
+  },
+  "plateMesh", "warp");
+static int const PlateMesh_AddWarp_Alias = Function_Alias("PlateMesh_AddWarp", "Add");
 
-FreeFunction(Mesh, PlateMesh_GetMesh,
+static Function const PlateMesh_GetMesh_Registration = Function_Bind(
+  "PlateMesh_GetMesh",
   "Create a mesh using 'plateMesh'",
-  PlateMesh, plateMesh)
-{
+  [](PlateMesh const& plateMesh) -> Mesh
+  {
   return plateMesh->GetMesh();
-} FunctionAlias(PlateMesh_GetMesh, GetMesh);
+  },
+  "plateMesh");
+static int const PlateMesh_GetMesh_Alias = Function_Alias("PlateMesh_GetMesh", "GetMesh");
 
-VoidFreeFunction(PlateMesh_ReflectX,
+static Function const PlateMesh_ReflectX_Registration = Function_Bind(
+  "PlateMesh_ReflectX",
   "Reflect 'plateMesh' over the X axis",
-  PlateMesh, plateMesh)
-{
+  [](PlateMesh const& plateMesh)
+  {
   plateMesh->ReflectX();
-} FunctionAlias(PlateMesh_ReflectX, ReflectX);
+  },
+  "plateMesh");
+static int const PlateMesh_ReflectX_Alias = Function_Alias("PlateMesh_ReflectX", "ReflectX");
 
-VoidFreeFunction(PlateMesh_ReflectY,
+static Function const PlateMesh_ReflectY_Registration = Function_Bind(
+  "PlateMesh_ReflectY",
   "Reflect 'plateMesh' over the Y axis",
-  PlateMesh, plateMesh)
-{
+  [](PlateMesh const& plateMesh)
+  {
   plateMesh->ReflectY();
-} FunctionAlias(PlateMesh_ReflectY, ReflectY);
+  },
+  "plateMesh");
+static int const PlateMesh_ReflectY_Alias = Function_Alias("PlateMesh_ReflectY", "ReflectY");
 
-VoidFreeFunction(PlateMesh_ReflectZ,
+static Function const PlateMesh_ReflectZ_Registration = Function_Bind(
+  "PlateMesh_ReflectZ",
   "Reflect 'plateMesh' over the Z axis",
-  PlateMesh, plateMesh)
-{
+  [](PlateMesh const& plateMesh)
+  {
   plateMesh->ReflectZ();
-} FunctionAlias(PlateMesh_ReflectZ, ReflectZ);
+  },
+  "plateMesh");
+static int const PlateMesh_ReflectZ_Alias = Function_Alias("PlateMesh_ReflectZ", "ReflectZ");

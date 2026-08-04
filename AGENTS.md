@@ -24,6 +24,26 @@ and modernization roadmap. Read before making large changes.
 
 ---
 
+## 1.1 Working Principles (maintainer direction — follow on large changes)
+
+- **One way to do things.** When a subsystem is rewritten or refactored, remove
+  the old mechanism entirely; do not leave legacy paths running alongside the
+  new one. Old tech left in place is hard to trace when it causes problems
+  later. (Example: the LTSL binding bridge — the `Function_Generated.h` /
+  `DeclareFunction.h` macro families are deleted, not kept, once the macro-free
+  `Function_Bind` API fully replaces them; the temporary §5.1a shim dies with
+  them.)
+- **Harden against breakage.** Prefer changes that make it hard to break the
+  engine: compile-time checks (e.g. the binder's `static_assert` arity guard),
+  automated gates (alias-order checker, API-DB byte-diff, `-Werror` on project
+  code), and fixing fragility at its source instead of working around it. A key
+  goal is making app creation / adding scripted functionality safe and boring.
+- **Mind resource usage.** Keep runtime allocations and per-frame API calls down
+  in the engine and apps; prefer static / pooled storage over churn, and when
+  the old code churns needlessly, fix it.
+
+---
+
 ## 2. Repository Layout
 
 ```

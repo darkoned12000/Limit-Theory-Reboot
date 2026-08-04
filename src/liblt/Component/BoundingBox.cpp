@@ -7,6 +7,7 @@
 
 #include "LTE/Matrix.h"
 #include "LTE/Model.h"
+#include "LTE/FunctionBind.h"
 
 void ComponentBoundingBox::Recompute(ObjectT const* self) {
   ComponentOrientation const& orientation = *self->GetOrientation();
@@ -35,9 +36,12 @@ void ComponentBoundingBox::Recompute(ObjectT const* self) {
   }
 }
 
-FreeFunction(Bound3D, Object_GetBound,
+static Function const Object_GetBound_Registration = Function_Bind(
+  "Object_GetBound",
   "Return the world-space bounding box of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> Bound3D
+  {
   return object->GetBoundingBox()->worldBox;
-} FunctionAlias(Object_GetBound, GetBound);
+  },
+  "object");
+static int const Object_GetBound_Alias = Function_Alias("Object_GetBound", "GetBound");
