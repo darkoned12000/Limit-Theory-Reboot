@@ -1220,7 +1220,8 @@ commit a red build.
       statics replace the 4 MemberFunction macros; §5.2's `FunctionTraits`
       renamed to `BindingTraits` (collision with `LTE::FunctionTraits`,
       `Generic.h:10` — see §10 facts log). Gate: build, 317 checks / 0
-      failures, API dump byte-identical, alias-order OK, LSP smoke 6.
+      failures, API dump byte-identical, alias-order OK, LSP smoke 6, all app
+      runs OK (user-verified).
 - [ ] Step 3 — LTE FreeFunction family.
 - [ ] Step 4 — Component subsystem.
 - [ ] Step 5 — Game subsystem (incl. ArgBind).
