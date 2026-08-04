@@ -2,6 +2,7 @@
   LT_API Prefix ReturnType Name##_Impl() Postfix;                              \
                                                                                \
   inline void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -28,6 +29,7 @@
 
 #define MemberFunction0(Prefix, Postfix, ReturnType, Name, Description, T0, N0, T1, N1, T2, N2, T3, N3, T4, N4, T5, N5, T6, N6, T7, N7) \
   static void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -57,6 +59,7 @@
   LT_API Prefix ReturnType Name##_Impl() Postfix;                              \
                                                                                \
   inline void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -82,6 +85,7 @@
 
 #define VoidMemberFunction0(Prefix, Postfix, ReturnType, Name, Description, T0, N0, T1, N1, T2, N2, T3, N3, T4, N4, T5, N5, T6, N6, T7, N7) \
   static void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -110,6 +114,7 @@
   LT_API Prefix ReturnType Name##_Impl(T0 const& N0) Postfix;                  \
                                                                                \
   inline void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -138,6 +143,7 @@
 
 #define MemberFunction1(Prefix, Postfix, ReturnType, Name, Description, T0, N0, T1, N1, T2, N2, T3, N3, T4, N4, T5, N5, T6, N6, T7, N7) \
   static void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -169,6 +175,7 @@
   LT_API Prefix ReturnType Name##_Impl(T0 const& N0) Postfix;                  \
                                                                                \
   inline void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -196,6 +203,7 @@
 
 #define VoidMemberFunction1(Prefix, Postfix, ReturnType, Name, Description, T0, N0, T1, N1, T2, N2, T3, N3, T4, N4, T5, N5, T6, N6, T7, N7) \
   static void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -228,6 +236,7 @@
     T1 const& N1) Postfix;                                                     \
                                                                                \
   inline void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -260,6 +269,7 @@
 
 #define MemberFunction2(Prefix, Postfix, ReturnType, Name, Description, T0, N0, T1, N1, T2, N2, T3, N3, T4, N4, T5, N5, T6, N6, T7, N7) \
   static void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -297,6 +307,7 @@
     T1 const& N1) Postfix;                                                     \
                                                                                \
   inline void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -328,6 +339,7 @@
 
 #define VoidMemberFunction2(Prefix, Postfix, ReturnType, Name, Description, T0, N0, T1, N1, T2, N2, T3, N3, T4, N4, T5, N5, T6, N6, T7, N7) \
   static void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -365,6 +377,7 @@
     T2 const& N2) Postfix;                                                     \
                                                                                \
   inline void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -400,6 +413,7 @@
 
 #define MemberFunction3(Prefix, Postfix, ReturnType, Name, Description, T0, N0, T1, N1, T2, N2, T3, N3, T4, N4, T5, N5, T6, N6, T7, N7) \
   static void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -441,6 +455,7 @@
     T2 const& N2) Postfix;                                                     \
                                                                                \
   inline void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -475,6 +490,7 @@
 
 #define VoidMemberFunction3(Prefix, Postfix, ReturnType, Name, Description, T0, N0, T1, N1, T2, N2, T3, N3, T4, N4, T5, N5, T6, N6, T7, N7) \
   static void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -516,6 +532,7 @@
     T3 const& N3) Postfix;                                                     \
                                                                                \
   inline void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -554,6 +571,7 @@
 
 #define MemberFunction4(Prefix, Postfix, ReturnType, Name, Description, T0, N0, T1, N1, T2, N2, T3, N3, T4, N4, T5, N5, T6, N6, T7, N7) \
   static void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -599,6 +617,7 @@
     T3 const& N3) Postfix;                                                     \
                                                                                \
   inline void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -636,6 +655,7 @@
 
 #define VoidMemberFunction4(Prefix, Postfix, ReturnType, Name, Description, T0, N0, T1, N1, T2, N2, T3, N3, T4, N4, T5, N5, T6, N6, T7, N7) \
   static void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -681,6 +701,7 @@
     T4 const& N4) Postfix;                                                     \
                                                                                \
   inline void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -722,6 +743,7 @@
 
 #define MemberFunction5(Prefix, Postfix, ReturnType, Name, Description, T0, N0, T1, N1, T2, N2, T3, N3, T4, N4, T5, N5, T6, N6, T7, N7) \
   static void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -771,6 +793,7 @@
     T4 const& N4) Postfix;                                                     \
                                                                                \
   inline void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -811,6 +834,7 @@
 
 #define VoidMemberFunction5(Prefix, Postfix, ReturnType, Name, Description, T0, N0, T1, N1, T2, N2, T3, N3, T4, N4, T5, N5, T6, N6, T7, N7) \
   static void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -860,6 +884,7 @@
     T5 const& N5) Postfix;                                                     \
                                                                                \
   inline void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -904,6 +929,7 @@
 
 #define MemberFunction6(Prefix, Postfix, ReturnType, Name, Description, T0, N0, T1, N1, T2, N2, T3, N3, T4, N4, T5, N5, T6, N6, T7, N7) \
   static void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -957,6 +983,7 @@
     T5 const& N5) Postfix;                                                     \
                                                                                \
   inline void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -1000,6 +1027,7 @@
 
 #define VoidMemberFunction6(Prefix, Postfix, ReturnType, Name, Description, T0, N0, T1, N1, T2, N2, T3, N3, T4, N4, T5, N5, T6, N6, T7, N7) \
   static void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -1053,6 +1081,7 @@
     T6 const& N6) Postfix;                                                     \
                                                                                \
   inline void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -1100,6 +1129,7 @@
 
 #define MemberFunction7(Prefix, Postfix, ReturnType, Name, Description, T0, N0, T1, N1, T2, N2, T3, N3, T4, N4, T5, N5, T6, N6, T7, N7) \
   static void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -1157,6 +1187,7 @@
     T6 const& N6) Postfix;                                                     \
                                                                                \
   inline void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -1203,6 +1234,7 @@
 
 #define VoidMemberFunction7(Prefix, Postfix, ReturnType, Name, Description, T0, N0, T1, N1, T2, N2, T3, N3, T4, N4, T5, N5, T6, N6, T7, N7) \
   static void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -1260,6 +1292,7 @@
     T7 const& N7) Postfix;                                                     \
                                                                                \
   inline void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -1310,6 +1343,7 @@
 
 #define MemberFunction8(Prefix, Postfix, ReturnType, Name, Description, T0, N0, T1, N1, T2, N2, T3, N3, T4, N4, T5, N5, T6, N6, T7, N7) \
   static void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -1371,6 +1405,7 @@
     T7 const& N7) Postfix;                                                     \
                                                                                \
   inline void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \
@@ -1420,6 +1455,7 @@
 
 #define VoidMemberFunction8(Prefix, Postfix, ReturnType, Name, Description, T0, N0, T1, N1, T2, N2, T3, N3, T4, N4, T5, N5, T6, N6, T7, N7) \
   static void Name##_Call(                                                     \
+    void*,\
     void** in,                                                                 \
     void* out)                                                                 \
   {                                                                            \

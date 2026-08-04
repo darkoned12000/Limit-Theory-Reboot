@@ -71,7 +71,7 @@ namespace {
         }
       }
 
-      function->call(argStack.data(), returnValue);
+      function->call(function->binding, argStack.data(), returnValue);
 
       for (size_t i = 0; i < args.size(); ++i) {
         size_t index = args.size() - i - 1;

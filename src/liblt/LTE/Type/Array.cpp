@@ -177,27 +177,27 @@ namespace {
     }
   };
 
-  inline void ArrayCustom_Append(void** in, void* out) {
+  inline void ArrayCustom_Append(void*, void** in, void* out) {
     ((ArrayCustom*)in[0])->Append(in[1]);
   }
 
-  inline void ArrayCustom_AppendArray(void** in, void* out) {
+  inline void ArrayCustom_AppendArray(void*, void** in, void* out) {
     ((ArrayCustom*)in[0])->Append((ArrayCustom*)in[1]);
   }
 
-  inline void ArrayCustom_Clear(void** in, void* out) {
+  inline void ArrayCustom_Clear(void*, void** in, void* out) {
     ((ArrayCustom*)in[0])->Clear();
   }
 
-  inline void ArrayCustom_Get(void** in, void* out) {
+  inline void ArrayCustom_Get(void*, void** in, void* out) {
     *(void**)out = ((ArrayCustom*)in[0])->Get(*(int*)in[1]);
   }
 
-  inline void ArrayCustom_Remove(void** in, void* out) {
+  inline void ArrayCustom_Remove(void*, void** in, void* out) {
     ((ArrayCustom*)in[0])->Remove(*(int*)in[1]);
   }
 
-  inline void ArrayCustom_Size(void** in, void* out) {
+  inline void ArrayCustom_Size(void*, void** in, void* out) {
     *(int*)out = ((ArrayCustom*)in[0])->Size();
   }
 

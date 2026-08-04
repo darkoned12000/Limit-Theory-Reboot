@@ -64,7 +64,7 @@ void Infer_MetaData(Function const& type, RT (*fn)()) {}
   LT_API ReturnType Name(Name##_ArgRefs const&);                               \
   inline ReturnType Name() { return Name(0); }                                 \
   inline ReturnType Name##_ExplicitCall() { return Name(0); }                  \
-  inline void Name##_Call(void** in, void* out) {                              \
+  inline void Name##_Call(void*, void** in, void* out) {                              \
     CallAndAssign(in, out, Name##_ExplicitCall);                               \
   }                                                                            \
 
@@ -105,7 +105,7 @@ void Infer_MetaData(Function const& type, RT (*fn)(T0 const&)) {
   inline ReturnType Name##_ExplicitCall(T0 const& N0) {                        \
     return Name(Name##_ArgRefs(N0));                                           \
   }                                                                            \
-  inline void Name##_Call(void** in, void* out) {                              \
+  inline void Name##_Call(void*, void** in, void* out) {                              \
     CallAndAssign(in, out, Name##_ExplicitCall);                               \
   }                                                                            \
 
@@ -159,7 +159,7 @@ void Infer_MetaData(Function const& type, RT (*fn)(T0 const&, T1 const&)) {
   inline ReturnType Name##_ExplicitCall(T0 const& N0, T1 const& N1) {          \
     return Name(Name##_ArgRefs(N0, N1));                                       \
   }                                                                            \
-  inline void Name##_Call(void** in, void* out) {                              \
+  inline void Name##_Call(void*, void** in, void* out) {                              \
     CallAndAssign(in, out, Name##_ExplicitCall);                               \
   }                                                                            \
 
@@ -216,7 +216,7 @@ void Infer_MetaData(Function const& type, RT (*fn)(T0 const&, T1 const&, T2 cons
   inline ReturnType Name##_ExplicitCall(T0 const& N0, T1 const& N1, T2 const& N2) {\
     return Name(Name##_ArgRefs(N0, N1, N2));                                   \
   }                                                                            \
-  inline void Name##_Call(void** in, void* out) {                              \
+  inline void Name##_Call(void*, void** in, void* out) {                              \
     CallAndAssign(in, out, Name##_ExplicitCall);                               \
   }                                                                            \
 
@@ -276,7 +276,7 @@ void Infer_MetaData(Function const& type, RT (*fn)(T0 const&, T1 const&, T2 cons
   inline ReturnType Name##_ExplicitCall(T0 const& N0, T1 const& N1, T2 const& N2, T3 const& N3) {\
     return Name(Name##_ArgRefs(N0, N1, N2, N3));                               \
   }                                                                            \
-  inline void Name##_Call(void** in, void* out) {                              \
+  inline void Name##_Call(void*, void** in, void* out) {                              \
     CallAndAssign(in, out, Name##_ExplicitCall);                               \
   }                                                                            \
 
@@ -339,7 +339,7 @@ void Infer_MetaData(Function const& type, RT (*fn)(T0 const&, T1 const&, T2 cons
   inline ReturnType Name##_ExplicitCall(T0 const& N0, T1 const& N1, T2 const& N2, T3 const& N3, T4 const& N4) {\
     return Name(Name##_ArgRefs(N0, N1, N2, N3, N4));                           \
   }                                                                            \
-  inline void Name##_Call(void** in, void* out) {                              \
+  inline void Name##_Call(void*, void** in, void* out) {                              \
     CallAndAssign(in, out, Name##_ExplicitCall);                               \
   }                                                                            \
 
@@ -405,7 +405,7 @@ void Infer_MetaData(Function const& type, RT (*fn)(T0 const&, T1 const&, T2 cons
   inline ReturnType Name##_ExplicitCall(T0 const& N0, T1 const& N1, T2 const& N2, T3 const& N3, T4 const& N4, T5 const& N5) {\
     return Name(Name##_ArgRefs(N0, N1, N2, N3, N4, N5));                       \
   }                                                                            \
-  inline void Name##_Call(void** in, void* out) {                              \
+  inline void Name##_Call(void*, void** in, void* out) {                              \
     CallAndAssign(in, out, Name##_ExplicitCall);                               \
   }                                                                            \
 
@@ -474,7 +474,7 @@ void Infer_MetaData(Function const& type, RT (*fn)(T0 const&, T1 const&, T2 cons
   inline ReturnType Name##_ExplicitCall(T0 const& N0, T1 const& N1, T2 const& N2, T3 const& N3, T4 const& N4, T5 const& N5, T6 const& N6) {\
     return Name(Name##_ArgRefs(N0, N1, N2, N3, N4, N5, N6));                   \
   }                                                                            \
-  inline void Name##_Call(void** in, void* out) {                              \
+  inline void Name##_Call(void*, void** in, void* out) {                              \
     CallAndAssign(in, out, Name##_ExplicitCall);                               \
   }                                                                            \
 
@@ -546,7 +546,7 @@ void Infer_MetaData(Function const& type, RT (*fn)(T0 const&, T1 const&, T2 cons
   inline ReturnType Name##_ExplicitCall(T0 const& N0, T1 const& N1, T2 const& N2, T3 const& N3, T4 const& N4, T5 const& N5, T6 const& N6, T7 const& N7) {\
     return Name(Name##_ArgRefs(N0, N1, N2, N3, N4, N5, N6, N7));               \
   }                                                                            \
-  inline void Name##_Call(void** in, void* out) {                              \
+  inline void Name##_Call(void*, void** in, void* out) {                              \
     CallAndAssign(in, out, Name##_ExplicitCall);                               \
   }                                                                            \
 
@@ -621,7 +621,7 @@ void Infer_MetaData(Function const& type, RT (*fn)(T0 const&, T1 const&, T2 cons
   inline ReturnType Name##_ExplicitCall(T0 const& N0, T1 const& N1, T2 const& N2, T3 const& N3, T4 const& N4, T5 const& N5, T6 const& N6, T7 const& N7, T8 const& N8) {\
     return Name(Name##_ArgRefs(N0, N1, N2, N3, N4, N5, N6, N7, N8));           \
   }                                                                            \
-  inline void Name##_Call(void** in, void* out) {                              \
+  inline void Name##_Call(void*, void** in, void* out) {                              \
     CallAndAssign(in, out, Name##_ExplicitCall);                               \
   }                                                                            \
 
@@ -699,7 +699,7 @@ void Infer_MetaData(Function const& type, RT (*fn)(T0 const&, T1 const&, T2 cons
   inline ReturnType Name##_ExplicitCall(T0 const& N0, T1 const& N1, T2 const& N2, T3 const& N3, T4 const& N4, T5 const& N5, T6 const& N6, T7 const& N7, T8 const& N8, T9 const& N9) {\
     return Name(Name##_ArgRefs(N0, N1, N2, N3, N4, N5, N6, N7, N8, N9));       \
   }                                                                            \
-  inline void Name##_Call(void** in, void* out) {                              \
+  inline void Name##_Call(void*, void** in, void* out) {                              \
     CallAndAssign(in, out, Name##_ExplicitCall);                               \
   }                                                                            \
 
@@ -780,7 +780,7 @@ void Infer_MetaData(Function const& type, RT (*fn)(T0 const&, T1 const&, T2 cons
   inline ReturnType Name##_ExplicitCall(T0 const& N0, T1 const& N1, T2 const& N2, T3 const& N3, T4 const& N4, T5 const& N5, T6 const& N6, T7 const& N7, T8 const& N8, T9 const& N9, T10 const& N10) {\
     return Name(Name##_ArgRefs(N0, N1, N2, N3, N4, N5, N6, N7, N8, N9, N10));  \
   }                                                                            \
-  inline void Name##_Call(void** in, void* out) {                              \
+  inline void Name##_Call(void*, void** in, void* out) {                              \
     CallAndAssign(in, out, Name##_ExplicitCall);                               \
   }                                                                            \
 
@@ -864,7 +864,7 @@ void Infer_MetaData(Function const& type, RT (*fn)(T0 const&, T1 const&, T2 cons
   inline ReturnType Name##_ExplicitCall(T0 const& N0, T1 const& N1, T2 const& N2, T3 const& N3, T4 const& N4, T5 const& N5, T6 const& N6, T7 const& N7, T8 const& N8, T9 const& N9, T10 const& N10, T11 const& N11) {\
     return Name(Name##_ArgRefs(N0, N1, N2, N3, N4, N5, N6, N7, N8, N9, N10, N11));\
   }                                                                            \
-  inline void Name##_Call(void** in, void* out) {                              \
+  inline void Name##_Call(void*, void** in, void* out) {                              \
     CallAndAssign(in, out, Name##_ExplicitCall);                               \
   }                                                                            \
 

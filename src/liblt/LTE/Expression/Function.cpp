@@ -6,7 +6,7 @@
 #include "LTE/StringList.h"
 
 namespace {
-  void ScriptFunction_Call(void**, void*) {
+  void ScriptFunction_Call(void*, void**, void*) {
   }
 }
 

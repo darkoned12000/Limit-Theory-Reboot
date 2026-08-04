@@ -8,10 +8,13 @@
 
 #include "Function_Generated.h"
 
+struct BindingBase;   // defined in FunctionBind.h
+
 struct FunctionT : public RefCounted {
   String name;
   String description;
-  void (*call)(void**, void*);
+  void (*call)(void* binding, void** in, void* out);
+  BindingBase* binding;   // owned; null for manual handlers
   uint paramCount;
   Parameter const* params;
   Type returnType;
