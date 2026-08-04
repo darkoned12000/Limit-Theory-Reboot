@@ -1167,14 +1167,15 @@ commit a red build.
 - **`Vec3_Distance` dual registration (§6.8):** `V2.cpp` and `V3.cpp` both bind
   the script name `Vec3_Distance`. Today the weak-symbol merge keeps only one
   (init-order-dependent). Migration registers both overloads — an intentional
-  API-DB +1. Options:
-  - *(default)* Keep both; whitelist the +1 in the §8 gate 3 diff. Behavior
-    fix: the V2 overload becomes reliably available (today it wins only by
-    init-order luck).
-  - Fix the apparent copy-paste in `V2.cpp:22` (it binds `Vec3_Distance` with
-    V2 params and aliases the nonexistent `Vec2_Distance` → `Distance`; the
-    intent was likely a `Vec2_Distance` binding). Defer — changes the API DB
-    more (adds a new name, drops a `Distance` alias entry).
+  API-DB +1. **DECIDED (Step 3):** keep both; whitelist the +1 in the §8 gate 3
+  diff. Behavior fix: the V2 overload becomes reliably available (today it wins
+  only by init-order luck). The stray `FunctionAlias(Vec2_Distance, Distance)`
+  in V2.cpp keeps its no-op form (`Function_Alias("Vec2_Distance", "Distance")`)
+  so no extra DB entry appears.
+  - *(deferred alternative)* Fix the apparent copy-paste in `V2.cpp:22` (it
+    binds `Vec3_Distance` with V2 params and aliases the nonexistent
+    `Vec2_Distance` → `Distance`; the intent was likely a `Vec2_Distance`
+    binding). Would add a new name, drop a `Distance` alias entry. Deferred.
 - **`Vec4_Dot` broken alias (found by gate-6 checker, `V4.cpp:102`):** the file
   registers `FreeFunction(float, Vec4f_Dot, ...)` but aliases
   `FunctionAlias(Vec4_Dot, Dot)` — `Vec4_Dot` is never registered, so the V4F
@@ -1213,7 +1214,8 @@ commit a red build.
 - [x] Step 1 gate — build, tests (incl. new binder tests), alias-order script,
       LSP smoke (6). Verified: 317 checks / 0 failures; API dump byte-identical
       to baseline; alias-order OK (515 sites, 2 known exceptions); smoke 6.
-- [ ] Decide `Vec3_Distance` outcome (§11) before Step 3.
+- [x] Decide `Vec3_Distance` outcome (§11) before Step 3. **Decided: keep both
+      overloads; whitelist the +1 in the §8 gate 3 diff.**
 - [x] Step 2 — Vector.h members. `Function_Bind_Member` lazy `GetMetadata`
       statics replace the 4 MemberFunction macros; §5.2's `FunctionTraits`
       renamed to `BindingTraits` (collision with `LTE::FunctionTraits`,
