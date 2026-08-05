@@ -1192,8 +1192,29 @@ commit a red build.
   (+ `Function_Alias` when a `FunctionAlias(Name, Alias)` tail follows the
   body). Plain bodies that forward the whole bundle (no `args.X` access) are
   auto-detected and migrated as argbind with a per-param lambda registration
-  (`Object_Missile`, `Object_System`). Skips `#if 0` blocks. Not idempotent
-  (skips files with no macros); re-run dry — `Parsed 0` means done.
+   (`Object_Missile`, `Object_System`). Skips `#if 0` blocks. Not idempotent
+   (skips files with no macros); re-run dry — `Parsed 0` means done.
+   **Step 5b run notes:** headers whose `#include "DeclareFunction.h"` used the
+   relative form (no `LTE/` prefix — all of LTE/Module/Strukt) were stripped
+   manually via `sed -i '/^#include "DeclareFunction.h"$/d'` (the tool only
+   drops the `LTE/`-prefixed form; `LTE.h` keeps its umbrella include until
+   Step 10). **`FunctionAlias` lines NOT attached to a DefineFunction body brace
+   are not migrated by the tool** — the SDF operator aliases
+   (`SDF/Translate.cpp` `+`, `SDF/Scale.cpp` `*`, `SDF/Add.cpp` `+`,
+   `SDF/Subtract.cpp` `-`) were hand-converted to standalone
+   `static int const X_Alias = Function_Alias("X", "op");` (identical runtime
+   semantics to the old macro — also `Function_AddAlias`). **Declare-in-cpp
+   sites** are not handled — `Mesh_CylinderHUD` (`Meshes.cpp`, the only one in
+   src) was hand-migrated to `static Mesh Mesh_CylinderHUD(float const&, float
+   const&)` + `Function_Bind`. **Overloaded `&Name`** for a migrated function
+   must go through a per-param lambda (Shader_Create, ShaderInstance_Create).
+   Migrated decls may land at column 0 inside `namespace LTE { … }` — re-indent
+   to match neighbors (done for `Script.h`, `Location.h`; `Mouse.h` was already
+   col-0 house style). **Latent-bug find:** the old `DeclareFunctionNoParams`
+   made `ArgRefs=int`, so `ParticleSystem_Pop(particles)` (Component/Interior.cpp)
+   silently compiled via `Reference::operator bool`→int with the arg unused; the
+   migrated 0-arg signature exposed it — fixed to `ParticleSystem_Pop()` (real
+   fix, not a regression).
 - **`DeclareFunction`/`DefineFunction` migration pattern (validated Step 4,
   Component — use for Steps 5/6):** header `DeclareFunction(Name, RT, T0, N0, …)`
   → `LT_API RT Name(T0 const& N0, …);` + drop `#include "LTE/DeclareFunction.h"`;
@@ -1341,16 +1362,22 @@ commit a red build.
       the gate-3 byte-diff is used for Steps 6–8, compare the functions section
       + type *sets* (order-insensitive) or regenerate
       `build/api-baseline.json` from the current tree after this commit.
-- [ ] **Step 5b (plan gap — REQUIRED before Step 10, currently unassigned):**
-      the **LTE** (102 DefineFn / 113 Decl: `SDF/`, `RenderPass/`, `Warp/`,
-      `Shader`, `Time`, `Thread`, `Location`, `Font`, `Texture2D`, `Mouse`,
-      `PlateMesh`, `Color`, `Meshes`, `Script`, `Profiler`, `ParticleSystem`,
-      `Transform`, `DrawState`, `RenderPasses`, `ShaderInstance`, …), **Module**
-      (5 DefineFn: `Settings`, `FrameTimer`) and **Strukt** (1 DefineFn:
-      `CodeObject/Custom.cpp`) DefineFunction/DeclareFunction families are **not
-      assigned to any §9 step**, yet Step 10 deletes `DeclareFunction.h` which
-      they still use. Migrate them with the same §6.2/`migrate_definefunction.py`
-      pattern (default) before Step 10. Gate as usual.
+- [x] **Step 5b — LTE/Module/Strukt DefineFunction/DeclareFunction family done**
+      (commit `e54f98b`). Same tool run over `src/liblt/LTE` (19 headers + 43
+      cpps, 102 DefineFunction sites), `src/liblt/Module` (Settings, FrameTimer)
+      and `src/liblt/Strukt` (CodeObject_Custom), plus the manual fixes recorded
+      in the §10 facts log (relative-include strip, SDF `FunctionAlias` →
+      `Function_Alias` standalone lines, `Mesh_CylinderHUD` hand-migration,
+      `Shader_Create`/`ShaderInstance_Create` per-param lambdas, decl re-indent
+      in `Script.h`/`Location.h`, and the `ParticleSystem_Pop` latent-bug fix in
+      Component/Interior.cpp). **Gate:** build green (-Werror), 317 checks / 0
+      failures, API-DB **byte-identical to the Step 5 dump** (1852/445 — still
+      just the 3 sanctioned fn additions, 0 doc diffs; SDF operator aliases were
+      already runtime-registered by the old macro so no DB change), alias-order
+      OK 509/1 (now actually *covering* the 4 SDF aliases), LSP smoke 6, app
+      runs `war`/`rails`/`threads` clean. UI (Step 6) is now the last
+      DefineFunction/DeclareFunction holdout (9 headers still include
+      `LTE/DeclareFunction.h`).
 - [ ] Step 6 — UI subsystem **FF/VFF done** (Step 3 run); DefineFunction/ArgBind
       families (incl. Glyphs) pending.
 - [ ] Step 8 — DefineConversion.
