@@ -1,20 +1,16 @@
 #ifndef LTE_Warps_h__
 #define LTE_Warps_h__
 
-#include "DeclareFunction.h"
 #include "V3.h"
 #include "Warp.h"
 
-DeclareFunction(Warp_AttractorPlane, Warp,
-  V3, center,
-  V3, normal,
-  float, strength)
+LT_API Warp Warp_AttractorPlane(
+  V3 const& center, V3 const& normal, float const& strength);
 
-DeclareFunction(Warp_AttractorPoint, Warp,
-  V3, center,
-  float, strength)
+LT_API Warp Warp_AttractorPoint(
+  V3 const& center, float const& strength);
 
-DeclareFunction(Warp_Custom, Warp,
-  Data, data)
+LT_API Warp Warp_Custom(
+  Data const& data);
 
 #endif

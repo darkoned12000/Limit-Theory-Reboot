@@ -2,6 +2,7 @@
 
 #include "LTE/Bound.h"
 #include "LTE/Math.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(SDFScale, SDFT,
@@ -28,6 +29,13 @@ namespace {
   DERIVED_IMPLEMENT(SDFScale)
 }
 
-DefineFunction(SDF_Scale) {
-  return new SDFScale(args.source, args.scale);
-} FunctionAlias(SDF_Scale, *);
+SDF SDF_Scale(SDF const& source, V3 const& scale) {
+  return new SDFScale(source, scale);
+}
+static Function const SDF_Scale_Registration = Function_Bind(
+  "SDF_Scale",
+  "None",
+  &SDF_Scale,
+  "source", "scale");
+
+static int const SDF_Scale_Alias = Function_Alias("SDF_Scale", "*");

@@ -1,37 +1,32 @@
 #ifndef LTE_RenderPasses_h__
 #define LTE_RenderPasses_h__
 
-#include "DeclareFunction.h"
 #include "RenderPass.h"
 #include "String.h"
 
-DeclareFunction(RenderPass_Aberration, RenderPass,
-  float, strength)
+LT_API RenderPass RenderPass_Aberration(
+  float const& strength);
 
-DeclareFunction(RenderPass_Composite, RenderPass,
-  Vector<RenderPass>, passes)
+LT_API RenderPass RenderPass_Composite(
+  Vector<RenderPass> const& passes);
 
-DeclareFunction(RenderPass_Bloom, RenderPass,
-  int, radius,
-  float, variance)
+LT_API RenderPass RenderPass_Bloom(
+  int const& radius, float const& variance);
 
-DeclareFunction(RenderPass_BloomLight, RenderPass,
-  int, radius)
+LT_API RenderPass RenderPass_BloomLight(
+  int const& radius);
 
-DeclareFunction(RenderPass_CustomFilter, RenderPass,
-  Data, data)
+LT_API RenderPass RenderPass_CustomFilter(
+  Data const& data);
 
-DeclareFunctionNoParams(RenderPass_MotionBlur, RenderPass)
+LT_API RenderPass RenderPass_MotionBlur();
 
-DeclareFunction(RenderPass_PostFilter, RenderPass,
-  String, shaderPath)
+LT_API RenderPass RenderPass_PostFilter(
+  String const& shaderPath);
 
-DeclareFunction(RenderPass_RadialBlur, RenderPass,
-  V2, center,
-  float, radius,
-  float, strength,
-  float, falloff)
+LT_API RenderPass RenderPass_RadialBlur(
+  V2 const& center, float const& radius, float const& strength, float const& falloff);
 
-DeclareFunctionNoParams(RenderPass_Tonemap, RenderPass)
+LT_API RenderPass RenderPass_Tonemap();
 
 #endif

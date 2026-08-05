@@ -2,6 +2,7 @@
 
 #include "LTE/Bound.h"
 #include "LTE/Math.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(SDFCapsule, SDFT,
@@ -44,6 +45,13 @@ namespace {
   DERIVED_IMPLEMENT(SDFCapsule)
 }
 
-DefineFunction(SDF_Capsule) {
-  return new SDFCapsule(args.p1, args.p2, args.radius);
+SDF SDF_Capsule(V3 const& p1, V3 const& p2, float const& radius) {
+  return new SDFCapsule(p1, p2, radius);
 }
+static Function const SDF_Capsule_Registration = Function_Bind(
+  "SDF_Capsule",
+  "None",
+  &SDF_Capsule,
+  "p1", "p2", "radius");
+
+

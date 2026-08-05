@@ -3,6 +3,7 @@
 #include "LTE/Bound.h"
 #include "LTE/Math.h"
 #include "LTE/Vector.h"
+#include "LTE/FunctionBind.h"
 
 const float kMaxSDFT = 1e35f;
 
@@ -85,9 +86,16 @@ namespace {
   DERIVED_IMPLEMENT(SDFPolyhedron0)
 }
 
-DefineFunction(SDF_Polyhedron) {
-  if (args.shape == 0)
-    return new SDFPolyhedron0(args.planes);
+SDF SDF_Polyhedron(Vector<Plane> const& planes, int const& shape) {
+  if (shape == 0)
+    return new SDFPolyhedron0(planes);
   else
-    return new SDFPolyhedron(args.planes, args.shape);
+    return new SDFPolyhedron(planes, shape);
 }
+static Function const SDF_Polyhedron_Registration = Function_Bind(
+  "SDF_Polyhedron",
+  "None",
+  &SDF_Polyhedron,
+  "planes", "shape");
+
+

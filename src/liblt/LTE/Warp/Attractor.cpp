@@ -1,6 +1,7 @@
 #include "../Warps.h"
 
 #include "LTE/AutoClass.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(WarpAttractorPoint, WarpT,
@@ -34,10 +35,24 @@ namespace {
   };
 }
 
-DefineFunction(Warp_AttractorPlane) {
-  return new WarpAttractorPlane(args.center, args.normal, args.strength);
+Warp Warp_AttractorPlane(V3 const& center, V3 const& normal, float const& strength) {
+  return new WarpAttractorPlane(center, normal, strength);
 }
+static Function const Warp_AttractorPlane_Registration = Function_Bind(
+  "Warp_AttractorPlane",
+  "None",
+  &Warp_AttractorPlane,
+  "center", "normal", "strength");
 
-DefineFunction(Warp_AttractorPoint) {
-  return new WarpAttractorPoint(args.center, args.strength);
+
+
+Warp Warp_AttractorPoint(V3 const& center, float const& strength) {
+  return new WarpAttractorPoint(center, strength);
 }
+static Function const Warp_AttractorPoint_Registration = Function_Bind(
+  "Warp_AttractorPoint",
+  "None",
+  &Warp_AttractorPoint,
+  "center", "strength");
+
+

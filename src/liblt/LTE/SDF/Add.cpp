@@ -2,6 +2,7 @@
 
 #include "LTE/Bound.h"
 #include "LTE/Math.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(SDFAdd, SDFT,
@@ -29,6 +30,13 @@ namespace {
   DERIVED_IMPLEMENT(SDFAdd)
 }
 
-DefineFunction(SDF_Add) {
-  return new SDFAdd(args.a, args.b);
-} FunctionAlias(SDF_Add, +);
+SDF SDF_Add(SDF const& a, SDF const& b) {
+  return new SDFAdd(a, b);
+}
+static Function const SDF_Add_Registration = Function_Bind(
+  "SDF_Add",
+  "None",
+  &SDF_Add,
+  "a", "b");
+
+static int const SDF_Add_Alias = Function_Alias("SDF_Add", "+");

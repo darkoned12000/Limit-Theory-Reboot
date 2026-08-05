@@ -2,6 +2,7 @@
 
 #include "LTE/Bound.h"
 #include "LTE/Math.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(SDFCylinder, SDFT,
@@ -31,6 +32,13 @@ namespace {
   DERIVED_IMPLEMENT(SDFCylinder)
 }
 
-DefineFunction(SDF_Cylinder) {
-  return new SDFCylinder(args.center, Normalize(args.axis), args.radius);
+SDF SDF_Cylinder(V3 const& center, V3 const& axis, float const& radius) {
+  return new SDFCylinder(center, Normalize(axis), radius);
 }
+static Function const SDF_Cylinder_Registration = Function_Bind(
+  "SDF_Cylinder",
+  "None",
+  &SDF_Cylinder,
+  "center", "axis", "radius");
+
+

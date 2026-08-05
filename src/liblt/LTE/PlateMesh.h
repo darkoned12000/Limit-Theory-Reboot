@@ -2,7 +2,6 @@
 #define LTE_PlateMesh_h__
 
 #include "BaseType.h"
-#include "DeclareFunction.h"
 #include "Reference.h"
 #include "V3.h"
 
@@ -29,10 +28,10 @@ struct PlateMeshT : public RefCounted {
   virtual void ReflectZ() = 0;
 };
 
-DeclareFunction(PlateMesh_Create, PlateMesh,
-  uint, quality)
+LT_API PlateMesh PlateMesh_Create(
+  uint const& quality);
 
-DeclareFunction(Mesh_ComputeOcclusion, void,
-  Mesh, mesh)
+LT_API void Mesh_ComputeOcclusion(
+  Mesh const& mesh);
 
 #endif

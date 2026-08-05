@@ -3,7 +3,7 @@
 
 #include "AutoClass.h"
 #include "Common.h"
-#include "DeclareFunction.h"
+#include "LTE/AutoClass.h"
 
 AutoClass(Time,
   uint, second,
@@ -15,6 +15,6 @@ AutoClass(Time,
   Time() = default;
 };
 
-DeclareFunctionNoParams(Time_Current, Time)
+LT_API Time Time_Current();
 
 #endif

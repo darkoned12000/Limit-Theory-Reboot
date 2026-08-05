@@ -2,6 +2,7 @@
 
 #include "LTE/Bound.h"
 #include "LTE/Math.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(SDFRepeat, SDFT,
@@ -47,6 +48,13 @@ namespace {
   DERIVED_IMPLEMENT(SDFRepeat)
 }
 
-DefineFunction(SDF_Repeat) {
-  return new SDFRepeat(args.source, args.frequency, args.spacing);
+SDF SDF_Repeat(SDF const& source, V3 const& frequency, V3 const& spacing) {
+  return new SDFRepeat(source, frequency, spacing);
 }
+static Function const SDF_Repeat_Registration = Function_Bind(
+  "SDF_Repeat",
+  "None",
+  &SDF_Repeat,
+  "source", "frequency", "spacing");
+
+

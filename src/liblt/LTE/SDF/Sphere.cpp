@@ -2,6 +2,7 @@
 
 #include "LTE/Bound.h"
 #include "LTE/Math.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(SDFSphere, SDFT,
@@ -28,6 +29,13 @@ namespace {
   DERIVED_IMPLEMENT(SDFSphere)
 }
 
-DefineFunction(SDF_Sphere) {
-  return new SDFSphere(args.center, args.radius);
+SDF SDF_Sphere(V3 const& center, float const& radius) {
+  return new SDFSphere(center, radius);
 }
+static Function const SDF_Sphere_Registration = Function_Bind(
+  "SDF_Sphere",
+  "None",
+  &SDF_Sphere,
+  "center", "radius");
+
+

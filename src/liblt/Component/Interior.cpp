@@ -86,7 +86,7 @@ void ComponentInterior::Run(ObjectT* self, UpdateState& state) {
     }
   }
   
-  ParticleSystem_Pop(particles);
+  ParticleSystem_Pop();
 }
 
 namespace {

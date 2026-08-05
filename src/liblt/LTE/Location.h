@@ -2,7 +2,6 @@
 #define LTE_LocationT_h__
 
 #include "BaseType.h"
-#include "DeclareFunction.h"
 #include "Reference.h"
 #include "String.h"
 
@@ -21,22 +20,17 @@ namespace LTE {
     FIELDS {}
   };
 
-  DeclareFunction(Location_Cache, Location,
-    String, name)
+  LT_API Location Location_Cache(String const& name);
 
-  DeclareFunction(Location_File, Location,
-    String, file)
+  LT_API Location Location_File(String const& file);
 
   LT_API Location Location_Memory(String const& str);
 
   LT_API Location Location_Memory(Array<uchar>* memory, bool ownsMemory = false);
 
-  DeclareFunction(Location_Resource, Location,
-    String, name)
+  LT_API Location Location_Resource(String const& name);
 
-  DeclareFunction(Location_Web, Location,
-    String, host,
-    String, file)
+  LT_API Location Location_Web(String const& host, String const& file);
 
   inline Location Location_Font(String const& name) {
     return Location_Resource("font/" + name);

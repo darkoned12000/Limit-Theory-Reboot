@@ -2,6 +2,7 @@
 
 #include "LTE/Bound.h"
 #include "LTE/Math.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(SDFUnion, SDFT,
@@ -54,12 +55,19 @@ namespace {
   DERIVED_IMPLEMENT(SDFUnion0)
 }
 
-DefineFunction(SDF_Union) {
-  if (args.sharpness <= 0)
-    return new SDFUnion0(args.a, args.b);
+SDF SDF_Union(SDF const& a, SDF const& b, float const& sharpness) {
+  if (sharpness <= 0)
+    return new SDFUnion0(a, b);
   else
-    return new SDFUnion(args.a, args.b, args.sharpness);
+    return new SDFUnion(a, b, sharpness);
 }
+static Function const SDF_Union_Registration = Function_Bind(
+  "SDF_Union",
+  "None",
+  &SDF_Union,
+  "a", "b", "sharpness");
+
+
 
 SDF SDFT::Union(SDF const& other, float sharpness) {
   return SDF_Union(this, other, sharpness);

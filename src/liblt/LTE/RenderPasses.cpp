@@ -6,6 +6,7 @@
 #include "ShaderInstance.h"
 #include "StackFrame.h"
 #include "Texture2D.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   void DrawSecondaryFSQ(DrawState* state) {
@@ -77,14 +78,34 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_Aberration) {
-  return new Aberration(args.strength);
+RenderPass RenderPass_Aberration(float const& strength) {
+  return new Aberration(strength);
 }
+static Function const RenderPass_Aberration_Registration = Function_Bind(
+  "RenderPass_Aberration",
+  "None",
+  &RenderPass_Aberration,
+  "strength");
 
-DefineFunction(RenderPass_PostFilter) {
-  return new RenderPassPost(args.shaderPath);
+
+
+RenderPass RenderPass_PostFilter(String const& shaderPath) {
+  return new RenderPassPost(shaderPath);
 }
+static Function const RenderPass_PostFilter_Registration = Function_Bind(
+  "RenderPass_PostFilter",
+  "None",
+  &RenderPass_PostFilter,
+  "shaderPath");
 
-DefineFunction(RenderPass_Tonemap) {
+
+
+RenderPass RenderPass_Tonemap() {
   return RenderPass_PostFilter("post/tonemap.jsl");
 }
+static Function const RenderPass_Tonemap_Registration = Function_Bind(
+  "RenderPass_Tonemap",
+  "None",
+  &RenderPass_Tonemap);
+
+

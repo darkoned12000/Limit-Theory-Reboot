@@ -1,7 +1,6 @@
 #ifndef LTE_Shader_h__
 #define LTE_Shader_h__
 
-#include "DeclareFunction.h"
 #include "GLType.h"
 #include "Reference.h"
 #include "String.h"
@@ -140,9 +139,8 @@ struct ShaderT : public RefCounted {
   }
 };
 
-DeclareFunction(Shader_Create, Shader,
-  String, vsPath,
-  String, fsPath)
+LT_API Shader Shader_Create(
+  String const& vsPath, String const& fsPath);
 
 LT_API Shader Shader_Create(
   String const& vsPath,
@@ -153,7 +151,7 @@ LT_API Shader Shader_Create(
 LT_API ShaderT* Shader_GetActive();
 LT_API GL_Program Shader_GetCurrentProgram();
 
-DeclareFunctionNoParams(Shader_RecompileAll, void)
+LT_API void Shader_RecompileAll();
 
 LT_API void Shader_UseFixedFunction();
 

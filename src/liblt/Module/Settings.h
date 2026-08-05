@@ -2,7 +2,6 @@
 #define Module_Settings_h__
 
 #include "LTE/Common.h"
-#include "LTE/DeclareFunction.h"
 #include "LTE/Generic.h"
 #include "LTE/String.h"
 #include "UI/Common.h"
@@ -30,7 +29,7 @@ LT_API GenericFloat Settings_Float(
   float maximum,
   float defValue);
 
-DeclareFunctionNoParams(Widget_Settings, Widget)
+LT_API Widget Widget_Settings();
 
 LT_API GenericColor Settings_PrimaryColor();
 

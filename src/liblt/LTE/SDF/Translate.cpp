@@ -2,6 +2,7 @@
 
 #include "LTE/Bound.h"
 #include "LTE/Math.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(SDFTranslate, SDFT,
@@ -28,6 +29,13 @@ namespace {
   DERIVED_IMPLEMENT(SDFTranslate)
 }
 
-DefineFunction(SDF_Translate) {
-  return new SDFTranslate(args.source, args.offset);
-} FunctionAlias(SDF_Translate, +);
+SDF SDF_Translate(SDF const& source, V3 const& offset) {
+  return new SDFTranslate(source, offset);
+}
+static Function const SDF_Translate_Registration = Function_Bind(
+  "SDF_Translate",
+  "None",
+  &SDF_Translate,
+  "source", "offset");
+
+static int const SDF_Translate_Alias = Function_Alias("SDF_Translate", "+");

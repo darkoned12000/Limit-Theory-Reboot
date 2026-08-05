@@ -4,6 +4,7 @@
 #include "LTE/Renderer.h"
 #include "LTE/ShaderInstance.h"
 #include "LTE/Texture2D.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   struct Bloom : public RenderPassT {
@@ -74,6 +75,13 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_Bloom) {
-  return new Bloom(args.radius, args.variance);
+RenderPass RenderPass_Bloom(int const& radius, float const& variance) {
+  return new Bloom(radius, variance);
 }
+static Function const RenderPass_Bloom_Registration = Function_Bind(
+  "RenderPass_Bloom",
+  "None",
+  &RenderPass_Bloom,
+  "radius", "variance");
+
+

@@ -2,6 +2,7 @@
 
 #include "LTE/Bound.h"
 #include "LTE/Math.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(SDFMultiply, SDFT,
@@ -28,6 +29,13 @@ namespace {
   DERIVED_IMPLEMENT(SDFMultiply)
 }
 
-DefineFunction(SDF_Multiply) {
-  return new SDFMultiply(args.source, args.value);
+SDF SDF_Multiply(SDF const& source, float const& value) {
+  return new SDFMultiply(source, value);
 }
+static Function const SDF_Multiply_Registration = Function_Bind(
+  "SDF_Multiply",
+  "None",
+  &SDF_Multiply,
+  "source", "value");
+
+

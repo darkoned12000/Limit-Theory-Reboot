@@ -2,6 +2,7 @@
 
 #include "LTE/AutoClass.h"
 #include "LTE/Script.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(WarpCustom, WarpT,
@@ -19,10 +20,17 @@ namespace {
   };
 }
 
-DefineFunction(Warp_Custom) {
-  ScriptType type = args.data.type->GetAux().Convert<ScriptType>();
+Warp Warp_Custom(Data const& data) {
+  ScriptType type = data.type->GetAux().Convert<ScriptType>();
   Reference<WarpCustom> self = new WarpCustom;
-  self->instance = args.data;
+  self->instance = data;
   self->getDelta = type->GetFunction("GetDelta");
   return self;
 }
+static Function const Warp_Custom_Registration = Function_Bind(
+  "Warp_Custom",
+  "None",
+  &Warp_Custom,
+  "data");
+
+

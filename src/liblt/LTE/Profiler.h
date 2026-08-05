@@ -2,7 +2,6 @@
 #define LTE_Profiler_h__
 
 #include "Common.h"
-#include "DeclareFunction.h"
 
 #define ENABLE_PROFILING
 
@@ -20,10 +19,10 @@ inline void Profiler_Push(char const* name) {}
 
 #endif
 
-DeclareFunction(Profiler_Auto, void,
-  float, duration)
-DeclareFunctionNoParams(Profiler_Start, void)
-DeclareFunctionNoParams(Profiler_Stop, void)
+LT_API void Profiler_Auto(
+  float const& duration);
+LT_API void Profiler_Start();
+LT_API void Profiler_Stop();
 
 LT_API void Profiler_SetFlushes(bool flushes);
 

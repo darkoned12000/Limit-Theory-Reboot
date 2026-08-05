@@ -2,7 +2,6 @@
 #define LTE_Script_h__
 
 #include "Array.h"
-#include "DeclareFunction.h"
 #include "ScriptType.h"
 
 namespace LTE {
@@ -43,19 +42,19 @@ namespace LTE {
     LT_API void Reload();
   };
 
-  DeclareFunctionNoParams(Script_ClearCache, void)
+  LT_API void Script_ClearCache();
 
-  DeclareFunction(Script_Load, Script,
-    String, name)
+  LT_API Script Script_Load(
+    String const& name);
 
-  DeclareFunction(Script_Reload, void,
-    String, name)
+  LT_API void Script_Reload(
+    String const& name);
 
-  DeclareFunction(ScriptFunction_Load, ScriptFunction,
-    String, name)
+  LT_API ScriptFunction ScriptFunction_Load(
+    String const& name);
 
-  DeclareFunction(ScriptType_Load, ScriptType,
-    String, name)
+  LT_API ScriptType ScriptType_Load(
+    String const& name);
 }
 
 #endif

@@ -2,8 +2,8 @@
 #define LTE_Transform_h__
 
 #include "AutoClass.h"
-#include "DeclareFunction.h"
 #include "Matrix.h"
+#include "LTE/AutoClass.h"
 
 const float kSmallFloat = 1e-6f;
 
@@ -93,35 +93,30 @@ AutoClass(Transform,
 LT_API Transform operator*(Transform const&, Transform const&);
 LT_API Transform Mix(Transform const&, Transform const&, double);
 
-DeclareFunctionNoParams(Transform_Identity, Transform)
+LT_API Transform Transform_Identity();
 
-DeclareFunction(Transform_Inverse, Transform,
-  Transform, source)
+LT_API Transform Transform_Inverse(
+  Transform const& source);
 
-DeclareFunction(Transform_Look, Transform,
-  V3D, pos,
-  V3F, look)
+LT_API Transform Transform_Look(
+  V3D const& pos, V3F const& look);
 
-DeclareFunction(Transform_LookUp, Transform,
-  V3D, pos,
-  V3F, look,
-  V3F, up)
+LT_API Transform Transform_LookUp(
+  V3D const& pos, V3F const& look, V3F const& up);
 
-DeclareFunction(Transform_Matrix, Transform,
-  MatrixD, matrix)
+LT_API Transform Transform_Matrix(
+  MatrixD const& matrix);
 
-DeclareFunction(Transform_Rotate, void,
-  Transform, source,
-  V3F, rotation)
+LT_API void Transform_Rotate(
+  Transform const& source, V3F const& rotation);
 
-DeclareFunction(Transform_Scale, Transform,
-  V3F, scale)
+LT_API Transform Transform_Scale(
+  V3F const& scale);
 
-DeclareFunction(Transform_Translation, Transform,
-  V3D, pos)
+LT_API Transform Transform_Translation(
+  V3D const& pos);
 
-DeclareFunction(Transform_ST, Transform,
-  V3F, scale,
-  V3D, pos)
+LT_API Transform Transform_ST(
+  V3F const& scale, V3D const& pos);
 
 #endif

@@ -6,6 +6,7 @@
 #include "LTE/Script.h"
 #include "LTE/ShaderInstance.h"
 #include "LTE/Texture2D.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(CustomFilter, RenderPassT,
@@ -28,10 +29,17 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_CustomFilter) {
+RenderPass RenderPass_CustomFilter(Data const& data) {
   Reference<CustomFilter> self = new CustomFilter;
-  ScriptType type = args.data.type->GetAux().Convert<ScriptType>();
-  self->instance = args.data;
+  ScriptType type = data.type->GetAux().Convert<ScriptType>();
+  self->instance = data;
   self->render = type->GetFunction("Render");
   return self;
 }
+static Function const RenderPass_CustomFilter_Registration = Function_Bind(
+  "RenderPass_CustomFilter",
+  "None",
+  &RenderPass_CustomFilter,
+  "data");
+
+

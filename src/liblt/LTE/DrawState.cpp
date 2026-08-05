@@ -12,6 +12,7 @@
 #include "LTE/Viewport.h"
 
 #include "Game/Common.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   using DataMap = Map< char const*, Vector<Data> >;
@@ -156,14 +157,34 @@ void DrawState_Link(ShaderInstance const& s) {
   LinkState(s);
 }
 
-DefineFunction(DrawState_Clear) {
+void DrawState_Clear() {
   GetDataMap().clear();
 }
+static Function const DrawState_Clear_Registration = Function_Bind(
+  "DrawState_Clear",
+  "None",
+  &DrawState_Clear);
 
-DefineFunction(DrawState_Pop) {
-  GetDataMap()[GetString(args.name)].pop();
-}
 
-DefineFunction(DrawState_Push) {
-  GetDataMap()[GetString(args.name)].push(args.data);
+
+void DrawState_Pop(String const& name) {
+  GetDataMap()[GetString(name)].pop();
 }
+static Function const DrawState_Pop_Registration = Function_Bind(
+  "DrawState_Pop",
+  "None",
+  &DrawState_Pop,
+  "name");
+
+
+
+void DrawState_Push(String const& name, Data const& data) {
+  GetDataMap()[GetString(name)].push(data);
+}
+static Function const DrawState_Push_Registration = Function_Bind(
+  "DrawState_Push",
+  "None",
+  &DrawState_Push,
+  "name", "data");
+
+

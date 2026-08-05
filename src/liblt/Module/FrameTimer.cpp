@@ -2,6 +2,7 @@
 
 #include "LTE/Module.h"
 #include "LTE/Timer.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   struct FrameTimerModule : public ModuleT {
@@ -41,18 +42,42 @@ namespace {
   }
 }
 
-DefineFunction(FrameTimer_Get) {
+float FrameTimer_Get() {
   return FrameTimer_GetModule()->dt;
 }
+static Function const FrameTimer_Get_Registration = Function_Bind(
+  "FrameTimer_Get",
+  "None",
+  &FrameTimer_Get);
 
-DefineFunction(FrameTimer_GetEMA01) {
+
+
+float FrameTimer_GetEMA01() {
   return FrameTimer_GetModule()->ema01;
 }
+static Function const FrameTimer_GetEMA01_Registration = Function_Bind(
+  "FrameTimer_GetEMA01",
+  "None",
+  &FrameTimer_GetEMA01);
 
-DefineFunction(FrameTimer_GetEMA1) {
+
+
+float FrameTimer_GetEMA1() {
   return FrameTimer_GetModule()->ema1;
 }
+static Function const FrameTimer_GetEMA1_Registration = Function_Bind(
+  "FrameTimer_GetEMA1",
+  "None",
+  &FrameTimer_GetEMA1);
 
-DefineFunction(FrameTimer_GetEMA10) {
+
+
+float FrameTimer_GetEMA10() {
   return FrameTimer_GetModule()->ema10;
 }
+static Function const FrameTimer_GetEMA10_Registration = Function_Bind(
+  "FrameTimer_GetEMA10",
+  "None",
+  &FrameTimer_GetEMA10);
+
+

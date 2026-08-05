@@ -2,6 +2,7 @@
 
 #include "LTE/Bound.h"
 #include "LTE/Math.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(SDFRing, SDFT,
@@ -31,6 +32,13 @@ namespace {
   DERIVED_IMPLEMENT(SDFRing)
 }
 
-DefineFunction(SDF_Ring) {
-  return new SDFRing(args.center, args.radius, args.thickness);
+SDF SDF_Ring(V3 const& center, float const& radius, float const& thickness) {
+  return new SDFRing(center, radius, thickness);
 }
+static Function const SDF_Ring_Registration = Function_Bind(
+  "SDF_Ring",
+  "None",
+  &SDF_Ring,
+  "center", "radius", "thickness");
+
+

@@ -2,6 +2,7 @@
 
 #include "LTE/Bound.h"
 #include "LTE/Math.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(SDFTorus, SDFT,
@@ -32,6 +33,13 @@ namespace {
   DERIVED_IMPLEMENT(SDFTorus)
 }
 
-DefineFunction(SDF_Torus) {
-  return new SDFTorus(args.center, args.radius, args.thickness);
+SDF SDF_Torus(V3 const& center, float const& radius, float const& thickness) {
+  return new SDFTorus(center, radius, thickness);
 }
+static Function const SDF_Torus_Registration = Function_Bind(
+  "SDF_Torus",
+  "None",
+  &SDF_Torus,
+  "center", "radius", "thickness");
+
+

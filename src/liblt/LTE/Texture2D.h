@@ -2,7 +2,6 @@
 #define LTE_Texture_h__
 
 #include "BaseType.h"
-#include "DeclareFunction.h"
 #include "GLEnum.h"
 #include "GLType.h"
 #include "Reference.h"
@@ -84,9 +83,9 @@ LT_API void Texture_Generate(
   bool segmented = true,
   float maxJobTime = 1);
 
-DeclareFunction(Texture_LoadFrom, Texture2D,
-  Location, source)
+LT_API Texture2D Texture_LoadFrom(
+  Location const& source);
 
-DeclareFunctionNoParams(Texture_ScreenCapture, Texture2D)
+LT_API Texture2D Texture_ScreenCapture();
 
 #endif

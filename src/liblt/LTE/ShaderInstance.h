@@ -2,7 +2,6 @@
 #define LTE_ShaderInstance_h__
 
 #include "Color.h"
-#include "DeclareFunction.h"
 #include "Enum.h"
 #include "Generic.h"
 #include "Reference.h"
@@ -165,8 +164,8 @@ struct ShaderInstanceT : public RefCounted {
   }
 };
 
-DeclareFunction(ShaderInstance_Create, ShaderInstance,
-  Shader, shader)
+LT_API ShaderInstance ShaderInstance_Create(
+  Shader const& shader);
 
 inline ShaderInstance ShaderInstance_Create(
   String const& vs,

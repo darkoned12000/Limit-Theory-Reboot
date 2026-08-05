@@ -21,6 +21,7 @@
 #include <fstream>
 
 #include "LTE/Debug.h"
+#include "LTE/FunctionBind.h"
 
 #ifdef BUILD_RELEASE
   const bool kUseArchive = true;
@@ -289,13 +290,27 @@ namespace LTE {
     return str;
   }
 
-  DefineFunction(Location_Cache) {
-    return Location_File(OS_GetUserDataPath() + "cache/" + args.name);
+  Location Location_Cache(String const& name) {
+    return Location_File(OS_GetUserDataPath() + "cache/" + name);
   }
+static Function const Location_Cache_Registration = Function_Bind(
+  "Location_Cache",
+  "None",
+  &Location_Cache,
+  "name");
 
-  DefineFunction(Location_File) {
-    return new LocationFile(args.file);
+
+
+  Location Location_File(String const& file) {
+    return new LocationFile(file);
   }
+static Function const Location_File_Registration = Function_Bind(
+  "Location_File",
+  "None",
+  &Location_File,
+  "file");
+
+
 
   Location Location_Memory(String const& data) {
     return new LocationMemory(data);
@@ -305,11 +320,25 @@ namespace LTE {
     return new LocationMemory(memory, ownsMemory);
   }
 
-  DefineFunction(Location_Resource) {
-    return new LocationResource(args.name);
+  Location Location_Resource(String const& name) {
+    return new LocationResource(name);
   }
+static Function const Location_Resource_Registration = Function_Bind(
+  "Location_Resource",
+  "None",
+  &Location_Resource,
+  "name");
 
-  DefineFunction(Location_Web) {
-    return new LocationWeb(args.host, args.file);
+
+
+  Location Location_Web(String const& host, String const& file) {
+    return new LocationWeb(host, file);
   }
+static Function const Location_Web_Registration = Function_Bind(
+  "Location_Web",
+  "None",
+  &Location_Web,
+  "host", "file");
+
+
 }

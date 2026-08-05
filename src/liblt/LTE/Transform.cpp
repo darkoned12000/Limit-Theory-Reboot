@@ -57,52 +57,115 @@ static Function const Transform_GetInverseDir_Registration = Function_Bind(
   "transform", "dir");
 static int const Transform_GetInverseDir_Alias = Function_Alias("Transform_GetInverseDir", "GetInverseDir");
 
-DefineFunction(Transform_Identity) {
+Transform Transform_Identity() {
   return Transform(0, V3F(1, 0, 0), V3F(0, 1, 0), V3F(0, 0, 1), V3F(1));
 }
+static Function const Transform_Identity_Registration = Function_Bind(
+  "Transform_Identity",
+  "None",
+  &Transform_Identity);
+
+
 
 /* TODO : Analytic inverse. */
-DefineFunction(Transform_Inverse) {
-  return Transform_Matrix(args.source.GetMatrix().Inverse());
+Transform Transform_Inverse(Transform const& source) {
+  return Transform_Matrix(source.GetMatrix().Inverse());
 }
+static Function const Transform_Inverse_Registration = Function_Bind(
+  "Transform_Inverse",
+  "None",
+  &Transform_Inverse,
+  "source");
 
-DefineFunction(Transform_Look) {
-  Transform self(args.pos, V3F(1, 0, 0), OrthoVector(args.look), args.look, V3F(1));
+
+
+Transform Transform_Look(V3D const& pos, V3F const& look) {
+  Transform self(pos, V3F(1, 0, 0), OrthoVector(look), look, V3F(1));
   self.Orthogonalize();
   return self;
 }
+static Function const Transform_Look_Registration = Function_Bind(
+  "Transform_Look",
+  "None",
+  &Transform_Look,
+  "pos", "look");
 
-DefineFunction(Transform_LookUp) {
-  Transform self(args.pos, V3F(1, 0, 0), args.up, args.look, V3F(1));
+
+
+Transform Transform_LookUp(V3D const& pos, V3F const& look, V3F const& up) {
+  Transform self(pos, V3F(1, 0, 0), up, look, V3F(1));
   self.Orthogonalize();
   return self;
 }
+static Function const Transform_LookUp_Registration = Function_Bind(
+  "Transform_LookUp",
+  "None",
+  &Transform_LookUp,
+  "pos", "look", "up");
 
-DefineFunction(Transform_Matrix) {
-  V3D pos(args.matrix[12], args.matrix[13], args.matrix[14]);
-  V3F right((float)args.matrix[0], (float)args.matrix[1], (float)args.matrix[2]);
-  V3F up((float)args.matrix[4], (float)args.matrix[5], (float)args.matrix[6]);
-  V3F look((float)args.matrix[8], (float)args.matrix[9], (float)args.matrix[10]);
+
+
+Transform Transform_Matrix(MatrixD const& matrix) {
+  V3D pos(matrix[12], matrix[13], matrix[14]);
+  V3F right((float)matrix[0], (float)matrix[1], (float)matrix[2]);
+  V3F up((float)matrix[4], (float)matrix[5], (float)matrix[6]);
+  V3F look((float)matrix[8], (float)matrix[9], (float)matrix[10]);
   V3F scale(Length(right), Length(up), Length(look));
   return Transform(pos, right / scale.x, up / scale.y, look / scale.z, scale);
 }
+static Function const Transform_Matrix_Registration = Function_Bind(
+  "Transform_Matrix",
+  "None",
+  &Transform_Matrix,
+  "matrix");
 
-DefineFunction(Transform_Rotate) {
+
+
+void Transform_Rotate(Transform const& source, V3F const& rotation) {
   RotateBasis(
-    Mutable(args.source.right),
-    Mutable(args.source.up),
-    Mutable(args.source.look),
-    args.rotation);
-} FunctionAlias(Transform_Rotate, Rotate);
-
-DefineFunction(Transform_Scale) {
-  return Transform(0, V3F(1, 0, 0), V3F(0, 1, 0), V3F(0, 0, 1), args.scale);
+    Mutable(source.right),
+    Mutable(source.up),
+    Mutable(source.look),
+    rotation);
 }
+static Function const Transform_Rotate_Registration = Function_Bind(
+  "Transform_Rotate",
+  "None",
+  &Transform_Rotate,
+  "source", "rotation");
+static int const Transform_Rotate_Alias = Function_Alias("Transform_Rotate", "Rotate");
 
-DefineFunction(Transform_Translation) {
-  return Transform(args.pos, V3F(1, 0, 0), V3F(0, 1, 0), V3F(0, 0, 1), V3F(1));
-}
 
-DefineFunction(Transform_ST) {
-  return Transform_Translation(args.pos) * Transform_Scale(args.scale);
+
+Transform Transform_Scale(V3F const& scale) {
+  return Transform(0, V3F(1, 0, 0), V3F(0, 1, 0), V3F(0, 0, 1), scale);
 }
+static Function const Transform_Scale_Registration = Function_Bind(
+  "Transform_Scale",
+  "None",
+  &Transform_Scale,
+  "scale");
+
+
+
+Transform Transform_Translation(V3D const& pos) {
+  return Transform(pos, V3F(1, 0, 0), V3F(0, 1, 0), V3F(0, 0, 1), V3F(1));
+}
+static Function const Transform_Translation_Registration = Function_Bind(
+  "Transform_Translation",
+  "None",
+  &Transform_Translation,
+  "pos");
+
+
+
+Transform Transform_ST(V3F const& scale, V3D const& pos) {
+  return Transform_Translation(pos) * Transform_Scale(scale);
+}
+static Function const Transform_ST_Registration = Function_Bind(
+  "Transform_ST",
+  "None",
+  &Transform_ST,
+  "scale", "pos");
+
+

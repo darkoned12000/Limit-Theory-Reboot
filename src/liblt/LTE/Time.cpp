@@ -1,7 +1,8 @@
 #include "Time.h"
 #include <ctime>
+#include "LTE/FunctionBind.h"
 
-DefineFunction(Time_Current) {
+Time Time_Current() {
   Time self;
   time_t time = std::time(0);
   struct std::tm* localTime = std::localtime(&time);
@@ -13,3 +14,9 @@ DefineFunction(Time_Current) {
   self.year = 1900 + localTime->tm_year;
   return self;
 }
+static Function const Time_Current_Registration = Function_Bind(
+  "Time_Current",
+  "None",
+  &Time_Current);
+
+

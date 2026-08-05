@@ -1,6 +1,7 @@
 #include "../RenderPasses.h"
 
 #include "LTE/Vector.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   struct Composite : public RenderPassT {
@@ -22,6 +23,13 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_Composite) {
-  return new Composite(args.passes);
+RenderPass RenderPass_Composite(Vector<RenderPass> const& passes) {
+  return new Composite(passes);
 }
+static Function const RenderPass_Composite_Registration = Function_Bind(
+  "RenderPass_Composite",
+  "None",
+  &RenderPass_Composite,
+  "passes");
+
+

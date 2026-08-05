@@ -1,103 +1,67 @@
 #ifndef LTE_SDFs_h__
 #define LTE_SDFs_h__
 
-#include "DeclareFunction.h"
 #include "SDF.h"
 
-DeclareFunction(SDF_Add, SDF,
-  SDF, a,
-  SDF, b)
+LT_API SDF SDF_Add(
+  SDF const& a, SDF const& b);
 
-DeclareFunction(SDF_Box, SDF,
-  V3, center,
-  V3, sides)
+LT_API SDF SDF_Box(
+  V3 const& center, V3 const& sides);
 
-DeclareFunction(SDF_Capsule, SDF,
-  V3, p1,
-  V3, p2,
-  float, radius)
+LT_API SDF SDF_Capsule(
+  V3 const& p1, V3 const& p2, float const& radius);
 
-DeclareFunction(SDF_Cylinder, SDF,
-  V3, center,
-  V3, axis,
-  float, radius)
+LT_API SDF SDF_Cylinder(
+  V3 const& center, V3 const& axis, float const& radius);
 
-DeclareFunction(SDF_FractalPerlin, SDF,
-  V3, center,
-  int, octaves,
-  float, lac)
+LT_API SDF SDF_FractalPerlin(
+  V3 const& center, int const& octaves, float const& lac);
 
-DeclareFunction(SDF_FractalWorley, SDF,
-  float, seed,
-  int, octaves,
-  float, lac)
+LT_API SDF SDF_FractalWorley(
+  float const& seed, int const& octaves, float const& lac);
 
-DeclareFunction(SDF_Multiply, SDF,
-  SDF, source,
-  float, value)
+LT_API SDF SDF_Multiply(
+  SDF const& source, float const& value);
 
-DeclareFunction(SDF_Polyhedron, SDF,
-  Vector<Plane>, planes,
-  int, shape)
+LT_API SDF SDF_Polyhedron(
+  Vector<Plane> const& planes, int const& shape);
 
-DeclareFunction(SDF_Radial, SDF,
-  SDF, source,
-  float, rMin,
-  float, rMax)
+LT_API SDF SDF_Radial(
+  SDF const& source, float const& rMin, float const& rMax);
 
-DeclareFunction(SDF_Repeat, SDF,
-  SDF, source,
-  V3, frequency,
-  V3, spacing)
+LT_API SDF SDF_Repeat(
+  SDF const& source, V3 const& frequency, V3 const& spacing);
 
-DeclareFunction(SDF_Ring, SDF,
-  V3, center,
-  float, radius,
-  float, thickness)
+LT_API SDF SDF_Ring(
+  V3 const& center, float const& radius, float const& thickness);
 
-DeclareFunction(SDF_RoundBox, SDF,
-  V3, center,
-  V3, sides,
-  float, radius)
+LT_API SDF SDF_RoundBox(
+  V3 const& center, V3 const& sides, float const& radius);
 
-DeclareFunction(SDF_Scale, SDF,
-  SDF, source,
-  V3, scale)
+LT_API SDF SDF_Scale(
+  SDF const& source, V3 const& scale);
 
-DeclareFunction(SDF_Shell, SDF,
-  V3, center,
-  float, radius,
-  float, thickness)
+LT_API SDF SDF_Shell(
+  V3 const& center, float const& radius, float const& thickness);
 
-DeclareFunction(SDF_Sphere, SDF,
-  V3, center,
-  float, radius)
+LT_API SDF SDF_Sphere(
+  V3 const& center, float const& radius);
 
-DeclareFunction(SDF_Subtract, SDF,
-  SDF, a,
-  SDF, b,
-  float, sharpness)
+LT_API SDF SDF_Subtract(
+  SDF const& a, SDF const& b, float const& sharpness);
 
-DeclareFunction(SDF_Torus, SDF,
-  V3, center,
-  float, radius,
-  float, thickness)
+LT_API SDF SDF_Torus(
+  V3 const& center, float const& radius, float const& thickness);
 
-DeclareFunction(SDF_Translate, SDF,
-  SDF, source,
-  V3, offset)
+LT_API SDF SDF_Translate(
+  SDF const& source, V3 const& offset);
 
-DeclareFunction(SDF_Union, SDF,
-  SDF, a,
-  SDF, b,
-  float, sharpness)
+LT_API SDF SDF_Union(
+  SDF const& a, SDF const& b, float const& sharpness);
 
-DeclareFunction(SDF_Wedge, SDF,
-  V3, center,
-  float, angle,
-  float, angularExtent,
-  float, radius,
-  float, radialExtent,
-  float, height)
+LT_API SDF SDF_Wedge(
+  V3 const& center, float const& angle, float const& angularExtent, float const& radius,
+  float const& radialExtent, float const& height);
 
 #endif

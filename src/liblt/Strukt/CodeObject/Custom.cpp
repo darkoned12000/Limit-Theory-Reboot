@@ -4,6 +4,7 @@
 #include "LTE/Script.h"
 
 #include "UI/Widget.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(CodeObjectCustom, CodeObjectT,
@@ -30,7 +31,14 @@ namespace {
   };
 }
 
-DefineFunction(CodeObject_Custom) {
+CodeObject CodeObject_Custom(Data const& data) {
   Reference<CodeObjectCustom> self = new CodeObjectCustom;
   return self;
 }
+static Function const CodeObject_Custom_Registration = Function_Bind(
+  "CodeObject_Custom",
+  "None",
+  &CodeObject_Custom,
+  "data");
+
+
