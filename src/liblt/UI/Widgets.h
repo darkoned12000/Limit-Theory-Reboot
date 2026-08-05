@@ -3,33 +3,27 @@
 
 #include "WidgetComponent.h"
 
-#include "LTE/DeclareFunction.h"
 
-DeclareFunction(Widget_Custom, Widget,
-  Widget, widget,
-  Data, data)
+LT_API Widget Widget_Custom(
+  Widget const& widget, Data const& data);
 
-DeclareFunction(Widget_Dynamic, Widget,
-  Widget, widget)
+LT_API Widget Widget_Dynamic(
+  Widget const& widget);
 
-DeclareFunction(Widget_Layer, Widget,
-  Compositor, compositor,
-  Mesh, surface,
-  float, resolution,
-  Widget, widget)
+LT_API Widget Widget_Layer(
+  Compositor const& compositor, Mesh const& surface, float const& resolution,
+  Widget const& widget);
 
-DeclareFunction(Widget_ListHorizontal, Widget,
-  float, spacing,
-  Widget, widget)
+LT_API Widget Widget_ListHorizontal(
+  float const& spacing, Widget const& widget);
 
-DeclareFunction(Widget_ListVertical, Widget,
-  float, spacing,
-  Widget, widget)
+LT_API Widget Widget_ListVertical(
+  float const& spacing, Widget const& widget);
 
-DeclareFunction(Widget_Rendered, Widget,
-  Vector<RenderPass>, passes)
+LT_API Widget Widget_Rendered(
+  Vector<RenderPass> const& passes);
 
-DeclareFunction(Widget_Stack, Widget,
-  Widget, widget)
+LT_API Widget Widget_Stack(
+  Widget const& widget);
 
 #endif

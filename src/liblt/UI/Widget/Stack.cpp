@@ -5,6 +5,7 @@
 #include "LTE/V4.h"
 
 #include "UI/Widget.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerivedEmpty(WidgetStack, WidgetComponentT)
@@ -40,7 +41,15 @@ namespace {
   };
 }
 
-DefineFunction(Widget_Stack) {
-  args.widget->Add(new WidgetStack);
-  return args.widget;
-} FunctionAlias(Widget_Stack, Stack);
+Widget Widget_Stack(Widget const& widget) {
+  widget->Add(new WidgetStack);
+  return widget;
+}
+static Function const Widget_Stack_Registration = Function_Bind(
+  "Widget_Stack",
+  "None",
+  &Widget_Stack,
+  "widget");
+static int const Widget_Stack_Alias = Function_Alias("Widget_Stack", "Stack");
+
+

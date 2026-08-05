@@ -1,17 +1,15 @@
 #ifndef UI_Cursor_h__
 #define UI_Cursor_h__
 
-#include "LTE/DeclareFunction.h"
 #include "LTE/V2.h"
 
-DeclareFunctionNoParams(Cursor_Get, V2)
-DeclareFunctionNoParams(Cursor_GetDelta, V2)
-DeclareFunctionNoParams(Cursor_GetLast, V2)
+LT_API V2 Cursor_Get();
+LT_API V2 Cursor_GetDelta();
+LT_API V2 Cursor_GetLast();
 
-DeclareFunctionNoParams(Cursor_Pop, void)
+LT_API void Cursor_Pop();
 
-DeclareFunction(Cursor_Push, void,
-  V2, pos,
-  V2, posLast)
+LT_API void Cursor_Push(
+  V2 const& pos, V2 const& posLast);
 
 #endif

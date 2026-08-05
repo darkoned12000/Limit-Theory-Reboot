@@ -2,18 +2,16 @@
 #define UI_ClipRegion_h__
 
 #include "Common.h"
-#include "LTE/DeclareFunction.h"
 #include "LTE/V2.h"
 
-DeclareFunctionNoParams(ClipRegion_GetMin, V2)
-DeclareFunctionNoParams(ClipRegion_GetMax, V2)
+LT_API V2 ClipRegion_GetMin();
+LT_API V2 ClipRegion_GetMax();
 
-DeclareFunctionNoParams(ClipRegion_Pop, void)
+LT_API void ClipRegion_Pop();
 
-DeclareFunction(ClipRegion_Push, void,
-  V2, pos,
-  V2, size)
+LT_API void ClipRegion_Push(
+  V2 const& pos, V2 const& size);
 
-DeclareFunctionNoParams(ClipRegion_PushNoClip, void)
+LT_API void ClipRegion_PushNoClip();
 
 #endif

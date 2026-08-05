@@ -3,6 +3,7 @@
 #include "LTE/Pool.h"
 #include "LTE/Shader.h"
 #include "LTE/V4.h"
+#include "LTE/FunctionBind.h"
 
 const float kExpansion = 32;
 
@@ -64,6 +65,13 @@ namespace {
   };
 }
 
-DefineFunction(Glyph_Triangle) {
+Glyph Glyph_Triangle(Glyph_Triangle_Args const& args) {
   return new Triangle(args);
 }
+static Function const Glyph_Triangle_Registration = Function_Bind(
+  "Glyph_Triangle",
+  "None",
+  [](V2 const& p1, V2 const& p2, V2 const& p3, Color const& color, float const& alpha) -> Glyph { return Glyph_Triangle(p1, p2, p3, color, alpha); },
+  "p1", "p2", "p3", "color", "alpha");
+
+

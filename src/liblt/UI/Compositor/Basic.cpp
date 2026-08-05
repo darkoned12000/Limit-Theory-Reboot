@@ -7,6 +7,7 @@
 #include "LTE/Texture2D.h"
 
 #include "Module/FrameTimer.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(CompositorBasic, CompositorT,
@@ -42,6 +43,13 @@ namespace {
   };
 }
 
-DefineFunction(Compositor_Basic) {
-  return new CompositorBasic(args.lines, args.noise, args.gradeBlue, 0);
+Compositor Compositor_Basic(float const& noise, float const& lines, V3 const& gradeBlue) {
+  return new CompositorBasic(lines, noise, gradeBlue, 0);
 }
+static Function const Compositor_Basic_Registration = Function_Bind(
+  "Compositor_Basic",
+  "None",
+  &Compositor_Basic,
+  "noise", "lines", "gradeBlue");
+
+

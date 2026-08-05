@@ -2,58 +2,38 @@
 #define UI_WidgetRenderer_h__
 
 #include "Common.h"
-#include "LTE/DeclareFunction.h"
+#include "UI/Glyph.h"
+#include "LTE/AutoClass.h"
+#include "LTE/Font.h"
+#include "LTE/Renderable.h"
+#include "LTE/String.h"
+#include "LTE/Texture2D.h"
+#include "LTE/Transform.h"
 #include "LTE/V2.h"
 
-DeclareFunction(WidgetRenderer_DrawGlyph, void,
-  Glyph, glyph,
-  GlyphState, state)
+LT_API void WidgetRenderer_DrawGlyph(
+  Glyph const& glyph, GlyphState const& state);
 
-DeclareFunction(WidgetRenderer_DrawPanel, void,
-  V2, pos,
-  V2, size,
-  Color, color,
-  float, innerAlpha,
-  float, alpha,
-  float, bevel)
+LT_API void WidgetRenderer_DrawPanel(
+  V2 const& pos, V2 const& size, Color const& color, float const& innerAlpha,
+  float const& alpha, float const& bevel);
 
-DeclareFunction(WidgetRenderer_DrawPanelRadial, void,
-  V2, pos,
-  float, r1,
-  float, r2,
-  float, phase,
-  float, angle,
-  Color, color,
-  float, innerAlpha,
-  float, alpha,
-  float, bevel)
+LT_API void WidgetRenderer_DrawPanelRadial(
+  V2 const& pos, float const& r1, float const& r2, float const& phase, float const& angle,
+  Color const& color, float const& innerAlpha, float const& alpha, float const& bevel);
 
-DeclareFunction(WidgetRenderer_DrawRenderable, void,
-  Renderable, renderable,
-  Transform, transform,
-  V3, camPos,
-  V3, camLook,
-  V3, camUp,
-  float, camFov,
-  V2, pos,
-  V2, size,
-  Color, color,
-  float, alpha,
-  float, time)
+LT_API void WidgetRenderer_DrawRenderable(
+  Renderable const& renderable, Transform const& transform, V3 const& camPos,
+  V3 const& camLook, V3 const& camUp, float const& camFov, V2 const& pos, V2 const& size,
+  Color const& color, float const& alpha, float const& time);
 
-DeclareFunction(WidgetRenderer_DrawTexture, void,
-  Texture2D, texture,
-  V2, pos,
-  V2, size,
-  float, alpha)
+LT_API void WidgetRenderer_DrawTexture(
+  Texture2D const& texture, V2 const& pos, V2 const& size, float const& alpha);
 
-DeclareFunction(WidgetRenderer_DrawTextureAdditive, void,
-  Texture2D, texture,
-  V2, pos,
-  V2, size,
-  float, alpha)
+LT_API void WidgetRenderer_DrawTextureAdditive(
+  Texture2D const& texture, V2 const& pos, V2 const& size, float const& alpha);
 
-DeclareFunction(WidgetRenderer_DrawText, void,
+AutoClass(WidgetRenderer_DrawText_Args,
   Font, font,
   String, text,
   V2, pos,
@@ -61,8 +41,17 @@ DeclareFunction(WidgetRenderer_DrawText, void,
   Color, color,
   float, alpha,
   bool, centered)
+  WidgetRenderer_DrawText_Args() {}
+};
 
-DeclareFunction(WidgetRenderer_DrawTextGlow, void,
+LT_API void WidgetRenderer_DrawText(WidgetRenderer_DrawText_Args const& args);
+inline void WidgetRenderer_DrawText(
+  Font const& font, String const& text, V2 const& pos, float const& size,
+  Color const& color, float const& alpha, bool const& centered) {
+  return WidgetRenderer_DrawText(WidgetRenderer_DrawText_Args(font, text, pos, size, color, alpha, centered));
+}
+
+AutoClass(WidgetRenderer_DrawTextGlow_Args,
   Font, font,
   String, text,
   V2, pos,
@@ -70,12 +59,19 @@ DeclareFunction(WidgetRenderer_DrawTextGlow, void,
   Color, color,
   float, alpha,
   bool, centered)
+  WidgetRenderer_DrawTextGlow_Args() {}
+};
 
-DeclareFunctionNoParams(WidgetRenderer_Flush, void)
+LT_API void WidgetRenderer_DrawTextGlow(WidgetRenderer_DrawTextGlow_Args const& args);
+inline void WidgetRenderer_DrawTextGlow(
+  Font const& font, String const& text, V2 const& pos, float const& size,
+  Color const& color, float const& alpha, bool const& centered) {
+  return WidgetRenderer_DrawTextGlow(WidgetRenderer_DrawTextGlow_Args(font, text, pos, size, color, alpha, centered));
+}
 
-DeclareFunction(WidgetRenderer_GetTextSize, V2,
-  Font, font,
-  String, text,
-  float, size)
+LT_API void WidgetRenderer_Flush();
+
+LT_API V2 WidgetRenderer_GetTextSize(
+  Font const& font, String const& text, float const& size);
 
 #endif

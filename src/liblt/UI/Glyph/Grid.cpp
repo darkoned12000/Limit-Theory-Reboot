@@ -3,6 +3,7 @@
 #include "LTE/Pool.h"
 #include "LTE/Shader.h"
 #include "LTE/V4.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClass(GridVertex,
@@ -55,6 +56,13 @@ namespace {
   };
 }
 
-DefineFunction(Glyph_Grid) {
+Glyph Glyph_Grid(Glyph_Grid_Args const& args) {
   return new Grid(args);
 }
+static Function const Glyph_Grid_Registration = Function_Bind(
+  "Glyph_Grid",
+  "None",
+  [](V2 const& p1, V2 const& p2, Color const& color, float const& alpha, V2 const& offset, V2 const& scale) -> Glyph { return Glyph_Grid(p1, p2, color, alpha, offset, scale); },
+  "p1", "p2", "color", "alpha", "offset", "scale");
+
+

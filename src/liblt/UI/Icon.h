@@ -4,7 +4,6 @@
 #include "Common.h"
 #include "Glyph.h"
 #include "LTE/AutoClass.h"
-#include "LTE/DeclareFunction.h"
 #include "LTE/Vector.h"
 
 AutoClassDerived(IconT, RefCounted,
@@ -34,6 +33,6 @@ AutoClassDerived(IconT, RefCounted,
   }
 };
 
-DeclareFunctionNoParams(Icon_Create, Icon)
+LT_API Icon Icon_Create();
 
 #endif

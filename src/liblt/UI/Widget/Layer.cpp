@@ -19,6 +19,7 @@
 #include "UI/WidgetRenderer.h"
 
 #include "LTE/Debug.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(WidgetLayer, WidgetComponentT,
@@ -99,7 +100,15 @@ namespace {
   };
 }
 
-DefineFunction(Widget_Layer) {
-  args.widget->Add(new WidgetLayer(args.compositor, args.surface, args.resolution));
-  return args.widget;
-} FunctionAlias(Widget_Layer, Layer);
+Widget Widget_Layer(Compositor const& compositor, Mesh const& surface, float const& resolution, Widget const& widget) {
+  widget->Add(new WidgetLayer(compositor, surface, resolution));
+  return widget;
+}
+static Function const Widget_Layer_Registration = Function_Bind(
+  "Widget_Layer",
+  "None",
+  &Widget_Layer,
+  "compositor", "surface", "resolution", "widget");
+static int const Widget_Layer_Alias = Function_Alias("Widget_Layer", "Layer");
+
+

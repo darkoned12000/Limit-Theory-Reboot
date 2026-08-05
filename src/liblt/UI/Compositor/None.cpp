@@ -5,6 +5,7 @@
 #include "LTE/Renderer.h"
 #include "LTE/Shader.h"
 #include "LTE/Texture2D.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerivedEmpty(CompositorNone, CompositorT)
@@ -23,6 +24,12 @@ namespace {
   };
 }
 
-DefineFunction(Compositor_None) {
+Compositor Compositor_None() {
   return new CompositorNone;
 }
+static Function const Compositor_None_Registration = Function_Bind(
+  "Compositor_None",
+  "None",
+  &Compositor_None);
+
+

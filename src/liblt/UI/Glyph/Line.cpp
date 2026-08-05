@@ -3,6 +3,7 @@
 #include "LTE/Pool.h"
 #include "LTE/Shader.h"
 #include "LTE/V4.h"
+#include "LTE/FunctionBind.h"
 
 const float kExpansion = 32;
 
@@ -96,10 +97,24 @@ namespace {
   };
 }
 
-DefineFunction(Glyph_Line) {
+Glyph Glyph_Line(Glyph_Line_Args const& args) {
   return new Line(args);
 }
+static Function const Glyph_Line_Registration = Function_Bind(
+  "Glyph_Line",
+  "None",
+  [](V2 const& p1, V2 const& p2, Color const& color, float const& alpha) -> Glyph { return Glyph_Line(p1, p2, color, alpha); },
+  "p1", "p2", "color", "alpha");
 
-DefineFunction(Glyph_LineFade) {
+
+
+Glyph Glyph_LineFade(Glyph_LineFade_Args const& args) {
   return new LineFade(args);
 }
+static Function const Glyph_LineFade_Registration = Function_Bind(
+  "Glyph_LineFade",
+  "None",
+  [](V2 const& p1, V2 const& p2, Color const& color, float const& alpha) -> Glyph { return Glyph_LineFade(p1, p2, color, alpha); },
+  "p1", "p2", "color", "alpha");
+
+

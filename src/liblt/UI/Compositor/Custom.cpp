@@ -2,6 +2,7 @@
 
 #include "LTE/Script.h"
 #include "LTE/Texture2D.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(CompositorCustom, CompositorT,
@@ -23,11 +24,18 @@ namespace {
   };
 }
 
-DefineFunction(Compositor_Custom) {
+Compositor Compositor_Custom(Compositor const& base, Data const& data) {
   Reference<CompositorCustom> self = new CompositorCustom;
-  ScriptType type = args.data.type->GetAux().Convert<ScriptType>();
-  self->instance = args.data;
+  ScriptType type = data.type->GetAux().Convert<ScriptType>();
+  self->instance = data;
   self->composite = type->GetFunction("Composite");
-  self->base = args.base;
+  self->base = base;
   return self;
 }
+static Function const Compositor_Custom_Registration = Function_Bind(
+  "Compositor_Custom",
+  "None",
+  &Compositor_Custom,
+  "base", "data");
+
+

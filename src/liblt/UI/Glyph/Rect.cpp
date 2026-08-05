@@ -3,6 +3,7 @@
 #include "LTE/Pool.h"
 #include "LTE/Shader.h"
 #include "LTE/V4.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClass(RectVertex,
@@ -58,7 +59,14 @@ namespace {
   };
 }
 
-DefineFunction(Glyph_Rect) {
+Glyph Glyph_Rect(Glyph_Rect_Args const& args) {
   return new Rect(args);
 }
+static Function const Glyph_Rect_Registration = Function_Bind(
+  "Glyph_Rect",
+  "None",
+  [](V2 const& position, V2 const& size, Color const& color, float const& alpha, float const& bevel, float const& variance) -> Glyph { return Glyph_Rect(position, size, color, alpha, bevel, variance); },
+  "position", "size", "color", "alpha", "bevel", "variance");
+
+
 

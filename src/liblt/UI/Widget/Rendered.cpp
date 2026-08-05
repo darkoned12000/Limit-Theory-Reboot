@@ -13,6 +13,7 @@
 
 #include "UI/Widget.h"
 #include "UI/WidgetRenderer.h"
+#include "LTE/FunctionBind.h"
 
 const uint kDSFactor = 4;
 const float kResolution = 1;
@@ -160,6 +161,14 @@ namespace {
   };
 }
 
-DefineFunction(Widget_Rendered) {
-  return Widget_Create1(new WidgetRendered(args.passes));
-} FunctionAlias(Widget_Rendered, Rendered);
+Widget Widget_Rendered(Vector<RenderPass> const& passes) {
+  return Widget_Create1(new WidgetRendered(passes));
+}
+static Function const Widget_Rendered_Registration = Function_Bind(
+  "Widget_Rendered",
+  "None",
+  &Widget_Rendered,
+  "passes");
+static int const Widget_Rendered_Alias = Function_Alias("Widget_Rendered", "Rendered");
+
+

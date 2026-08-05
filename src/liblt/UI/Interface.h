@@ -2,7 +2,6 @@
 #define UI_Interface_h__
 
 #include "Common.h"
-#include "LTE/DeclareFunction.h"
 #include "LTE/RenderPass.h"
 
 struct InterfaceT : public RefCounted {
@@ -21,10 +20,10 @@ struct InterfaceT : public RefCounted {
   DeclareMetadata(InterfaceT)
 };
 
-DeclareFunction(Interface_Create, Interface,
-  String, name)
+LT_API Interface Interface_Create(
+  String const& name);
 
-DeclareFunction(RenderPass_Interface, RenderPass,
-  Interface, interface)
+LT_API RenderPass RenderPass_Interface(
+  Interface const& interface);
 
 #endif
