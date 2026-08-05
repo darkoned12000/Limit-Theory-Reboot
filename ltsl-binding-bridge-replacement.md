@@ -1215,6 +1215,22 @@ commit a red build.
    silently compiled via `Reference::operator bool`→int with the arg unused; the
    migrated 0-arg signature exposed it — fixed to `ParticleSystem_Pop()` (real
    fix, not a regression).
+   **Step 6 run notes (two manual fixes the tool cannot do):**
+   (1) **Shadowed locals:** `migrate_definefunction.py` warns (does not fix)
+   when a stripped param name collides with a body local. In
+   `WidgetRenderer.cpp` this was a real semantic break — `V4 color = V4(args.color,
+   args.alpha)` became self-referential `V4 color = V4(color, alpha)` (reads
+   the uninitialized local; `-Wshadow`+`-Werror` then forces a fix anyway).
+   Locals renamed: `color`→`color4`, `size`→`sizePx` (DrawPanel),
+   `color`→`color4` (DrawPanelRadial), `pos`→`posGL` (ClipRegion_Push; this
+   one was semantically safe — the local's initializer never reads the param).
+   (2) **Bundles need complete types:** `WidgetRenderer.h`'s
+   `WidgetRenderer_DrawText{,_Glow}_Args` bundles hold `Font`/`String` values;
+   the old DeclareFunction macros only needed the type *names*, but AutoClass
+   needs them complete. Added explicit includes (Font/String/Texture2D/
+   Transform/Renderable + UI/Glyph.h for Glyph/GlyphState/Color) to
+   WidgetRenderer.h. Glyph bundles (V2/float/Color) needed none — Glyph.h
+   already pulls Color.h/V3.h.
 - **`DeclareFunction`/`DefineFunction` migration pattern (validated Step 4,
   Component — use for Steps 5/6):** header `DeclareFunction(Name, RT, T0, N0, …)`
   → `LT_API RT Name(T0 const& N0, …);` + drop `#include "LTE/DeclareFunction.h"`;
@@ -1378,8 +1394,20 @@ commit a red build.
       runs `war`/`rails`/`threads` clean. UI (Step 6) is now the last
       DefineFunction/DeclareFunction holdout (9 headers still include
       `LTE/DeclareFunction.h`).
-- [ ] Step 6 — UI subsystem **FF/VFF done** (Step 3 run); DefineFunction/ArgBind
-      families (incl. Glyphs) pending.
+- [x] Step 6 — UI subsystem **DefineFunction/ArgBind done** (commit `28bec13`).
+      All 9 UI headers (45 decls incl. the Glyph_* ArgBind family) + 25 cpps
+      migrated with `migrate_definefunction.py`. **Gate:** build green
+      (-Werror), 317 checks / 0 failures, API-DB **byte-identical to the Step 5b
+      dump** (1852/445, 0 added/0 removed, 0 doc diffs — UI fns were already in
+      the baseline; the alias-order checker counts both old `FunctionAlias` and
+      new `Function_Alias` forms, so the 509 OK / 1 known count is unchanged
+      after the old→new conversion), LSP smoke 6, app runs `war`/`rails`/
+      `threads`/`ltheory-main`/`objectinfo`/`dogfight` clean (`ui`/`market`/
+      `hud`/`launcher`/`platemesh`/`hnn`/`colony` still on the deferred `#`
+      lexer quirk). See §10 facts log for two manual fixes the tool can't do
+      (shadow locals + bundle complete-type includes). **UI is now the last
+      DefineFunction/DeclareFunction holdout cleared — only `DefineConversion`
+      (Step 8) and the shim deletion (Step 10) remain.**
 - [ ] Step 8 — DefineConversion.
 - [ ] Step 10 — delete generator + old headers; update AGENTS.md + this doc.
 - [ ] Full verification: build, tests, API-DB diff, LSP smoke (6), 8 app runs.
