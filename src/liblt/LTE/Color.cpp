@@ -12,25 +12,30 @@ namespace {
   }
 }
 
-DefineConversion(int_to_color, int, Color) {
+static void int_to_color_Impl(int const& src, Color& dest) {
   dest = (Color)src;
 }
+static int const int_to_color_Registration = Conversion_Bind<&int_to_color_Impl>();
 
-DefineConversion(float_to_color, float, Color) {
+static void float_to_color_Impl(float const& src, Color& dest) {
   dest = (Color)src;
 }
+static int const float_to_color_Registration = Conversion_Bind<&float_to_color_Impl>();
 
-DefineConversion(double_to_color, double, Color) {
+static void double_to_color_Impl(double const& src, Color& dest) {
   dest = (Color)src;
 }
+static int const double_to_color_Registration = Conversion_Bind<&double_to_color_Impl>();
 
-DefineConversion(V3F_to_color, V3F, Color) {
+static void V3F_to_color_Impl(V3F const& src, Color& dest) {
   dest = (Color)src;
 }
+static int const V3F_to_color_Registration = Conversion_Bind<&V3F_to_color_Impl>();
 
-DefineConversion(color_to_V3F, Color, V3F) {
+static void color_to_V3F_Impl(Color const& src, V3F& dest) {
   dest = (V3F)src;
 }
+static int const color_to_V3F_Registration = Conversion_Bind<&color_to_V3F_Impl>();
 
 Color Desaturate(Color const& color, float const& amount) {
   return Mix(color, Color(Luminance(color)), amount);
@@ -41,8 +46,6 @@ static Function const Desaturate_Registration = Function_Bind(
   &Desaturate,
   "color", "amount");
 
-
-
 float Luminance(Color const& color) {
   return Dot(color, Color(0.2126f, 0.7152f, 0.0722f));
 }
@@ -51,8 +54,6 @@ static Function const Luminance_Registration = Function_Bind(
   "None",
   &Luminance,
   "color");
-
-
 
 Color ToHSL(Color const& color) {
   float r = color.x;
@@ -75,8 +76,6 @@ static Function const ToHSL_Registration = Function_Bind(
   &ToHSL,
   "color");
 
-
-
 Color ToRGB(Color const& color) {
   float h = color.x;
   float s = color.y;
@@ -94,8 +93,6 @@ static Function const ToRGB_Registration = Function_Bind(
   "None",
   &ToRGB,
   "color");
-
-
 
 Color Color_FromWavelength(float const& wavelength) {
   float w = wavelength;
@@ -133,5 +130,4 @@ static Function const Color_FromWavelength_Registration = Function_Bind(
   "None",
   &Color_FromWavelength,
   "wavelength");
-
 

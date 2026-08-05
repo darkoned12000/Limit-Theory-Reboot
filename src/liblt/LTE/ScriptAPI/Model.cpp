@@ -5,9 +5,10 @@
 
 TypeAlias(Reference<ModelT>, Model);
 
-DefineConversion(model_to_renderable, Model, Renderable) {
+static void model_to_renderable_Impl(Model const& src, Renderable& dest) {
   dest = (Renderable)src;
 }
+static int const model_to_renderable_Registration = Conversion_Bind<&model_to_renderable_Impl>();
 
 static Function const Model_Create_Registration = Function_Bind(
   "Model_Create",

@@ -1,13 +1,15 @@
 #include "LTE/Function.h"
 #include "LTE/FunctionBind.h"
 
-DefineConversion(int_to_bool, int, bool) {
+static void int_to_bool_Impl(int const& src, bool& dest) {
   dest = (src != 0);
 }
+static int const int_to_bool_Registration = Conversion_Bind<&int_to_bool_Impl>();
 
-DefineConversion(uint_to_bool, int, bool) {
+static void uint_to_bool_Impl(int const& src, bool& dest) {
   dest = (src != 0);
 }
+static int const uint_to_bool_Registration = Conversion_Bind<&uint_to_bool_Impl>();
 
 TypeAlias(bool, Bool);
 

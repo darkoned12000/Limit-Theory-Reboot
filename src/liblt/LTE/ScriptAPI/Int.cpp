@@ -11,49 +11,60 @@ TypeAlias(uint32, Uint32);
 TypeAlias(int64, Int64);
 TypeAlias(uint64, Uint64);
 
-DefineConversion(int_to_double, int, double) {
+static void int_to_double_Impl(int const& src, double& dest) {
   dest = (double)src;
 }
+static int const int_to_double_Registration = Conversion_Bind<&int_to_double_Impl>();
 
-DefineConversion(int_to_float, int, float) {
+static void int_to_float_Impl(int const& src, float& dest) {
   dest = (float)src;
 }
+static int const int_to_float_Registration = Conversion_Bind<&int_to_float_Impl>();
 
-DefineConversion(int_to_uint, int, unsigned int) {
+static void int_to_uint_Impl(int const& src, unsigned int& dest) {
   dest = (unsigned int)src;
 }
+static int const int_to_uint_Registration = Conversion_Bind<&int_to_uint_Impl>();
 
-DefineConversion(uint_to_int, unsigned int, int) {
+static void uint_to_int_Impl(unsigned int const& src, int& dest) {
   dest = (int)src;
 }
+static int const uint_to_int_Registration = Conversion_Bind<&uint_to_int_Impl>();
 
-DefineConversion(int_to_long, int, long) {
+static void int_to_long_Impl(int const& src, long& dest) {
   dest = (long)src;
 }
+static int const int_to_long_Registration = Conversion_Bind<&int_to_long_Impl>();
 
-DefineConversion(int_to_llong, int, long long) {
+static void int_to_llong_Impl(int const& src, long long& dest) {
   dest = (long long)src;
 }
+static int const int_to_llong_Registration = Conversion_Bind<&int_to_llong_Impl>();
 
-DefineConversion(int32_to_int, int32, int) {
+static void int32_to_int_Impl(int32 const& src, int& dest) {
   dest = (int)src;
 }
+static int const int32_to_int_Registration = Conversion_Bind<&int32_to_int_Impl>();
 
-DefineConversion(int64_to_int, int64, int) {
+static void int64_to_int_Impl(int64 const& src, int& dest) {
   dest = (int)src;
 }
+static int const int64_to_int_Registration = Conversion_Bind<&int64_to_int_Impl>();
 
-DefineConversion(int64_to_float, int64, float) {
+static void int64_to_float_Impl(int64 const& src, float& dest) {
   dest = (float)src;
 }
+static int const int64_to_float_Registration = Conversion_Bind<&int64_to_float_Impl>();
 
-DefineConversion(int64_to_double, int64, double) {
+static void int64_to_double_Impl(int64 const& src, double& dest) {
   dest = (double)src;
 }
+static int const int64_to_double_Registration = Conversion_Bind<&int64_to_double_Impl>();
 
-DefineConversion(int64_to_uint, int64, unsigned int) {
+static void int64_to_uint_Impl(int64 const& src, unsigned int& dest) {
   dest = (unsigned int)src;
 }
+static int const int64_to_uint_Registration = Conversion_Bind<&int64_to_uint_Impl>();
 
 static Function const Int_Abs_Registration = Function_Bind(
   "Int_Abs",

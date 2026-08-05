@@ -4,13 +4,15 @@
 
 TypeAlias(float, Float);
 
-DefineConversion(double_to_float, double, float) {
+static void double_to_float_Impl(double const& src, float& dest) {
   dest = (float)src;
 }
+static int const double_to_float_Registration = Conversion_Bind<&double_to_float_Impl>();
 
-DefineConversion(float_to_int, float, int) {
+static void float_to_int_Impl(float const& src, int& dest) {
   dest = (int)src;
 }
+static int const float_to_int_Registration = Conversion_Bind<&float_to_int_Impl>();
 
 static Function const Float_Abs_Registration = Function_Bind(
   "Float_Abs",

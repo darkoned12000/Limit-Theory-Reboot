@@ -4,9 +4,10 @@
 
 TypeAlias(Reference<MeshT>, Mesh);
 
-DefineConversion(mesh_to_geometry, Mesh, Geometry) {
+static void mesh_to_geometry_Impl(Mesh const& src, Geometry& dest) {
   dest = (Geometry)src;
 }
+static int const mesh_to_geometry_Registration = Conversion_Bind<&mesh_to_geometry_Impl>();
 
 static Function const Mesh_Center_Registration = Function_Bind(
   "Mesh_Center",

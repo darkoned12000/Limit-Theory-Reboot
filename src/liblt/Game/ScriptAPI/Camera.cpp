@@ -7,9 +7,10 @@
 
 TypeAlias(Reference<CameraT>, Camera);
 
-DefineConversion(camera_to_object, Camera, Object) {
+static void camera_to_object_Impl(Camera const& src, Object& dest) {
   dest = (Object)src;
 }
+static int const camera_to_object_Registration = Conversion_Bind<&camera_to_object_Impl>();
 
 static Function const Camera_GetRay_Registration = Function_Bind(
   "Camera_GetRay",

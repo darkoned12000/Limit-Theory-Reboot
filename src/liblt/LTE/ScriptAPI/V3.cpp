@@ -8,17 +8,20 @@ TypeAlias(V3F, Vec3);
 TypeAlias(V3F, Vec3f);
 TypeAlias(V3D, Vec3d);
 
-DefineConversion(V3F_to_V3D, V3F, V3D) {
+static void V3F_to_V3D_Impl(V3F const& src, V3D& dest) {
   dest = V3D(src);
 }
+static int const V3F_to_V3D_Registration = Conversion_Bind<&V3F_to_V3D_Impl>();
 
-DefineConversion(float_to_V3F, float, V3F) {
+static void float_to_V3F_Impl(float const& src, V3F& dest) {
   dest = V3F(src);
 }
+static int const float_to_V3F_Registration = Conversion_Bind<&float_to_V3F_Impl>();
 
-DefineConversion(int_to_V3F, int, V3F) {
+static void int_to_V3F_Impl(int const& src, V3F& dest) {
   dest = V3F(src);
 }
+static int const int_to_V3F_Registration = Conversion_Bind<&int_to_V3F_Impl>();
 
 static Function const Vec3_Create_Registration = Function_Bind(
   "Vec3_Create",
@@ -183,7 +186,6 @@ namespace Priv2 {
   "a", "b");
 }
 
-
 static int const Vec3f_Div_Alias = Function_Alias("Vec3f_Div", "/");
 
 static int const Vec3d_Div_Alias = Function_Alias("Vec3d_Div", "/");
@@ -207,7 +209,6 @@ static Function const Vec3d_Dot_Registration = Function_Bind(
   },
   "a", "b");
 static int const Vec3d_Dot_Alias = Function_Alias("Vec3d_Dot", "Dot");
-
 
 static Function const Vec3_Floor_Registration = Function_Bind(
   "Vec3_Floor",
@@ -322,7 +323,6 @@ namespace Priv2 {
   },
   "a", "b");
 }
-
 
 static int const Vec3f_Mult_Alias = Function_Alias("Vec3f_Mult", "*");
 

@@ -3,26 +3,58 @@
 #include "LTE/String.h"
 #include "LTE/Vector.h"
 
-DefineConversion(bool_to_string, bool, String) {
+static void bool_to_string_Impl(bool const& src, String& dest) {
   dest = src ? "true" : "false";
 }
+static int const bool_to_string_Registration = Conversion_Bind<&bool_to_string_Impl>();
 
-DefineConversion(float_to_string, float, String) { dest = ToString<float>(src); }
-DefineConversion(double_to_string, double, String) { dest = ToString<double>(src); }
-DefineConversion(schar_to_string, signed char, String) { dest = ToString<signed char>(src); }
-DefineConversion(uchar_to_string, unsigned char, String) { dest = ToString<unsigned char>(src); }
-DefineConversion(sshort_to_string, signed short, String) { dest = ToString<signed short>(src); }
-DefineConversion(ushort_to_string, unsigned short, String) { dest = ToString<unsigned short>(src); }
-DefineConversion(sint_to_string, signed int, String) { dest = ToString<signed int>(src); }
-DefineConversion(uint_to_string, unsigned int, String) { dest = ToString<unsigned int>(src); }
-DefineConversion(slong_to_string, signed long, String) { dest = ToString<signed long>(src); }
-DefineConversion(ulong_to_string, unsigned long, String) { dest = ToString<unsigned long>(src); }
-DefineConversion(sllong_to_string, signed long long, String) { dest = ToString<signed long long>(src); }
-DefineConversion(ullong_to_string, unsigned long long, String) { dest = ToString<unsigned long long>(src); }
-DefineConversion(int32_to_string, int32, String) { dest = ToString<int32>(src); }
-DefineConversion(int64_to_string, int64, String) { dest = ToString<int64>(src); }
-DefineConversion(uint32_to_string, int32, String) { dest = ToString<uint32>(src); }
-DefineConversion(uint64_to_string, int64, String) { dest = ToString<uint64>(src); }
+static void float_to_string_Impl(float const& src, String& dest) { dest = ToString<float>(src); }
+static int const float_to_string_Registration = Conversion_Bind<&float_to_string_Impl>();
+
+static void double_to_string_Impl(double const& src, String& dest) { dest = ToString<double>(src); }
+static int const double_to_string_Registration = Conversion_Bind<&double_to_string_Impl>();
+
+static void schar_to_string_Impl(signed char const& src, String& dest) { dest = ToString<signed char>(src); }
+static int const schar_to_string_Registration = Conversion_Bind<&schar_to_string_Impl>();
+
+static void uchar_to_string_Impl(unsigned char const& src, String& dest) { dest = ToString<unsigned char>(src); }
+static int const uchar_to_string_Registration = Conversion_Bind<&uchar_to_string_Impl>();
+
+static void sshort_to_string_Impl(signed short const& src, String& dest) { dest = ToString<signed short>(src); }
+static int const sshort_to_string_Registration = Conversion_Bind<&sshort_to_string_Impl>();
+
+static void ushort_to_string_Impl(unsigned short const& src, String& dest) { dest = ToString<unsigned short>(src); }
+static int const ushort_to_string_Registration = Conversion_Bind<&ushort_to_string_Impl>();
+
+static void sint_to_string_Impl(signed int const& src, String& dest) { dest = ToString<signed int>(src); }
+static int const sint_to_string_Registration = Conversion_Bind<&sint_to_string_Impl>();
+
+static void uint_to_string_Impl(unsigned int const& src, String& dest) { dest = ToString<unsigned int>(src); }
+static int const uint_to_string_Registration = Conversion_Bind<&uint_to_string_Impl>();
+
+static void slong_to_string_Impl(signed long const& src, String& dest) { dest = ToString<signed long>(src); }
+static int const slong_to_string_Registration = Conversion_Bind<&slong_to_string_Impl>();
+
+static void ulong_to_string_Impl(unsigned long const& src, String& dest) { dest = ToString<unsigned long>(src); }
+static int const ulong_to_string_Registration = Conversion_Bind<&ulong_to_string_Impl>();
+
+static void sllong_to_string_Impl(signed long long const& src, String& dest) { dest = ToString<signed long long>(src); }
+static int const sllong_to_string_Registration = Conversion_Bind<&sllong_to_string_Impl>();
+
+static void ullong_to_string_Impl(unsigned long long const& src, String& dest) { dest = ToString<unsigned long long>(src); }
+static int const ullong_to_string_Registration = Conversion_Bind<&ullong_to_string_Impl>();
+
+static void int32_to_string_Impl(int32 const& src, String& dest) { dest = ToString<int32>(src); }
+static int const int32_to_string_Registration = Conversion_Bind<&int32_to_string_Impl>();
+
+static void int64_to_string_Impl(int64 const& src, String& dest) { dest = ToString<int64>(src); }
+static int const int64_to_string_Registration = Conversion_Bind<&int64_to_string_Impl>();
+
+static void uint32_to_string_Impl(int32 const& src, String& dest) { dest = ToString<uint32>(src); }
+static int const uint32_to_string_Registration = Conversion_Bind<&uint32_to_string_Impl>();
+
+static void uint64_to_string_Impl(int64 const& src, String& dest) { dest = ToString<uint64>(src); }
+static int const uint64_to_string_Registration = Conversion_Bind<&uint64_to_string_Impl>();
 
 static Function const String_Append_Registration = Function_Bind(
   "String_Append",

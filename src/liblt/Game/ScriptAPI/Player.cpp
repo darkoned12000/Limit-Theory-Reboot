@@ -5,9 +5,10 @@
 
 TypeAlias(Reference<PlayerT>, Player);
 
-DefineConversion(player_to_object, Player, Object) {
+static void player_to_object_Impl(Player const& src, Object& dest) {
   dest = (Object)src;
 }
+static int const player_to_object_Registration = Conversion_Bind<&player_to_object_Impl>();
 
 static Function const Player_GetPiloting_Registration = Function_Bind(
   "Player_GetPiloting",

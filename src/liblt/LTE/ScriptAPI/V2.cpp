@@ -2,13 +2,15 @@
 #include "LTE/FunctionBind.h"
 #include "LTE/V2.h"
 
-DefineConversion(float_to_V2F, float, V2F) {
+static void float_to_V2F_Impl(float const& src, V2F& dest) {
   dest = V2F(src);
 }
+static int const float_to_V2F_Registration = Conversion_Bind<&float_to_V2F_Impl>();
 
-DefineConversion(int_to_V2F, int, V2F) {
+static void int_to_V2F_Impl(int const& src, V2F& dest) {
   dest = V2F(src);
 }
+static int const int_to_V2F_Registration = Conversion_Bind<&int_to_V2F_Impl>();
 
 TypeAlias(V2, Vec2);
 
@@ -284,7 +286,6 @@ namespace Priv2 {
   },
   "a", "b");
 }
-
 
 static int const Vec2_Divide_Alias = Function_Alias("Vec2_Divide", "/");
 

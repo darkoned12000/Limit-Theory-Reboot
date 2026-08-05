@@ -4,14 +4,16 @@
 
 TypeAlias(double, Double);
 
-DefineConversion(float_to_double, float, double) {
+static void float_to_double_Impl(float const& src, double& dest) {
   dest = (double)src;
 }
+static int const float_to_double_Registration = Conversion_Bind<&float_to_double_Impl>();
 
 #if 0
-DefineConversion(double_to_int, double, int) {
+static void double_to_int_Impl(double const& src, int& dest) {
   dest = (int)src;
 }
+static int const double_to_int_Registration = Conversion_Bind<&double_to_int_Impl>();
 
 static Function const Double_Abs_Registration = Function_Bind(
   "Double_Abs",

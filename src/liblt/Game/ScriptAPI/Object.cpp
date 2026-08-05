@@ -42,13 +42,15 @@ static void Position_RegisterConstructor() {
   Position_RegisterScriptAPI();
 }
 
-DefineConversion(object_to_player, Object, Player) {
+static void object_to_player_Impl(Object const& src, Player& dest) {
   dest = (Player)src;
 }
+static int const object_to_player_Registration = Conversion_Bind<&object_to_player_Impl>();
 
-DefineConversion(player_to_object, Player, Object) {
+static void player_to_object_Impl(Player const& src, Object& dest) {
   dest = (Object)src;
 }
+static int const player_to_object_Registration = Conversion_Bind<&player_to_object_Impl>();
 
 static Function const Object_AddChild_Registration = Function_Bind(
   "Object_AddChild",

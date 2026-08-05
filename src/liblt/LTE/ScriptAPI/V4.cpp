@@ -9,17 +9,20 @@ TypeAlias(V4F, Vec4);
 TypeAlias(V4F, Vec4f);
 TypeAlias(V4D, Vec4d);
 
-DefineConversion(V4F_to_V4D, V4F, V4D) {
+static void V4F_to_V4D_Impl(V4F const& src, V4D& dest) {
   dest = V4D(src);
 }
+static int const V4F_to_V4D_Registration = Conversion_Bind<&V4F_to_V4D_Impl>();
 
-DefineConversion(float_to_V4F, float, V4F) {
+static void float_to_V4F_Impl(float const& src, V4F& dest) {
   dest = V4F(src);
 }
+static int const float_to_V4F_Registration = Conversion_Bind<&float_to_V4F_Impl>();
 
-DefineConversion(int_to_V4F, int, V4F) {
+static void int_to_V4F_Impl(int const& src, V4F& dest) {
   dest = V4F(src);
 }
+static int const int_to_V4F_Registration = Conversion_Bind<&int_to_V4F_Impl>();
 
 static Function const Vec4_Registration = Function_Bind(
   "Vec4",
@@ -130,7 +133,6 @@ static Function const Vec4d_Dot_Registration = Function_Bind(
   "a", "b");
 static int const Vec4d_Dot_Alias = Function_Alias("Vec4d_Dot", "Dot");
 
-
 static Function const Vec4_Floor_Registration = Function_Bind(
   "Vec4_Floor",
   "Return the component-wise floor of 'v'",
@@ -234,7 +236,6 @@ namespace Priv2 {
   },
   "a", "b");
 }
-
 
 static int const Vec4f_Mult_Alias = Function_Alias("Vec4f_Mult", "*");
 

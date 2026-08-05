@@ -118,6 +118,36 @@ inline int Function_Alias(char const* source, char const* alias) {
   return 0;
 }
 
+/* Type-conversion registration (static-init; §6.5 of the binding-bridge
+ * replacement doc). Replaces the DefineConversion macro family. The old
+ * lazy `static Type` guard had no cross-TU role (each site lives in its own
+ * TU and registers exactly once), so an unconditional AddConversion at
+ * static-init is equivalent. Fn must be a `void (*)(Source const&, Dest&)`.
+ * C++17 cannot take a lambda as a template argument, so the impl functions
+ * are named (and file-static — nothing calls them across TUs). */
+template <auto Fn>
+struct ConversionTrampoline;
+
+template <class Source, class Dest, void (*Fn)(Source const&, Dest&)>
+struct ConversionTrampoline<Fn> {
+  using SourceType = Source;
+  using DestType = Dest;
+  static void Call(TypeT*, void const* in, void* out) {
+    Fn(*(Source const*)in, *(Dest*)out);
+  }
+};
+
+template <auto Fn>
+inline int Conversion_Bind() {
+  using Tramp = ConversionTrampoline<Fn>;
+  Type type = Type_Get<typename Tramp::SourceType>();
+  ConversionType c;
+  c.other = Type_Get<typename Tramp::DestType>();
+  c.fn = &Tramp::Call;
+  type->AddConversion(c);
+  return 0;
+}
+
 /* Member-function binding. */
 template <class RT, class C, class ArgsTuple, class MemT>
 struct FunctionMemberBinding : BindingBase {
