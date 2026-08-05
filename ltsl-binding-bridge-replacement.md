@@ -1177,6 +1177,23 @@ commit a red build.
   line following the call-open). Current state: `OK: 509 alias sites follow
   their source (1 known exception)` — the lone exception is the deferred
   `V2.cpp 'Vec2_Distance'` copy-paste bug (§11).
+- **`script/migrate_definefunction.py`** (committed Step 5) — mechanical
+  transformer for the `DeclareFunction`/`DeclareFunctionNoParams`/
+  `DeclareFunctionArgBind` families (the §6.2/§6.3 pattern, validated Step 4
+  on Component's 2 sites and applied Step 5 to all of Game). Header:
+  `DeclareFunction` → `LT_API RT Name(T0 const& N0, …);`;
+  `DeclareFunctionNoParams` → `LT_API RT Name();`;
+  `DeclareFunctionArgBind` → `AutoClass(Name_Args, …)` bundle + per-param
+  inline overload + `LT_API RT Name(Name_Args const& args);`; drops the
+  `LTE/DeclareFunction.h` include and adds `LTE/AutoClass.h` when a bundle is
+  emitted. Cpp: `DefineFunction(Name)` bodies become real functions
+  (`args.X`→`X` for plain; bundle kept for argbind), followed by
+  `static Function const Name_Registration = Function_Bind("Name", "None", …)`
+  (+ `Function_Alias` when a `FunctionAlias(Name, Alias)` tail follows the
+  body). Plain bodies that forward the whole bundle (no `args.X` access) are
+  auto-detected and migrated as argbind with a per-param lambda registration
+  (`Object_Missile`, `Object_System`). Skips `#if 0` blocks. Not idempotent
+  (skips files with no macros); re-run dry — `Parsed 0` means done.
 - **`DeclareFunction`/`DefineFunction` migration pattern (validated Step 4,
   Component — use for Steps 5/6):** header `DeclareFunction(Name, RT, T0, N0, …)`
   → `LT_API RT Name(T0 const& N0, …);` + drop `#include "LTE/DeclareFunction.h"`;
@@ -1301,10 +1318,41 @@ commit a red build.
 - [x] Step 7 — Module subsystem **FF/VFF family done** (same bulk run).
 - [x] Step 9 — ObjectComponents.cpp X-macro body rewritten to the new API
       (kept the `#define X(x) … COMPONENT_X` list skeleton).
-- [ ] Step 5 — Game subsystem **FF/VFF done**; DefineFunction/ArgBind
-      families pending.
-- [ ] Step 6 — UI subsystem **FF/VFF done**; DefineFunction/ArgBind families
-      (incl. Glyphs) pending.
+- [x] Step 5 — Game subsystem **FF/VFF done** (Step 3 run) + **DefineFunction/
+      ArgBind done** (commit `6cecc22`). All 118 Game files migrated via
+      `script/migrate_definefunction.py` (committed here — same pattern as Step 3;
+      parses DeclareFunction/DeclareFunctionNoParams/DeclareFunctionArgBind,
+      rewrites headers to `LT_API` per-param decls / `AutoClass X_Args` bundles +
+      per-param overloads, rewrites cpp bodies with `args.X`→`X`, adds
+      `Function_Bind` + `Function_Alias`; detects bundle-forwarding bodies and
+      migrates them as argbind with per-param lambda registrations; skips `#if 0`
+      blocks). **Gate:** build green (-Werror), 317 checks / 0 failures, API-DB
+      functions **byte-identical + the 3 sanctioned additions** (0 doc diffs),
+      alias-order OK 509/1, LSP smoke 6, app runs `war`/`ltheory-main`/`rails`/
+      `threads` clean (`map` hit an intermittent amdgpu context loss at GPU
+      render — environmental; `ui`/`market`/`hud` still on the deferred `#`
+      lexer quirk).
+      **Type-order observation (new, non-whitelist):** the API-DB `types` list
+      **reordered** after Step 5 — same 445-type set, **0 content diffs** per
+      type, but registration order shifted. Cause: the migration moved each
+      TU's eager registrations to a bottom-of-file block, changing cross-TU
+      static-init order of `Type_Get<T>()`. Functions section order was
+      unaffected (only the +3 additions). Benign for the LSP (name-keyed). If
+      the gate-3 byte-diff is used for Steps 6–8, compare the functions section
+      + type *sets* (order-insensitive) or regenerate
+      `build/api-baseline.json` from the current tree after this commit.
+- [ ] **Step 5b (plan gap — REQUIRED before Step 10, currently unassigned):**
+      the **LTE** (102 DefineFn / 113 Decl: `SDF/`, `RenderPass/`, `Warp/`,
+      `Shader`, `Time`, `Thread`, `Location`, `Font`, `Texture2D`, `Mouse`,
+      `PlateMesh`, `Color`, `Meshes`, `Script`, `Profiler`, `ParticleSystem`,
+      `Transform`, `DrawState`, `RenderPasses`, `ShaderInstance`, …), **Module**
+      (5 DefineFn: `Settings`, `FrameTimer`) and **Strukt** (1 DefineFn:
+      `CodeObject/Custom.cpp`) DefineFunction/DeclareFunction families are **not
+      assigned to any §9 step**, yet Step 10 deletes `DeclareFunction.h` which
+      they still use. Migrate them with the same §6.2/`migrate_definefunction.py`
+      pattern (default) before Step 10. Gate as usual.
+- [ ] Step 6 — UI subsystem **FF/VFF done** (Step 3 run); DefineFunction/ArgBind
+      families (incl. Glyphs) pending.
 - [ ] Step 8 — DefineConversion.
 - [ ] Step 10 — delete generator + old headers; update AGENTS.md + this doc.
 - [ ] Full verification: build, tests, API-DB diff, LSP smoke (6), 8 app runs.
