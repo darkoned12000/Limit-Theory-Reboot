@@ -3,10 +3,9 @@
 
 #include "Common.h"
 #include "AI/Types.h"
-#include "LTE/DeclareFunction.h"
 #include "UI/Widget.h"
 
-DeclareFunction(Widget_HUD, Widget,
-  Player, self)
+LT_API Widget Widget_HUD(
+  Player const& self);
 
 #endif

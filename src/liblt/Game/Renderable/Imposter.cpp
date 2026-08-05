@@ -15,6 +15,7 @@
 #include "LTE/Texture2D.h"
 #include "LTE/View.h"
 #include "LTE/Viewport.h"
+#include "LTE/FunctionBind.h"
 
 const float kLodFactor = 1;
 
@@ -211,6 +212,13 @@ namespace {
   }
 }
 
-DefineFunction(Renderable_Imposter) {
+Renderable Renderable_Imposter(Renderable_Imposter_Args const& args) {
   return Generate(args);
 }
+static Function const Renderable_Imposter_Registration = Function_Bind(
+  "Renderable_Imposter",
+  "None",
+  [](Renderable const& source) -> Renderable { return Renderable_Imposter(source); },
+  "source");
+
+

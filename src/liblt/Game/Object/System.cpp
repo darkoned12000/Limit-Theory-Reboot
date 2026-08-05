@@ -28,6 +28,7 @@
 #include "LTE/Keyboard.h"
 #include "LTE/Texture2D.h"
 #include "LTE/Texture3D.h"
+#include "LTE/FunctionBind.h"
 
 const uint kBaseStarCount = 100000;
 
@@ -235,7 +236,7 @@ AutoClassDerived(System, SystemBaseT,
 
 DERIVED_IMPLEMENT(System)
 
-DefineFunction(Object_System) { AUTO_FRAME;
+Object Object_System(Object_System_Args const& args) { AUTO_FRAME;
   Reference<System> self = new System;
 
   RNG rng = RNG_MTG(args.seed);
@@ -255,3 +256,10 @@ DefineFunction(Object_System) { AUTO_FRAME;
 
   return self;
 }
+static Function const Object_System_Registration = Function_Bind(
+  "Object_System",
+  "None",
+  [](Position const& position, uint const& seed) -> Object { return Object_System(position, seed); },
+  "position", "seed");
+
+

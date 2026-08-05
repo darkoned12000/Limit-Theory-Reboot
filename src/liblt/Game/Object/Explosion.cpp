@@ -16,6 +16,7 @@
 #include "LTE/RenderStyle.h"
 #include "LTE/ShaderInstance.h"
 #include "LTE/View.h"
+#include "LTE/FunctionBind.h"
 
 using ExplosionBaseT = ObjectWrapper
   < Component_Attachable
@@ -122,10 +123,17 @@ AutoClassDerived(Explosion, ExplosionBaseT,
 
 DERIVED_IMPLEMENT(Explosion)
 
-DefineFunction(Object_Explosion) {
+Object Object_Explosion(ExplosionType const& type, float const& age, float const& duration) {
   Reference<Explosion> self = new Explosion;
-  self->type = args.type;
-  self->age = args.age;
-  self->duration = args.duration;
+  self->type = type;
+  self->age = age;
+  self->duration = duration;
   return self;
 }
+static Function const Object_Explosion_Registration = Function_Bind(
+  "Object_Explosion",
+  "None",
+  &Object_Explosion,
+  "type", "age", "duration");
+
+

@@ -11,6 +11,7 @@
 #include "LTE/Pool.h"
 
 #include "Module/SoundEngine.h"
+#include "LTE/FunctionBind.h"
 
 using TechLabBaseT = ObjectWrapper
   < Component_Orientation
@@ -39,8 +40,15 @@ AutoClassDerivedEmpty(TechLab, TechLabBaseT)
 
 DERIVED_IMPLEMENT(TechLab)
 
-DefineFunction(Object_TechLab) {
+Object Object_TechLab(Item const& type) {
   Reference<TechLab> self = new TechLab;
-  self->SetSupertype(args.type);
+  self->SetSupertype(type);
   return self;
 }
+static Function const Object_TechLab_Registration = Function_Bind(
+  "Object_TechLab",
+  "None",
+  &Object_TechLab,
+  "type");
+
+

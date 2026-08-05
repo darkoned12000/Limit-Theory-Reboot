@@ -12,6 +12,7 @@
 
 #include "LTE/Math.h"
 #include "LTE/Pool.h"
+#include "LTE/FunctionBind.h"
 
 using DroneProspectingBaseT = ObjectWrapper
   < Component_Drawable
@@ -50,8 +51,15 @@ AutoClassDerivedEmpty(DroneProspectingType, DroneProspectingTypeBaseT)
   }
 };
 
-DefineFunction(Item_DroneProspectingType) {
+Item Item_DroneProspectingType(Item_DroneProspectingType_Args const& args) {
   return new DroneProspectingType;
 }
+static Function const Item_DroneProspectingType_Registration = Function_Bind(
+  "Item_DroneProspectingType",
+  "None",
+  [](double const& value, uint const& seed) -> Item { return Item_DroneProspectingType(value, seed); },
+  "value", "seed");
+
+
 
 DERIVED_IMPLEMENT(DroneProspectingType)

@@ -24,6 +24,7 @@
 #include "Component/Tasks.h"
 
 #include "LTE/Math.h"
+#include "LTE/FunctionBind.h"
 
 const uint kTrailLength = 64;
 
@@ -85,9 +86,16 @@ AutoClassDerived(Ship, ShipBaseT,
 
 DERIVED_IMPLEMENT(Ship)
 
-DefineFunction(Object_Ship) {
+Object Object_Ship(Item const& type) {
   Reference<Ship> self = new Ship;
-  self->SetSupertype(args.type);
+  self->SetSupertype(type);
   ScriptFunction_Load("Object/Ship:Init")->VoidCall(0, DataRef((Object)self));
   return self;
 }
+static Function const Object_Ship_Registration = Function_Bind(
+  "Object_Ship",
+  "None",
+  &Object_Ship,
+  "type");
+
+

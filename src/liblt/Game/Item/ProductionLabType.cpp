@@ -11,6 +11,7 @@
 #include "Game/Attribute/PowerDrain.h"
 #include "Game/Attribute/Scale.h"
 #include "Game/Attribute/Value.h"
+#include "LTE/FunctionBind.h"
 
 using ProductionLabTypeBase = 
     Attribute_Capability
@@ -38,7 +39,7 @@ AutoClassDerivedEmpty(ProductionLabType, ProductionLabTypeBase)
 
 DERIVED_IMPLEMENT(ProductionLabType)
 
-DefineFunction(Item_ProductionLabType) {
+Item Item_ProductionLabType(Item_ProductionLabType_Args const& args) {
   Mass mass = Constant_ValueToMass(args.value, args.compactness);
   float powerDrain = Constant_ValueToPowerDrain(args.value, args.efficiency);
   float rate = Constant_ValueToOutput(args.value, args.rate);
@@ -54,3 +55,10 @@ DefineFunction(Item_ProductionLabType) {
   self->value = args.value;
   return self;
 }
+static Function const Item_ProductionLabType_Registration = Function_Bind(
+  "Item_ProductionLabType",
+  "None",
+  [](double const& value, uint const& seed, float const& compactness, float const& efficiency, float const& rate) -> Item { return Item_ProductionLabType(value, seed, compactness, efficiency, rate); },
+  "value", "seed", "compactness", "efficiency", "rate");
+
+

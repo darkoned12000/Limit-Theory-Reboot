@@ -28,6 +28,7 @@
 #include "UI/Glyphs.h"
 
 #include "Game/Renderables.h"
+#include "LTE/FunctionBind.h"
 
 const uint kThrusterAttempts = 10;
 const uint kTurretAttempts = 100;
@@ -181,7 +182,7 @@ void AttachTurrets(
   }
 }
 
-DefineFunction(Item_ShipType) { AUTO_FRAME;
+Item Item_ShipType(Item_ShipType_Args const& args) { AUTO_FRAME;
   RNG rng = RNG_MTG(args.seed);
 
   double valueRemaining = args.value;
@@ -260,3 +261,10 @@ DefineFunction(Item_ShipType) { AUTO_FRAME;
 
   return self;
 }
+static Function const Item_ShipType_Registration = Function_Bind(
+  "Item_ShipType",
+  "None",
+  [](double const& value, uint const& seed, float const& capacity, float const& compactness, float const& integrity, float const& propulsion, float const& systems, float const& turrets) -> Item { return Item_ShipType(value, seed, capacity, compactness, integrity, propulsion, systems, turrets); },
+  "value", "seed", "capacity", "compactness", "integrity", "propulsion", "systems", "turrets");
+
+

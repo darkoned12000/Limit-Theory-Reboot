@@ -8,6 +8,7 @@
 
 #include "UI/Glyphs.h"
 #include "UI/Icon.h"
+#include "LTE/FunctionBind.h"
 
 double kValueMult = 10.0;
 
@@ -38,12 +39,12 @@ Time Universe_Age() {
   return universe ? universe->age : 0;
 }
 
-DefineFunction(Object_Universe) {
+Object Object_Universe(uint const& seed, uint const& depth) {
   Reference<UniverseImpl> self = new UniverseImpl;
-  RNG rg = RNG_MTG(args.seed);
-  self->depth = args.depth;
-  self->Seeded.seed = args.seed;
-  self->Nameable.name = Stringize() | "Universe " | args.seed;
+  RNG rg = RNG_MTG(seed);
+  self->depth = depth;
+  self->Seeded.seed = seed;
+  self->Nameable.name = Stringize() | "Universe " | seed;
   
   /* Generate the natural resources. */ {
     uint oreSeed = 190;
@@ -79,7 +80,7 @@ DefineFunction(Object_Universe) {
   /* Create a region. */
   for (size_t i = 0; i < 1; ++i) {
     RegionType type;
-    type.level = args.depth;
+    type.level = depth;
     type.pos = rg->GetV3(-10000, 10000);
     type.radius = 100;
     type.seed = rg->GetInt();
@@ -99,3 +100,10 @@ DefineFunction(Object_Universe) {
 
   return self;
 }
+static Function const Object_Universe_Registration = Function_Bind(
+  "Object_Universe",
+  "None",
+  &Object_Universe,
+  "seed", "depth");
+
+

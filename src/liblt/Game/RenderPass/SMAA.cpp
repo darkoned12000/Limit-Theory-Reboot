@@ -10,6 +10,7 @@
 
 #include "ThirdParty/SMAA_AreaTex.h"
 #include "ThirdParty/SMAA_SearchTex.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   struct SMAA : public RenderPassT {
@@ -97,6 +98,12 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_SMAA) {
+RenderPass RenderPass_SMAA() {
   return new SMAA;
 }
+static Function const RenderPass_SMAA_Registration = Function_Bind(
+  "RenderPass_SMAA",
+  "None",
+  &RenderPass_SMAA);
+
+

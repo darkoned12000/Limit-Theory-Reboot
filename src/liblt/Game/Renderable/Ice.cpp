@@ -6,6 +6,7 @@
 #include "LTE/Model.h"
 #include "LTE/SDFs.h"
 #include "LTE/SDFMesh.h"
+#include "LTE/FunctionBind.h"
 
 const size_t kUniqueModels = 3;
 namespace {
@@ -22,6 +23,13 @@ namespace {
   }
 }
 
-DefineFunction(Renderable_Ice) {
+Renderable Renderable_Ice(Renderable_Ice_Args const& args) {
   return Generate(args);
 }
+static Function const Renderable_Ice_Registration = Function_Bind(
+  "Renderable_Ice",
+  "None",
+  [](uint const& seed) -> Renderable { return Renderable_Ice(seed); },
+  "seed");
+
+

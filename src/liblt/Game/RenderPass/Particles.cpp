@@ -8,6 +8,7 @@
 #include "LTE/DrawState.h"
 #include "LTE/ParticleSystem.h"
 #include "LTE/RenderStyle.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   struct Particles : public RenderPassT {
@@ -31,6 +32,12 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_Particles) {
+RenderPass RenderPass_Particles() {
   return new Particles;
 }
+static Function const RenderPass_Particles_Registration = Function_Bind(
+  "RenderPass_Particles",
+  "None",
+  &RenderPass_Particles);
+
+

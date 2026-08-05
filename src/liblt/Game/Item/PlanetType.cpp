@@ -21,6 +21,7 @@
 #include "LTE/Texture2D.h"
 
 #include "UI/Glyphs.h"
+#include "LTE/FunctionBind.h"
 
 const float kOuterScale = 1.025f;
 const uint kMeshQuality = 50;
@@ -132,8 +133,8 @@ Renderable Generate(PlanetType const& type) {
   return model;
 }
 
-DefineFunction(Item_PlanetType) { AUTO_FRAME;
-  RNG rg = RNG_MTG(args.seed);
+Item Item_PlanetType(uint const& seed) { AUTO_FRAME;
+  RNG rg = RNG_MTG(seed);
 
   Reference<PlanetType> self = new PlanetType;
   self->docks.push(Bound3(V3(-1), V3(1)));
@@ -141,7 +142,7 @@ DefineFunction(Item_PlanetType) { AUTO_FRAME;
   ScriptFunction_Load("Icons:Planet")->Call(self->icon);
   self->name = "Planet";
   self->scale = 100000;
-  self->seed = args.seed;
+  self->seed = seed;
   // Wider, seed-driven palette + randomized atmosphere so planets visibly
   // differ across seeds (the original code froze atmoDensity=1, atmoTint=white
   // and used a narrow reddish hue range, so every planet looked identical).
@@ -159,3 +160,10 @@ DefineFunction(Item_PlanetType) { AUTO_FRAME;
   self->renderable = Generate(*self);
   return self;
 }
+static Function const Item_PlanetType_Registration = Function_Bind(
+  "Item_PlanetType",
+  "None",
+  &Item_PlanetType,
+  "seed");
+
+

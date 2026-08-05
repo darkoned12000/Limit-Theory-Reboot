@@ -3,6 +3,7 @@
 #include "Game/Items.h"
 #include "Game/Player.h"
 #include "LTE/Pool.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(EventDamage, EventT, Event_Damage_Args, args)
@@ -20,7 +21,7 @@ namespace {
   };
 }
 
-DefineFunction(Event_Damage) {
+Event Event_Damage(Event_Damage_Args const& args) {
   if (!args.dest->IsAlive())
     return nullptr;
 
@@ -40,3 +41,10 @@ DefineFunction(Event_Damage) {
 
   return new EventDamage(args);
 }
+static Function const Event_Damage_Registration = Function_Bind(
+  "Event_Damage",
+  "None",
+  [](Object const& source, Object const& dest, Damage const& damage) -> Event { return Event_Damage(source, dest, damage); },
+  "source", "dest", "damage");
+
+

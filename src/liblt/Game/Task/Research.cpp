@@ -11,6 +11,7 @@
 #include "LTE/StackFrame.h"
 
 #include "Module/SoundEngine.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   /* TODO : Output of research? */
@@ -55,6 +56,13 @@ namespace {
   };
 }
 
-DefineFunction(Task_Research) {
+Task Task_Research(Task_Research_Args const& args) {
   return new TaskResearch(args);
 }
+static Function const Task_Research_Registration = Function_Bind(
+  "Task_Research",
+  "None",
+  [](Item const& blueprint) -> Task { return Task_Research(blueprint); },
+  "blueprint");
+
+

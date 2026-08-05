@@ -4,6 +4,7 @@
 #include "Component/Pilotable.h"
 
 #include "Game/Tasks.h"
+#include "LTE/FunctionBind.h"
 
 AutoClassDerived(PlayerImpl, PlayerT,
   bool, isHuman)
@@ -55,12 +56,25 @@ AutoClassDerived(PlayerImpl, PlayerT,
 
 DERIVED_IMPLEMENT(PlayerImpl)
 
-DefineFunction(Player_AI) {
+Player Player_AI(Traits const& traits) {
   Reference<PlayerImpl> self = new PlayerImpl(false);
-  self->traits = args.traits;
+  self->traits = traits;
   return self;
 }
+static Function const Player_AI_Registration = Function_Bind(
+  "Player_AI",
+  "None",
+  &Player_AI,
+  "traits");
 
-DefineFunction(Player_Human) {
+
+
+Player Player_Human() {
   return new PlayerImpl(true);
 }
+static Function const Player_Human_Registration = Function_Bind(
+  "Player_Human",
+  "None",
+  &Player_Human);
+
+

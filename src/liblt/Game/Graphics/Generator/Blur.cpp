@@ -3,6 +3,7 @@
 #include "LTE/CubeMap.h"
 #include "LTE/ShaderInstance.h"
 #include "LTE/StackFrame.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   CubeMap Generate(Generator_Blur_Args const& args) {
@@ -20,6 +21,13 @@ namespace {
   }
 }
 
-DefineFunction(Generator_Blur) {
+Generic<CubeMap> Generator_Blur(Generator_Blur_Args const& args) {
   return Cached(Bind(FreeFn(Generate), Generator_Blur_Args(args)));
 }
+static Function const Generator_Blur_Registration = Function_Bind(
+  "Generator_Blur",
+  "None",
+  [](Generic<CubeMap> const& source, float const& radius, size_t const& resolution, size_t const& samples) -> Generic<CubeMap> { return Generator_Blur(source, radius, resolution, samples); },
+  "source", "radius", "resolution", "samples");
+
+

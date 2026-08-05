@@ -12,6 +12,7 @@
 #include "Game/Attribute/Value.h"
 
 #include "UI/Glyphs.h"
+#include "LTE/FunctionBind.h"
 
 using TechLabTypeBase = 
     Attribute_Capability
@@ -38,7 +39,7 @@ AutoClassDerivedEmpty(TechLabType, TechLabTypeBase)
 
 DERIVED_IMPLEMENT(TechLabType)
 
-DefineFunction(Item_TechLabType) {
+Item Item_TechLabType(Item_TechLabType_Args const& args) {
   Mass mass = Constant_ValueToMass(args.value, args.compactness);
   float powerDrain = Constant_ValueToPowerDrain(args.value, args.efficiency);
   float rate = Constant_ValueToOutput(args.value, args.rate);
@@ -53,3 +54,10 @@ DefineFunction(Item_TechLabType) {
   self->value = args.value;
   return self;
 }
+static Function const Item_TechLabType_Registration = Function_Bind(
+  "Item_TechLabType",
+  "None",
+  [](double const& value, uint const& seed, float const& compactness, float const& efficiency, float const& rate) -> Item { return Item_TechLabType(value, seed, compactness, efficiency, rate); },
+  "value", "seed", "compactness", "efficiency", "rate");
+
+

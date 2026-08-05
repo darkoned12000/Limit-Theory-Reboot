@@ -25,6 +25,7 @@
 #include "LTE/Viewport.h"
 
 #include "UI/Widget.h"
+#include "LTE/FunctionBind.h"
 
 const float kControlDeadZone  = 0.2f;
 const float kControlPower = 2.0f;
@@ -348,6 +349,13 @@ namespace {
   };
 }
 
-DefineFunction(Widget_HUD) {
-  return Widget_Create1(new WidgetHUD(args.self));
+Widget Widget_HUD(Player const& self) {
+  return Widget_Create1(new WidgetHUD(self));
 }
+static Function const Widget_HUD_Registration = Function_Bind(
+  "Widget_HUD",
+  "None",
+  &Widget_HUD,
+  "self");
+
+

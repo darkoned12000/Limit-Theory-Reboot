@@ -14,6 +14,7 @@
 #include "LTE/View.h"
 
 #include <algorithm>
+#include "LTE/FunctionBind.h"
 
 namespace {
   /* LOD thresholds — based on screen-space coverage (radius / distance).
@@ -134,6 +135,12 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_Visibility) {
+RenderPass RenderPass_Visibility() {
   return new Visibility;
 }
+static Function const RenderPass_Visibility_Registration = Function_Bind(
+  "RenderPass_Visibility",
+  "None",
+  &RenderPass_Visibility);
+
+

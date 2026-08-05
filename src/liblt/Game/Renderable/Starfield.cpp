@@ -8,6 +8,7 @@
 #include "LTE/Model.h"
 #include "LTE/RNG.h"
 #include "LTE/ShaderInstance.h"
+#include "LTE/FunctionBind.h"
 
 const float kBrightness = 0.04f;
 const float kColoration = 0.40f;
@@ -66,6 +67,13 @@ namespace {
   }
 }
 
-DefineFunction(Renderable_Starfield) {
+Renderable Renderable_Starfield(Renderable_Starfield_Args const& args) {
   return Generate(args);
 }
+static Function const Renderable_Starfield_Registration = Function_Bind(
+  "Renderable_Starfield",
+  "None",
+  [](uint const& seed, uint const& starCount) -> Renderable { return Renderable_Starfield(seed, starCount); },
+  "seed", "starCount");
+
+

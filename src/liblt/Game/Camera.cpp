@@ -12,6 +12,7 @@
 #include "LTE/Vector.h"
 #include "LTE/View.h"
 #include "LTE/Viewport.h"
+#include "LTE/FunctionBind.h"
 
 const float kFovY = Radians(62.0f);
 const float kNear = 0.05f;
@@ -108,21 +109,40 @@ namespace {
   DERIVED_IMPLEMENT(CameraImpl)
 }
 
-DefineFunction(Camera_Create) {
+Camera Camera_Create() {
   return new CameraImpl;
 }
+static Function const Camera_Create_Registration = Function_Bind(
+  "Camera_Create",
+  "None",
+  &Camera_Create);
 
-DefineFunction(Camera_CanSee) {
+
+
+bool Camera_CanSee(Object const& object, float const& maxDistance) {
   Camera cam = Camera_Get();
   if (!cam)
     return false;
-  float d = Squared(args.maxDistance);
-  return LengthSquared(args.object->GetPos() - cam->GetPos()) < d;
+  float d = Squared(maxDistance);
+  return LengthSquared(object->GetPos() - cam->GetPos()) < d;
 }
+static Function const Camera_CanSee_Registration = Function_Bind(
+  "Camera_CanSee",
+  "None",
+  &Camera_CanSee,
+  "object", "maxDistance");
 
-DefineFunction(Camera_Get) {
+
+
+Camera Camera_Get() {
   return GetStack().size() ? GetStack().back() : nullptr;
 }
+static Function const Camera_Get_Registration = Function_Bind(
+  "Camera_Get",
+  "None",
+  &Camera_Get);
+
+
 
 void Camera_Pop() {
   GetStack().pop();

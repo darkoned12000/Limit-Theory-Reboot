@@ -4,6 +4,7 @@
 #include "LTE/RNG.h"
 #include "LTE/ShaderInstance.h"
 #include "LTE/StackFrame.h"
+#include "LTE/FunctionBind.h"
 
 const bool kAlwaysReload = false;
 const size_t res = 1024;
@@ -58,6 +59,13 @@ namespace {
   }
 }
 
-DefineFunction(Generator_Nebula) {
+Generic<CubeMap> Generator_Nebula(Generator_Nebula_Args const& args) {
   return Cached(Bind(FreeFn(NebulaImpl), Generator_Nebula_Args(args)));
 }
+static Function const Generator_Nebula_Registration = Function_Bind(
+  "Generator_Nebula",
+  "None",
+  [](float const& roughness, float const& seed, Color const& color1, Color const& color2, V3 const& starDir, V4 const& offset) -> Generic<CubeMap> { return Generator_Nebula(roughness, seed, color1, color2, starDir, offset); },
+  "roughness", "seed", "color1", "color2", "starDir", "offset");
+
+

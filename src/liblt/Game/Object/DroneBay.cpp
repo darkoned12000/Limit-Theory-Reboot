@@ -28,6 +28,7 @@
 #include "Module/SoundEngine.h"
 
 #include "UI/Glyphs.h"
+#include "LTE/FunctionBind.h"
 
 const float kDroneBayCooldown = 0.25f;
 
@@ -107,7 +108,7 @@ AutoClassDerivedEmpty(DroneBayType, DroneBayTypeBase)
 
 DERIVED_IMPLEMENT(DroneBayType)
 
-DefineFunction(Item_DroneBayType) {
+Item Item_DroneBayType(Item_DroneBayType_Args const& args) {
   Mass mass = Constant_ValueToMass(args.value, args.compactness);
   float speed = Constant_SpeedRatio(args.speed);
 
@@ -120,3 +121,10 @@ DefineFunction(Item_DroneBayType) {
   self->value = args.value;
   return self;
 }
+static Function const Item_DroneBayType_Registration = Function_Bind(
+  "Item_DroneBayType",
+  "None",
+  [](double const& value, uint const& seed, float const& compactness, float const& speed) -> Item { return Item_DroneBayType(value, seed, compactness, speed); },
+  "value", "seed", "compactness", "speed");
+
+

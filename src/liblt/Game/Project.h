@@ -6,7 +6,6 @@
 #include "Order.h"
 
 #include "LTE/AutoClass.h"
-#include "LTE/DeclareFunction.h"
 #include "LTE/Pool.h"
 #include "LTE/Vector.h"
 
@@ -102,16 +101,13 @@ AutoClassDerived(ProjectT, RefCounted,
   LT_API void UpdateMarketOrders();
 };
 
-DeclareFunction(Project_Allocate, void,
-  Project, project,
-  Object, asset)
+LT_API void Project_Allocate(
+  Project const& project, Object const& asset);
 
-DeclareFunction(Project_Deallocate, void,
-  Project, project,
-  Object, asset)
+LT_API void Project_Deallocate(
+  Project const& project, Object const& asset);
 
-DeclareFunction(Project_Create, Project,
-  Object, owner,
-  Task, task)
+LT_API Project Project_Create(
+  Object const& owner, Task const& task);
 
 #endif

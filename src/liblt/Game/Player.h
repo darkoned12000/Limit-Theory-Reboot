@@ -20,7 +20,6 @@
 #include "Component/Scriptable.h"
 #include "Component/Tasks.h"
 
-#include "LTE/DeclareFunction.h"
 
 using PlayerBaseT = ObjectWrapper
   < Attribute_Traits
@@ -54,9 +53,9 @@ struct PlayerT : public PlayerBaseT {
   virtual void Unpilot() = 0;
 };
 
-DeclareFunction(Player_AI, Player,
-  Traits, traits)
+LT_API Player Player_AI(
+  Traits const& traits);
 
-DeclareFunctionNoParams(Player_Human, Player)
+LT_API Player Player_Human();
 
 #endif

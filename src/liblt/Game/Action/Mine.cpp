@@ -9,6 +9,7 @@
 #include "LTE/Math.h"
 #include "LTE/Pool.h"
 #include "LTE/Transform.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(ActionMine, ActionT,
@@ -47,6 +48,13 @@ namespace {
   };
 }
 
-DefineFunction(Action_Mine) {
-  return new ActionMine(args.object, args.target, args.point);
+Action Action_Mine(Object const& object, Object const& target, Position const& point) {
+  return new ActionMine(object, target, point);
 }
+static Function const Action_Mine_Registration = Function_Bind(
+  "Action_Mine",
+  "None",
+  &Action_Mine,
+  "object", "target", "point");
+
+

@@ -66,12 +66,19 @@ AutoClassDerivedEmpty(Scanner, ScannerBaseT)
 
 DERIVED_IMPLEMENT(Scanner)
 
-DefineFunction(Object_Scanner) {
-  LTE_ASSERT(args.type->GetType() == ItemType_ScannerType);
+Object Object_Scanner(Item const& type) {
+  LTE_ASSERT(type->GetType() == ItemType_ScannerType);
   Reference<Scanner> self = new Scanner;
-  self->SetSupertype(args.type);
+  self->SetSupertype(type);
   return self;
 }
+static Function const Object_Scanner_Registration = Function_Bind(
+  "Object_Scanner",
+  "None",
+  &Object_Scanner,
+  "type");
+
+
 
 AutoClass(ScannerOutput,
   Array<float>, bands)

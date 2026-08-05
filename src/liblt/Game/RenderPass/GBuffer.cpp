@@ -8,6 +8,7 @@
 #include "LTE/RenderStyle.h"
 #include "LTE/StackFrame.h"
 #include "LTE/Texture2D.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   struct GBuffer : public RenderPassT {
@@ -37,6 +38,12 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_GBuffer) {
+RenderPass RenderPass_GBuffer() {
   return new GBuffer;
 }
+static Function const RenderPass_GBuffer_Registration = Function_Bind(
+  "RenderPass_GBuffer",
+  "None",
+  &RenderPass_GBuffer);
+
+

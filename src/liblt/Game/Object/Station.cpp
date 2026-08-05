@@ -34,6 +34,7 @@
 #include "LTE/RNG.h"
 #include "LTE/RenderStyle.h"
 #include "LTE/SDFs.h"
+#include "LTE/FunctionBind.h"
 
 using StationBaseT = ObjectWrapper
   < Component_Affectable
@@ -87,9 +88,16 @@ AutoClassDerivedEmpty(Station, StationBaseT)
 
 DERIVED_IMPLEMENT(Station)
 
-DefineFunction(Object_Station) {
+Object Object_Station(Item const& type) {
   Reference<Station> self = new Station;
-  self->SetSupertype(args.type);
+  self->SetSupertype(type);
   self->Initialize();
   return self;
 }
+static Function const Object_Station_Registration = Function_Bind(
+  "Object_Station",
+  "None",
+  &Object_Station,
+  "type");
+
+

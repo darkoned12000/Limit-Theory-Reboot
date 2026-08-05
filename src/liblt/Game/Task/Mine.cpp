@@ -20,6 +20,7 @@
 #include "LTE/Vector.h"
 
 #include "LTE/Debug.h"
+#include "LTE/FunctionBind.h"
 
 const uint kAmount = 10;
 const Distance kMineDistance = 500.0;
@@ -130,6 +131,13 @@ namespace {
   };
 }
 
-DefineFunction(Task_Mine) {
+Task Task_Mine(Task_Mine_Args const& args) {
   return new TaskMine(args);
 }
+static Function const Task_Mine_Registration = Function_Bind(
+  "Task_Mine",
+  "None",
+  [](Object const& zone) -> Task { return Task_Mine(zone); },
+  "zone");
+
+

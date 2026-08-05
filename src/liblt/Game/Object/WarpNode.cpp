@@ -21,6 +21,7 @@
 #include "LTE/Pool.h"
 
 #include "LTE/Debug.h"
+#include "LTE/FunctionBind.h"
 
 const float kPadding = 5;
 const float kRailForce = 2.0f * 2048;
@@ -452,10 +453,16 @@ AutoClassDerived(WarpNode, WarpNodeBaseT,
 
 }; DERIVED_IMPLEMENT(WarpNode)
 
-DefineFunction(Object_WarpNode) {
+Object Object_WarpNode() {
   Reference<WarpNode> self = new WarpNode;
   self->Initialize();
   self->SetName("Warp Node");
   ScriptFunction_Load("Object/WarpNode:Init")->VoidCall(0, DataRef((Object)self));
   return self;
 }
+static Function const Object_WarpNode_Registration = Function_Bind(
+  "Object_WarpNode",
+  "None",
+  &Object_WarpNode);
+
+

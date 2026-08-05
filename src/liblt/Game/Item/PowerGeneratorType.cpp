@@ -8,6 +8,7 @@
 #include "Game/Attribute/Value.h"
 
 #include "UI/Glyphs.h"
+#include "LTE/FunctionBind.h"
 
 using PowerGeneratorTypeBase = 
     Attribute_Capability
@@ -31,7 +32,7 @@ AutoClassDerivedEmpty(PowerGeneratorType, PowerGeneratorTypeBase)
 
 DERIVED_IMPLEMENT(PowerGeneratorType)
 
-DefineFunction(Item_PowerGeneratorType) {
+Item Item_PowerGeneratorType(Item_PowerGeneratorType_Args const& args) {
   static Icon generatorIcon = Icon_Create()
     ->Add(Glyph_Arc(V2(-0.50f,  0.25f), 0.1f, 0.1f, 1, 1, 0, 1))
     ->Add(Glyph_Arc(V2( 0.50f,  0.25f), 0.1f, 0.1f, 1, 1, 0, 1))
@@ -44,3 +45,10 @@ DefineFunction(Item_PowerGeneratorType) {
   self->value = args.value;
   return self;
 }
+static Function const Item_PowerGeneratorType_Registration = Function_Bind(
+  "Item_PowerGeneratorType",
+  "None",
+  [](double const& value, uint const& seed) -> Item { return Item_PowerGeneratorType(value, seed); },
+  "value", "seed");
+
+

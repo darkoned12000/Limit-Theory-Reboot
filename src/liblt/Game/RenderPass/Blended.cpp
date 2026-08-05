@@ -7,6 +7,7 @@
 #include "LTE/RenderStyle.h"
 #include "LTE/StackFrame.h"
 #include "LTE/Texture2D.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   struct BlendedPass : public RenderPassT {
@@ -34,6 +35,12 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_Blended) {
+RenderPass RenderPass_Blended() {
   return new BlendedPass;
 }
+static Function const RenderPass_Blended_Registration = Function_Bind(
+  "RenderPass_Blended",
+  "None",
+  &RenderPass_Blended);
+
+

@@ -12,6 +12,7 @@
 #include "LTE/Script.h"
 
 #include "UI/Glyphs.h"
+#include "LTE/FunctionBind.h"
 
 using ScannerTypeBase = 
     Attribute_Icon
@@ -37,7 +38,7 @@ AutoClassDerivedEmpty(ScannerType, ScannerTypeBase)
 
 DERIVED_IMPLEMENT(ScannerType)
 
-DefineFunction(Item_ScannerType) {
+Item Item_ScannerType(Item_ScannerType_Args const& args) {
   Reference<ScannerType> self = new ScannerType;
   ScriptFunction_Load("Icons:Scanner")->Call(self->icon);
   self->metatype = Item_ScannerType_Args(args);
@@ -47,3 +48,10 @@ DefineFunction(Item_ScannerType) {
   self->value = args.value;
   return self;
 }
+static Function const Item_ScannerType_Registration = Function_Bind(
+  "Item_ScannerType",
+  "None",
+  [](double const& value, uint const& seed, float const& range) -> Item { return Item_ScannerType(value, seed, range); },
+  "value", "seed", "range");
+
+

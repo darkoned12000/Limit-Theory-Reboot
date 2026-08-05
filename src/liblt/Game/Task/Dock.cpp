@@ -7,6 +7,7 @@
 #include "LTE/Pool.h"
 #include "LTE/SDF.h"
 #include "LTE/StackFrame.h"
+#include "LTE/FunctionBind.h"
 
 const Distance kDockDistance = 100.0;
 
@@ -42,6 +43,13 @@ namespace {
   };
 }
 
-DefineFunction(Task_Dock) {
+Task Task_Dock(Task_Dock_Args const& args) {
   return new TaskDock(args);
 }
+static Function const Task_Dock_Registration = Function_Bind(
+  "Task_Dock",
+  "None",
+  [](Object const& target) -> Task { return Task_Dock(target); },
+  "target");
+
+

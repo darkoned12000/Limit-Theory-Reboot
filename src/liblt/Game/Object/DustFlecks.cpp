@@ -9,6 +9,7 @@
 #include "LTE/ShaderInstance.h"
 #include "LTE/View.h"
 #include "LTE/Pool.h"
+#include "LTE/FunctionBind.h"
 
 const uint kFleckCount = 1024;
 const float kDistance = 1024;
@@ -55,6 +56,12 @@ AutoClassDerived(DustFlecks, DustFlecksBaseT,
 
 DERIVED_IMPLEMENT(DustFlecks)
 
-DefineFunction(Object_DustFlecks) {
+Object Object_DustFlecks() {
   return new DustFlecks();
 }
+static Function const Object_DustFlecks_Registration = Function_Bind(
+  "Object_DustFlecks",
+  "None",
+  &Object_DustFlecks);
+
+

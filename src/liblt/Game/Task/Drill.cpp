@@ -8,6 +8,7 @@
 #include "LTE/Pool.h"
 #include "LTE/StackFrame.h"
 #include "LTE/Smooth.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(TaskDrill, TaskT,
@@ -46,6 +47,13 @@ namespace {
   };
 }
 
-DefineFunction(Task_Drill) {
+Task Task_Drill(Task_Drill_Args const& args) {
   return new TaskDrill(args);
 }
+static Function const Task_Drill_Registration = Function_Bind(
+  "Task_Drill",
+  "None",
+  [](Object const& target) -> Task { return Task_Drill(target); },
+  "target");
+
+

@@ -12,6 +12,7 @@
 #include "LTE/RenderPasses.h"
 #include "LTE/View.h"
 #include "LTE/Viewport.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   struct CameraPass : public RenderPassT {
@@ -30,12 +31,12 @@ namespace {
       passes.push(RenderPass_GlobalLighting());
       passes.push(RenderPass_LocalLighting());
       passes.push(RenderPass_Blended());
-      // passes.push(RenderPass_DustClouds());
+      passes.push(RenderPass_DustClouds());
       passes.push(RenderPass_Particles());
       passes.push(RenderPass_LensFlares());
       passes.push(RenderPass_Bloom(128, 64));
-      passes.push(RenderPass_Tonemap());
-      // passes.push(RenderPass_MotionBlur());
+      // passes.push(RenderPass_Tonemap());
+      passes.push(RenderPass_MotionBlur());
       passes.push(RenderPass_PostFilter("post/colorgrade1D.jsl"));
     }
 
@@ -96,6 +97,11 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_Camera) {
-  return new CameraPass(args.camera);
+RenderPass RenderPass_Camera(Camera const& camera) {
+  return new CameraPass(camera);
 }
+static Function const RenderPass_Camera_Registration = Function_Bind(
+  "RenderPass_Camera",
+  "None",
+  &RenderPass_Camera,
+  "camera");

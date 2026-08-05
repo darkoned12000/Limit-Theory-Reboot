@@ -18,6 +18,7 @@ const uint kBatchSize = 16;
 const uint kMaxLights = 16;
 
 #include <algorithm>
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClass(LightData,
@@ -135,6 +136,12 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_LocalLighting) {
+RenderPass RenderPass_LocalLighting() {
   return new LocalLighting;
 }
+static Function const RenderPass_LocalLighting_Registration = Function_Bind(
+  "RenderPass_LocalLighting",
+  "None",
+  &RenderPass_LocalLighting);
+
+

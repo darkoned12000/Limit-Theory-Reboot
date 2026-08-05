@@ -9,6 +9,7 @@
 #include "LTE/Math.h"
 #include "LTE/Pool.h"
 #include "LTE/RNG.h"
+#include "LTE/FunctionBind.h"
 
 using StarBaseT = ObjectWrapper
   < Component_Drawable
@@ -47,8 +48,15 @@ AutoClassDerived(Star, StarBaseT,
 
 DERIVED_IMPLEMENT(Star)
 
-DefineFunction(Object_Star) {
+Object Object_Star(Color const& color) {
   Reference<Star> self = new Star;
-  self->color = args.color;
+  self->color = color;
   return self;
 }
+static Function const Object_Star_Registration = Function_Bind(
+  "Object_Star",
+  "None",
+  &Object_Star,
+  "color");
+
+

@@ -6,7 +6,6 @@
 
 #include "LTE/AutoClass.h"
 #include "LTE/BaseType.h"
-#include "LTE/DeclareFunction.h"
 #include "LTE/Pool.h"
 #include "LTE/Reference.h"
 #include "LTE/String.h"
@@ -53,8 +52,7 @@ AutoClassDerived(MissionT, RefCounted,
   }
 };
 
-DeclareFunction(Mission_Create,
-  Mission,
-  Object, owner)
+LT_API Mission Mission_Create(
+  Object const& owner);
 
 #endif

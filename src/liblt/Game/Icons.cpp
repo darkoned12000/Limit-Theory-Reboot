@@ -3,8 +3,9 @@
 #include "LTE/Math.h"
 
 #include "UI/Glyphs.h"
+#include "LTE/FunctionBind.h"
 
-DefineFunction(Icon_Crosshair) {
+Icon Icon_Crosshair() {
   static Icon icon = Icon_Create()
     ->Add(Glyph_Arc(0, 0.5f, 0.1f, 1, 1, 0, 1))
     ->Add(Glyph_Box(V2(-0.5f,  0.0f), V2(0.25f, 0.05f), 1, 1))
@@ -13,8 +14,14 @@ DefineFunction(Icon_Crosshair) {
     ->Add(Glyph_Box(V2( 0.0f,  0.5f), V2(0.05f, 0.25f), 1, 1));
   return icon;
 }
+static Function const Icon_Crosshair_Registration = Function_Bind(
+  "Icon_Crosshair",
+  "None",
+  &Icon_Crosshair);
 
-DefineFunction(Icon_Database) {
+
+
+Icon Icon_Database() {
   static Icon icon;
   if (!icon) {
     icon = Icon_Create();
@@ -27,15 +34,27 @@ DefineFunction(Icon_Database) {
   }
   return icon;
 }
+static Function const Icon_Database_Registration = Function_Bind(
+  "Icon_Database",
+  "None",
+  &Icon_Database);
 
-DefineFunction(Icon_Disc) {
+
+
+Icon Icon_Disc() {
   static Icon icon = Icon_Create()
     ->Add(Glyph_Arc(0, 0.6f, 0.2f, 1, 1, 0, 1))
     ->Add(Glyph_Arc(0, 0.25f, 0.05f, 1, 1, 0, 1));
   return icon;
 }
+static Function const Icon_Disc_Registration = Function_Bind(
+  "Icon_Disc",
+  "None",
+  &Icon_Disc);
 
-DefineFunction(Icon_Dock) {
+
+
+Icon Icon_Dock() {
   const Icon icon = Icon_Create()
     ->Add(Glyph_LineFade(V2(0,  0.5f), V2(-1.0f,  0.0f), 1, 1))
     ->Add(Glyph_LineFade(V2(0,  0.5f), V2( 1.0f,  0.0f), 1, 1))
@@ -43,23 +62,36 @@ DefineFunction(Icon_Dock) {
     ->Add(Glyph_Box(V2(0, 1), V2(1, 0.1f), 1, 1));
   return icon;
 }
+static Function const Icon_Dock_Registration = Function_Bind(
+  "Icon_Dock",
+  "None",
+  &Icon_Dock);
 
-DefineFunction(Icon_Gear) {
+
+
+Icon Icon_Gear(float const& width, uint const& spokes, float const& spokeWidth, float const& spacing) {
   Icon icon = Icon_Create();
-  icon->Add(Glyph_Arc(0, 0.5f, args.width, 1, 1, 0, 1));
+  icon->Add(Glyph_Arc(0, 0.5f, width, 1, 1, 0, 1));
 
-  float r2 = 0.5f + args.width + args.spokeWidth;
-  float as = 0.5f * (1.0f - args.spacing) / static_cast<float>(args.spokes);
+  float r2 = 0.5f + width + spokeWidth;
+  float as = 0.5f * (1.0f - spacing) / static_cast<float>(spokes);
   
-  for (uint i = 0; i < args.spokes; ++i) {
-    float t = static_cast<float>(i) / static_cast<float>(args.spokes);
-    icon->Add(Glyph_Arc(0, r2, args.spokeWidth, 1, 1, t, as));
+  for (uint i = 0; i < spokes; ++i) {
+    float t = static_cast<float>(i) / static_cast<float>(spokes);
+    icon->Add(Glyph_Arc(0, r2, spokeWidth, 1, 1, t, as));
   }
 
   return icon;
 }
+static Function const Icon_Gear_Registration = Function_Bind(
+  "Icon_Gear",
+  "None",
+  &Icon_Gear,
+  "width", "spokes", "spokeWidth", "spacing");
 
-DefineFunction(Icon_Refresh) {
+
+
+Icon Icon_Refresh() {
   static Icon icon = Icon_Create()
     ->Add(Glyph_Arc(0, 0.8f, 0.01f, 1, 1, 0.0f, 0.15))
     ->Add(Glyph_Arc(0, 0.8f, 0.01f, 1, 1, 0.5f, 0.15))
@@ -69,8 +101,14 @@ DefineFunction(Icon_Refresh) {
     ->Add(Glyph_LineFade(0.8f * Polar(kTau * 0.65f), 0.6f * Polar(kTau * 0.60f), 1, 1));
   return icon;
 }
+static Function const Icon_Refresh_Registration = Function_Bind(
+  "Icon_Refresh",
+  "None",
+  &Icon_Refresh);
 
-DefineFunction(Icon_Task_Mine) {
+
+
+Icon Icon_Task_Mine() {
   static Icon icon;
   if (!icon) {
     icon = Icon_Create()
@@ -85,8 +123,14 @@ DefineFunction(Icon_Task_Mine) {
   }
   return icon;
 }
+static Function const Icon_Task_Mine_Registration = Function_Bind(
+  "Icon_Task_Mine",
+  "None",
+  &Icon_Task_Mine);
 
-DefineFunction(Icon_Task_Produce) {
+
+
+Icon Icon_Task_Produce() {
   static Icon icon;
   if (!icon) {
     icon = Icon_Create()
@@ -96,8 +140,14 @@ DefineFunction(Icon_Task_Produce) {
   }
   return icon;
 }
+static Function const Icon_Task_Produce_Registration = Function_Bind(
+  "Icon_Task_Produce",
+  "None",
+  &Icon_Task_Produce);
 
-DefineFunction(Icon_Task_Research) {
+
+
+Icon Icon_Task_Research() {
   static Icon icon;
   if (!icon) {
     icon = Icon_Create()
@@ -112,3 +162,9 @@ DefineFunction(Icon_Task_Research) {
   }
   return icon;
 }
+static Function const Icon_Task_Research_Registration = Function_Bind(
+  "Icon_Task_Research",
+  "None",
+  &Icon_Task_Research);
+
+

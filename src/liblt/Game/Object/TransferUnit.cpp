@@ -26,6 +26,7 @@
 #include "LTE/RenderStyle.h"
 #include "LTE/ShaderInstance.h"
 #include "LTE/Smooth.h"
+#include "LTE/FunctionBind.h"
 
 const float kWidthMult = 4;
 const Color kDefaultColor = Color(0.3f, 0.7f, 1.0f);
@@ -200,9 +201,16 @@ AutoClassDerived(TransferUnit, TransferUnitBaseT,
 
 DERIVED_IMPLEMENT(TransferUnit)
 
-DefineFunction(Object_TransferUnit) {
+Object Object_TransferUnit(Item const& type) {
   Reference<TransferUnit> self = new TransferUnit();
-  self->SetSupertype(args.type);
+  self->SetSupertype(type);
   self->Drawable.renderable = (Renderable)(new TransferUnit::RenderComponent(self));
   return self;
 }
+static Function const Object_TransferUnit_Registration = Function_Bind(
+  "Object_TransferUnit",
+  "None",
+  &Object_TransferUnit,
+  "type");
+
+

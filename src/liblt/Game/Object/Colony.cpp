@@ -39,6 +39,7 @@
 #include "LTE/Texture2D.h"
 
 #include "UI/Widget.h"
+#include "LTE/FunctionBind.h"
 
 const uint kTerrainQuality = 750;
 const float kTerrainScale = 50000;
@@ -255,13 +256,20 @@ AutoClassDerived(Colony, ColonyBaseT,
 
 DERIVED_IMPLEMENT(Colony)
 
-DefineFunction(Object_Colony) {
-  Reference<Colony> self = new Colony(args.planet, args.population);
-  self->Seeded.seed = args.seed;
-  self->traits = args.type->GetTraits();
-  self->SetSupertype(args.type);
+Object Object_Colony(uint const& seed, Item const& type, Object const& planet, Quantity const& population) {
+  Reference<Colony> self = new Colony(planet, population);
+  self->Seeded.seed = seed;
+  self->traits = type->GetTraits();
+  self->SetSupertype(type);
   self->Initialize();
-  self->PushTask(args.type->GetTask());
+  self->PushTask(type->GetTask());
   ScriptFunction_Load("Object/Colony:Init")->VoidCall(0, DataRef((Object)self));
   return self;
 }
+static Function const Object_Colony_Registration = Function_Bind(
+  "Object_Colony",
+  "None",
+  &Object_Colony,
+  "seed", "type", "planet", "population");
+
+

@@ -20,6 +20,7 @@
 
 #include "LTE/Math.h"
 #include "LTE/Pool.h"
+#include "LTE/FunctionBind.h"
 
 const float kMinAngle = -0.25f;
 const float kTrackSpeed = 2.0f * kTau;
@@ -256,9 +257,16 @@ AutoClassDerived(Weapon, WeaponBaseT,
 
 DERIVED_IMPLEMENT(Weapon)
 
-DefineFunction(Object_Weapon) {
+Object Object_Weapon(Item const& type) {
   Reference<Weapon> self = new Weapon;
-  self->SetSupertype(args.type);
-  self->GetAttachable()->SetScale(args.type->GetScale());
+  self->SetSupertype(type);
+  self->GetAttachable()->SetScale(type->GetScale());
   return self;
 }
+static Function const Object_Weapon_Registration = Function_Bind(
+  "Object_Weapon",
+  "None",
+  &Object_Weapon,
+  "type");
+
+

@@ -3,6 +3,7 @@
 #include "Game/Attribute/Icon.h"
 #include "Game/Attribute/Name.h"
 #include "Game/Attribute/Value.h"
+#include "LTE/FunctionBind.h"
 
 /* Engineer - Production
  * Miner - Mining
@@ -53,14 +54,35 @@ AutoClassDerived(WorkerPilot, WorkerBase,
   }
 };
 
-DefineFunction(Item_Worker_Engineer) {
+Item Item_Worker_Engineer(Item_Worker_Engineer_Args const& args) {
   return new WorkerEngineer(args.level, args.nextLevel);
 }
+static Function const Item_Worker_Engineer_Registration = Function_Bind(
+  "Item_Worker_Engineer",
+  "None",
+  [](uint const& level, Item const& nextLevel) -> Item { return Item_Worker_Engineer(level, nextLevel); },
+  "level", "nextLevel");
 
-DefineFunction(Item_Worker_Miner) {
+
+
+Item Item_Worker_Miner(Item_Worker_Miner_Args const& args) {
   return new WorkerMiner(args.level, args.nextLevel);
 }
+static Function const Item_Worker_Miner_Registration = Function_Bind(
+  "Item_Worker_Miner",
+  "None",
+  [](uint const& level, Item const& nextLevel) -> Item { return Item_Worker_Miner(level, nextLevel); },
+  "level", "nextLevel");
 
-DefineFunction(Item_Worker_Pilot) {
+
+
+Item Item_Worker_Pilot(Item_Worker_Pilot_Args const& args) {
   return new WorkerPilot(args.level, args.nextLevel);
 }
+static Function const Item_Worker_Pilot_Registration = Function_Bind(
+  "Item_Worker_Pilot",
+  "None",
+  [](uint const& level, Item const& nextLevel) -> Item { return Item_Worker_Pilot(level, nextLevel); },
+  "level", "nextLevel");
+
+

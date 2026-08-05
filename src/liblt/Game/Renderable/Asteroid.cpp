@@ -7,6 +7,7 @@
 #include "LTE/Model.h"
 #include "LTE/SDFs.h"
 #include "LTE/SDFMesh.h"
+#include "LTE/FunctionBind.h"
 
 const size_t kUniqueModels = 3;
 
@@ -34,6 +35,13 @@ namespace {
   }
 }
 
-DefineFunction(Renderable_Asteroid) {
+Renderable Renderable_Asteroid(Renderable_Asteroid_Args const& args) {
   return Generate(args);
 }
+static Function const Renderable_Asteroid_Registration = Function_Bind(
+  "Renderable_Asteroid",
+  "None",
+  [](uint const& seed) -> Renderable { return Renderable_Asteroid(seed); },
+  "seed");
+
+

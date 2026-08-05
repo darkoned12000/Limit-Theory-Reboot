@@ -14,6 +14,7 @@
 #include "LTE/StackFrame.h"
 
 #include "LTE/Debug.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   using PathNode = Reference<struct PathNodeT>;
@@ -274,6 +275,13 @@ namespace {
   };
 }
 
-DefineFunction(Task_Goto) {
+Task Task_Goto(Task_Goto_Args const& args) {
   return new TaskGoto(args);
 }
+static Function const Task_Goto_Registration = Function_Bind(
+  "Task_Goto",
+  "None",
+  [](Object const& target, Distance const& distance) -> Task { return Task_Goto(target, distance); },
+  "target", "distance");
+
+

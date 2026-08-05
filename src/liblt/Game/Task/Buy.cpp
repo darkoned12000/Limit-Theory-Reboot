@@ -10,6 +10,7 @@
 #include "LTE/Pool.h"
 #include "LTE/SDFs.h"
 #include "LTE/StackFrame.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   Quantity GetBuyPrice(Object const& node, Item const& item) {
@@ -120,6 +121,13 @@ namespace {
   };
 }
 
-DefineFunction(Task_Buy) {
+Task Task_Buy(Task_Buy_Args const& args) {
   return new TaskBuy(args);
 }
+static Function const Task_Buy_Registration = Function_Bind(
+  "Task_Buy",
+  "None",
+  [](Object const& target, Item const& item, Quantity const& quantity, Task const& task) -> Task { return Task_Buy(target, item, quantity, task); },
+  "target", "item", "quantity", "task");
+
+

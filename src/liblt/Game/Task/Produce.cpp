@@ -7,6 +7,7 @@
 
 #include "LTE/Pool.h"
 #include "LTE/StackFrame.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   /* TODO : Use Time, not float. */
@@ -100,6 +101,13 @@ namespace {
   };
 }
 
-DefineFunction(Task_Produce) {
+Task Task_Produce(Task_Produce_Args const& args) {
   return new TaskProduce(args);
 }
+static Function const Task_Produce_Registration = Function_Bind(
+  "Task_Produce",
+  "None",
+  [](Item const& chip) -> Task { return Task_Produce(chip); },
+  "chip");
+
+

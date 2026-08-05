@@ -12,6 +12,7 @@
 #include "LTE/Renderable.h"
 
 #include "UI/Glyphs.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   Icon GenerateIcon(RNG const& rg) {
@@ -54,7 +55,7 @@ AutoClassDerivedEmpty(OreType, OreTypeBase)
 
 DERIVED_IMPLEMENT(OreType)
 
-DefineFunction(Item_OreType) {
+Item Item_OreType(Item_OreType_Args const& args) {
   RNG rg = RNG_MTG(args.seed);
 
   Reference<OreType> self = new OreType;
@@ -64,3 +65,10 @@ DefineFunction(Item_OreType) {
   self->value = args.value;
   return self;
 }
+static Function const Item_OreType_Registration = Function_Bind(
+  "Item_OreType",
+  "None",
+  [](double const& value, uint const& seed) -> Item { return Item_OreType(value, seed); },
+  "value", "seed");
+
+

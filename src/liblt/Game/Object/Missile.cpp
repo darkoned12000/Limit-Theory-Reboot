@@ -19,6 +19,7 @@
 #include "LTE/Pool.h"
 #include "LTE/Ray.h"
 #include "LTE/ShaderInstance.h"
+#include "LTE/FunctionBind.h"
 
 using MissileBaseT = ObjectWrapper
   < Component_Damager
@@ -42,7 +43,7 @@ AutoClassDerived(Missile, MissileBaseT,
 
   Missile() = default;
 
-  Missile(Object_Missile_ArgRefs const& args) :
+  Missile(Object_Missile_Args const& args) :
     target(args.target),
     targetOffset(args.targetOffset),
     thrust(args.thrust),
@@ -117,6 +118,13 @@ AutoClassDerived(Missile, MissileBaseT,
 
 DERIVED_IMPLEMENT(Missile)
 
-DefineFunction(Object_Missile) {
+Object Object_Missile(Object_Missile_Args const& args) {
   return new Missile(args);
 }
+static Function const Object_Missile_Registration = Function_Bind(
+  "Object_Missile",
+  "None",
+  [](V3 const& thrust, V3 const& velocity, Object const& target, V3 const& targetOffset) -> Object { return Object_Missile(thrust, velocity, target, targetOffset); },
+  "thrust", "velocity", "target", "targetOffset");
+
+

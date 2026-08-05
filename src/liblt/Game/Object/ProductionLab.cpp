@@ -8,6 +8,7 @@
 #include "LTE/Pool.h"
 
 #include "Module/SoundEngine.h"
+#include "LTE/FunctionBind.h"
 
 using ProductionLabBaseT = ObjectWrapper
   < Component_Orientation
@@ -34,8 +35,15 @@ AutoClassDerivedEmpty(ProductionLab, ProductionLabBaseT)
 
 DERIVED_IMPLEMENT(ProductionLab)
 
-DefineFunction(Object_ProductionLab) {
+Object Object_ProductionLab(Item const& type) {
   Reference<ProductionLab> self = new ProductionLab;
-  self->SetSupertype(args.type);
+  self->SetSupertype(type);
   return self;
 }
+static Function const Object_ProductionLab_Registration = Function_Bind(
+  "Object_ProductionLab",
+  "None",
+  &Object_ProductionLab,
+  "type");
+
+

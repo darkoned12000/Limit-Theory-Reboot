@@ -4,7 +4,6 @@
 #include "Common.h"
 
 #include "LTE/AutoClass.h"
-#include "LTE/DeclareFunction.h"
 #include "LTE/Pool.h"
 #include "LTE/Reference.h"
 
@@ -26,10 +25,7 @@ AutoClassDerived(OrderT, RefCounted,
     {}
 };
 
-DeclareFunction(Order_Create, Order,
-  Object, owner,
-  Item, item,
-  Quantity, volume,
-  Quantity, price)
+LT_API Order Order_Create(
+  Object const& owner, Item const& item, Quantity const& volume, Quantity const& price);
 
 #endif
