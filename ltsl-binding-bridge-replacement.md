@@ -1242,11 +1242,32 @@ commit a red build.
   hardcodes it — needed for the API-DB byte-diff). Type visibility at the
   DeclareFunction point is guaranteed: the old macro already required the
   param/return type NAMES there (`typedef T0 Name##_ParamType0;` etc.), so the
-  new declaration compiles wherever the old one did. C++ call sites are
-  unchanged — the old inline convenience overload `RT Name(T0 const& N0, …)` has
-  the exact signature of the new real function. Validated on `Object_AddHistory`
-  (external C++ caller `Game/Action/Mine.cpp:40`) and `Object_GetZone` (script
-  caller `Widget/HUD/Container.lts:18` via the `GetZone` alias).
+   new declaration compiles wherever the old one did. C++ call sites are
+   unchanged — the old inline convenience overload `RT Name(T0 const& N0, …)` has
+   the exact signature of the new real function. Validated on `Object_AddHistory`
+   (external C++ caller `Game/Action/Mine.cpp:40`) and `Object_GetZone` (script
+   caller `Widget/HUD/Container.lts:18` via the `GetZone` alias).
+- **`DefineConversion` migration (Step 8, commit `9196d20`)** — the old macro's
+  lazy `static Type` guard (`Function.h:53`) had **no cross-TU role**: each site
+  lives in its own TU and registers exactly once, so an unconditional
+  `AddConversion` at static-init (`Conversion_Bind`) is equivalent. The old macro
+  was ALSO static-init (via `volatile static Type Name_Registration = Name##_Register<0>()`),
+  so timing is preserved exactly — including the pre-existing `V3F_to_V3D`
+  static-init registration in `V3.cpp` (the §A.7 "V3D→V3F at static-init" trap
+  applies to *newly added* conversions / `Type_Get<Position>()` in the dll ctor,
+  not to this long-standing site). `TypeT::AddConversion` (`Type.cpp:142`) pushes
+  unconditionally — no dedup, exactly 53 registrations across the 14 TUs. The API
+  DB **does not serialize conversions** (grep `conversion` in
+  `api-database.json` → 0) — runtime app runs are the only conversion gate.
+  **Source-type quirks preserved verbatim:** `String.cpp:24` `uint32_to_string`
+  source=`int32` and `:25` `uint64_to_string` source=`int64` (bodies call
+  `ToString<uint32>`/`ToString<uint64>`), and `Bool.cpp` `uint_to_bool` source
+  `int` (not `unsigned int`). Impl fns are file-static (zero cross-TU callers
+  verified); C++17 forbids lambda NTTPs so the impls are named function
+  pointers. Tool `script/migrate_defineconversion.py` (`--apply`) parses
+  `DefineConversion(Name, Source, Dest) {` + balanced-brace body; initial bug
+  (doubled `}}`) was `find_body_end` returning one-past the closing brace — fixed
+  to return the brace index itself.
 
 ---
 
@@ -1408,6 +1429,20 @@ commit a red build.
       (shadow locals + bundle complete-type includes). **UI is now the last
       DefineFunction/DeclareFunction holdout cleared — only `DefineConversion`
       (Step 8) and the shim deletion (Step 10) remain.**
-- [ ] Step 8 — DefineConversion.
+- [x] Step 8 — **DefineConversion done** (commit `9196d20`). Added
+      `ConversionTrampoline`/`Conversion_Bind` to `FunctionBind.h` (§6.5 spec)
+      and migrated all 53 sites across 14 TUs with new tool
+      `script/migrate_defineconversion.py` (`DefineConversion(Name, S, D) {body}`
+      → `static void Name_Impl(S const& src, D& dest) {body}` +
+      `static int const Name_Registration = Conversion_Bind<&Name_Impl>();`).
+      **Gate:** build green (-Werror), 317/0, API-DB byte-identical (1852/445,
+      0 added/0 removed; conversions are invisible to the fn dump — runtime is
+      the real gate), alias-order 509 OK / 1 known (unchanged), LSP smoke 6,
+      apps `war`/`rails`/`threads`/`objectinfo`/`dogfight`/`ltheory-main`
+      clean. **Declared source types preserved verbatim** incl. the
+      `int32`/`int64` quirks in `String.cpp` (`uint32_to_string`,
+      `uint64_to_string`) and `uint_to_bool`'s `int` source. `TypeAlias`
+      (Type.h) kept per §11 (macro-free-friendly, survives Step 10).
+      `DefineConversion` macro itself remains in `Function.h` until Step 10.
 - [ ] Step 10 — delete generator + old headers; update AGENTS.md + this doc.
 - [ ] Full verification: build, tests, API-DB diff, LSP smoke (6), 8 app runs.
