@@ -46,7 +46,6 @@ namespace {
       if (self->GetContainer() == args.source) {
         // Quantity quantity =
         //  (Quantity)Floor(self->GetFreeCapacity() / args.item->GetMass());
-        // Event_Withdraw(self, args.source, args.item, quantity);
         self->PushTask(Task_Dock(args.dest));
       }
 

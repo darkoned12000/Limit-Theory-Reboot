@@ -36,7 +36,6 @@
 #include "CollisionMesh.h"
 #include "Config.h"
 #include "Debug.h"
-#include "DeclareFunction.h"
 #include "Diff.h"
 #include "Enum.h"
 #include "Expression.h"

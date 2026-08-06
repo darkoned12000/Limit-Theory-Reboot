@@ -115,21 +115,6 @@ inline Item Item_ProductionLabType(double value, uint seed) {
 
 using Meta_ProductionLabType = Item_ProductionLabType_Args;
 
-#if 0
-DeclareFunction(Item_PulseType, Item,
-  double, value,
-  uint, seed,
-
-  float, compactness,
-  float, damage,
-  float, efficiency,
-  float, integrity,
-  float, rate,
-  float, speed)
-
-using Meta_PulseType = Item_PulseType_Args;
-#endif
-
 AutoClass(Item_OreType_Args,
   double, value,
   uint, seed)

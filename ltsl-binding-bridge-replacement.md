@@ -1444,5 +1444,27 @@ commit a red build.
       `uint64_to_string`) and `uint_to_bool`'s `int` source. `TypeAlias`
       (Type.h) kept per §11 (macro-free-friendly, survives Step 10).
       `DefineConversion` macro itself remains in `Function.h` until Step 10.
-- [ ] Step 10 — delete generator + old headers; update AGENTS.md + this doc.
-- [ ] Full verification: build, tests, API-DB diff, LSP smoke (6), 8 app runs.
+- [x] Step 10 — **generator + old headers deleted** (commit pending, 2026-08-05).
+      Deleted `src/liblt/LTE/Function_Generated.h`, `src/liblt/LTE/DeclareFunction.h`,
+      `script/meta/DeclareFunction.py`, `script/meta/common.py`. Removed from
+      `Function.h`: the `#include "Function_Generated.h"`, the `DefineConversion`
+      macro, and the `FunctionAlias` macro. Removed `#include "DeclareFunction.h"`
+      from `LTE.h:39`. Deleted dead `#if 0` blocks (`Items.h:118-133`
+      `Item_PulseType`, `Events.h:63-68` `Event_Withdraw`) and the dead
+      `MEMBERFUNCTION` macro (`Type.h:114`, zero users). Removed a stale
+      commented `Event_Withdraw` call in `Game/Task/Transport.cpp:49`. Allowed
+      residuals unchanged: `Vector.h` `_GetMetadata` statics (~314-356) and the
+      `FunctionBind.h:122` comment mention. §7.3 greps now hit only docs, the
+      migration tools (`script/migrate_*.py`, kept as historical one-shot
+      tools), and the accepted residuals. **Gate:** build green (-Werror), 369/0
+      (incl. new `Expression_While_ReturnInLoopBreaks` regression), API-DB
+      **0 added/0 removed vs HEAD** (fresh dump byte-identical; stale
+      `build/api-baseline.json` refreshed), alias-order `OK: 509 / 1 known`,
+      LSP smoke 6, apps `war`/`ltheory-main`/`ui`/`market`/`map`/`hud`/`rails`/
+      `threads` clean to timeout (ui/market/hud print pre-existing spurious
+      literal-probe compile noise — see `ltsl-hardening.md` §5.1).
+      **All legacy macro paths are now gone; `Function_Bind`/`Function_Alias`/
+      `Conversion_Bind` are the only binding mechanism.**
+- [x] Full verification — completed 2026-08-05 as part of Step 10 (build,
+      tests, API-DB diff, alias-order, LSP smoke, 8 app runs). Gates recorded
+      above; see also `ltsl-hardening.md` §7 for the standard gate sequence.

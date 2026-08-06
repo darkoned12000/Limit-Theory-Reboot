@@ -30,9 +30,10 @@ and modernization roadmap. Read before making large changes.
   the old mechanism entirely; do not leave legacy paths running alongside the
   new one. Old tech left in place is hard to trace when it causes problems
   later. (Example: the LTSL binding bridge — the `Function_Generated.h` /
-  `DeclareFunction.h` macro families are deleted, not kept, once the macro-free
-  `Function_Bind` API fully replaces them; the temporary §5.1a shim dies with
-  them.)
+  `DeclareFunction.h` macro families and the `DefineConversion`/`FunctionAlias`
+  macros are **deleted** (Step 10, done 2026-08-05); `Function_Bind`/
+  `Function_Alias`/`Conversion_Bind` are the only binding mechanism. See
+  `ltsl-binding-bridge-replacement.md` §12.)
 - **Harden against breakage.** Prefer changes that make it hard to break the
   engine: compile-time checks (e.g. the binder's `static_assert` arity guard),
   automated gates (alias-order checker, API-DB byte-diff, `-Werror` on project
@@ -51,6 +52,10 @@ CMakeLists.txt        Top-level build (project = LTheory)
 configure.py          Build/run helper (configure, build, clean, run)
 src/launch/           The launcher executable entry point (main())
 src/liblt/            The engine library: LTE + all subsystems (built as liblt.so)
+                     (LTSL bindings: `FunctionBind.h`/`Function_Bind`/
+                     `Function_Alias`/`Conversion_Bind` only — the legacy
+                     `Function_Generated.h`/`DeclareFunction.h` families are
+                     deleted, Step 10 done 2026-08-05)
 extbin/               Shipped runtime binaries (FMOD) — tracked
 resource/             Game data: shaders (.jsl), textures, fonts, scripts
 script/               Python tooling (tloc, assetlist, install_dependencies.sh)
@@ -99,8 +104,8 @@ python3 configure.py test       # runs all unit tests (lte_tests target)
 - Linux flags: `-fno-exceptions -O2 -g -msse -msse2 -Wall -Wextra`
   (`-Werror` scoped to project targets `lt` and `launch`; vendored code excluded).
 - **Known pre-existing warnings:** GCC 15 emits `-Wunused-parameter` warnings
-  from engine template/macro code (`Type.h`, `Common.h`, `Function_Generated.h`,
-  `Reference.h`, `AutoClass.h`, etc.) in the `launch` and `lte_tests` targets.
+  from engine template/macro code (`Type.h`, `Common.h`, `Reference.h`,
+  `AutoClass.h`, etc.) in the `launch` and `lte_tests` targets.
   These come from macro-generated functions (e.g. empty `FIELDS {}` in base types
   producing `MapFields(TypeT*, void*, FieldMapper&, void*)` with all params
   unused). Suppressed by `-Wno-unused-parameter` in `CMAKE_CXX_FLAGS` but some
@@ -168,6 +173,7 @@ To improve the usability of LTSL for contributors and gameplay designers, the fo
   see §6.2.
 - **Code Style:** Encourage a "Constants at Top" pattern where all magic numbers and configuration values are declared as local variables at the start of the script.
 - **Data-Driven Logic:** Transition towards moving UI layouts and complex generation parameters into external JSON files, using LTSL primarily for high-level state management and behavior.
+- **DX / Troubleshooting:** `ltsl-hardening.md` (repo root) is the living record of LTSL developer-experience feedback — render-pass/widget/alias ordering rules, known traps (spurious literal-probe errors, silent failures), and the prioritized hardening roadmap.
 
 ---
 
@@ -226,8 +232,14 @@ changes:
 
 ```bash
 cmake --build ./build --target ltsl_api_dump -j
-LD_LIBRARY_PATH=bin:extbin/linux64 ./bin/ltsl_api_dump > script/ltsl-lsp/api-database.json
+LD_LIBRARY_PATH=bin:extbin/linux64 ./bin/ltsl_api_dump script/ltsl-lsp/api-database.json
 ```
+
+> **Note (2026-08-05):** `ltsl_api_dump` takes an optional output path and
+> defaults to `./api-database.json` in the current working directory — do NOT
+> pipe via `>`, that overwrites the DB with the tool's status message. Pass the
+> target path explicitly, then diff against `build/api-baseline.json`
+> (expect 0 added / 0 removed).
 
 ### Verification (expected state)
 

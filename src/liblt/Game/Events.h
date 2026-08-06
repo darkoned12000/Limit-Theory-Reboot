@@ -60,12 +60,4 @@ inline Event Event_Mined(
   return Event_Mined(Event_Mined_Args(object, target, item, quantity));
 }
 
-#if 0
-DeclareFunction(Event_Withdraw, Event,
-  Object, object,
-  Object, target,
-  Item, item,
-  Quantity, quantity)
-#endif
-
 #endif
