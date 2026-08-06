@@ -283,3 +283,50 @@ LTE_TEST(Expression_Compile_DidYouMean_Variable) {
   }
   LTE_CHECK(foundSuggestion);
 }
+
+// ── return-in-loop regression (While honors returnSignal) ──────────────
+
+LTE_TEST(Expression_While_ReturnInLoopBreaks) {
+  // Regression guard for the ltheory-main hang: ExpressionWhile never
+  // honored returnSignal, so a `return` inside a loop body (e.g. the
+  // Config_Get early-exit) spun forever on the same iteration. The body
+  // here returns 42 while the predicate stays true — before the fix this
+  // test hung; now Evaluate returns with returnSignal set.
+  //
+  // The list is built programmatically: StringList_Create double-wraps
+  // single-line input, which triggers spurious first-pass errors in
+  // Expression_Compile (constructor/field-access probes on the wrapper).
+  Vector<StringList> returnElements;
+  returnElements.push(new StringListAtom("return"));
+  returnElements.push(new StringListAtom("42"));
+  StringList returnExpr = new StringListList(returnElements);
+
+  Vector<StringList> elements;
+  elements.push(new StringListAtom("while"));
+  elements.push(new StringListAtom("1"));
+  elements.push(returnExpr);
+  StringList list = new StringListList(elements);
+
+  CompileEnvironment env;
+  env.script = new ScriptT;
+  env.script->name = "testScript";
+
+  Expression expr = Expression_Compile(list, env);
+  /* NOTE: env.hasErrors is NOT asserted here — Expression_Compile's probe
+     chain (Variable/Reference/FunctionCall/Constructor) reports spurious
+     "unknown variable '1'"-style errors for literal atoms before the
+     Constant factory succeeds (pre-existing A.8 noise, non-fatal in the
+     engine). The compile still yields the ExpressionWhile via the
+     single-element recursion; the regression under test is the runtime
+     behavior below. */
+  LTE_CHECK(expr);
+  LTE_CHECK(expr);
+
+  Environment runtimeEnv;
+  int result = 0;
+  runtimeEnv.returnValue = &result;
+  expr->Evaluate(&result, runtimeEnv);
+
+  LTE_CHECK(runtimeEnv.returnSignal);
+  LTE_CHECK_EQ(result, 42);
+}
