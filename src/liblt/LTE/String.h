@@ -93,7 +93,7 @@ namespace LTE {
 
   template <class T>
   T FromString(String const& str) {
-    T t;
+    T t{};
     std::stringstream stream(str);
     stream >> t;
     return t;

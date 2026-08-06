@@ -207,7 +207,7 @@ static Function const String_Substring_Registration = Function_Bind(
   "Return the substring of 'length' from 's' starting at 'start'",
   [](String const& s, int const& start, int const& length) -> String
   {
-  return s.substr(0, length);
+  return s.substr(start, length);
   },
   "s", "start", "length");
 static int const String_Substring_Alias = Function_Alias("String_Substring", "Substring");

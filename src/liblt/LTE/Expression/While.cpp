@@ -41,6 +41,8 @@ namespace {
       bool pred;
       while (true) {
         predicate->Evaluate(&pred, env);
+        if (env.returnSignal)
+          break;
         if (pred) {
           if (statementType->allocate) {
             void* lv = env.Allocate(statementType);
@@ -49,6 +51,12 @@ namespace {
           } else {
             statement->Evaluate(0, env);
           }
+          /* A `return` in the body sets returnSignal; exit the loop so the
+             enclosing function unwinds instead of spinning forever on the
+             same iteration (the increment/operation appended to a `for`
+             body is skipped by the block once the signal is set). */
+          if (env.returnSignal)
+            break;
         } else
           break;
       }
