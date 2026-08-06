@@ -941,15 +941,21 @@ ArgBind structs live in `UI/Glyphs.h` and `Game/{Items,Events,Tasks,Renderables,
 3. **API DB byte-diff (critical regression net):**
    ```bash
    cmake --build ./build --target ltsl_api_dump -j
-   LD_LIBRARY_PATH=bin:extbin/linux64 ./bin/ltsl_api_dump /tmp/api-baseline.json
+   LD_LIBRARY_PATH=bin:extbin/linux64 ./bin/ltsl_api_dump build/api-baseline.json
    # regenerate AFTER each chunk and diff against the ORIGINAL pre-migration baseline
-   diff <(python3 -m json.tool /tmp/api-baseline.json) <(python3 -m json.tool /tmp/api-after.json)
+   diff <(python3 -m json.tool build/api-baseline.json) <(python3 -m json.tool build/api-after.json)
    ```
    The DB must be **byte-identical** except where a migration intentionally
-   changes it — currently the single expected diff is `Vec3_Distance` gaining a
-   second overload entry (§6.8). (Save the baseline NOW, before any migration —
-   regenerate from the **current working tree**: the committed
-   `api-database.json` is stale, 1843/444 vs 1849/445 fresh; §6.8.)
+   changes it — currently the expected diffs are all in the gate-3 whitelist
+   (§11): `Vec3_Distance` gaining a second overload entry (the previously
+   weak-merged V3 overload; appears twice — once under its own name, once as
+   the `Distance` alias copy) and the `Dot(Vec4f)` entry restored by the
+   `Vec4_Dot` fix. Actual Step-3 result: **+3 lines, 0 removed** (verified).
+   (Save the baseline NOW, before any migration — regenerate from the
+   **current working tree**: the committed `api-database.json` is stale,
+   1843/444 vs 1849/445 fresh; §6.8.) The durable copy lives in
+   `build/api-baseline.json` (gitignored, survives /tmp cleanup; also mirrored
+   to `/tmp/api-baseline.json`).
 4. **LSP regression:** `node script/ltsl-lsp/test-rpc.js` and
    `node script/ltsl-lsp/out/smoke.js $(find resource/script -name '*.lts' | sort)`
    must stay at exactly **6 diagnostics** (see AGENTS.md §6.2).
@@ -985,9 +991,27 @@ ArgBind structs live in `UI/Glyphs.h` and `Game/{Items,Events,Tasks,Renderables,
    (`A→B`, then `B→C`) are handled because aliases contribute *both* their
    names. It is intentionally lenient (permissive regexes) — its job is to catch
    ordering regressions, not to be a full parser.
+   - **`KNOWN_EXCEPTIONS`:** two pre-existing broken aliases were found when the
+     checker was first run and are whitelisted (reported, not failing) because
+     fixing them changes the API DB (gate-3 whitelist, §11): `V2.cpp`'s
+     `Vec2_Distance` (the §6.8 copy-paste bug) and **`V4.cpp`'s `Vec4_Dot`**
+     (registers `Vec4f_Dot` but aliases `Vec4_Dot` → the V4F `Dot` overload is
+     missing today; found by this checker, scheduled to be fixed during
+     migration). Any *new* violation is a hard failure. Baseline run (committed
+     with the script): `OK: 515 alias sites follow their source (2 known
+     exceptions)`.
 
    ```python
-   # script/check_binding_alias_order.py
+   # script/check_binding_alias_order.py  (committed file is authoritative)
+   # Alias-ordering invariant checker. Function_AddAlias copies the *current*
+   # source bucket (Function.cpp:62); an alias before its source silently
+   # registers an empty bucket. Fails any alias whose source is not registered
+   # (or itself aliased) textually earlier in the same file. Understands both
+   # old (FunctionAlias(A, B)) and new (Function_Alias("A", "B")) syntax.
+   # KNOWN_EXCEPTIONS: pre-existing broken aliases whitelisted because fixing
+   # them changes the API DB (gate-3 whitelist, SS11) - V2.cpp 'Vec2_Distance'
+   # (SS6.8 copy-paste) and V4.cpp 'Vec4_Dot' (registers Vec4f_Dot; the V4F
+   # 'Dot' overload is missing today). New violations are hard failures.
    import re, sys
    ALIAS_NEW = re.compile(r'Function_Alias\(\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\)')
    ALIAS_OLD = re.compile(r'\bFunctionAlias\(([A-Za-z_]\w*)\s*,')
@@ -997,9 +1021,13 @@ ArgBind structs live in `UI/Glyphs.h` and `Game/{Items,Events,Tasks,Renderables,
      re.compile(r'\bFunctionAlias\(([A-Za-z_]\w*)\s*,\s*([A-Za-z_]\w*)'),
      re.compile(r'\bDefineFunction\(([A-Za-z_]\w*)'),
      re.compile(r'\bDeclareFunction(?:ArgBind)?\(([A-Za-z_]\w*)'),
-     re.compile(r'\bVoidFreeFunction\(([A-Za-z_]\w*)'),
-     re.compile(r'\bFreeFunction\([^,]+,\s*([A-Za-z_]\w*)'),
+     re.compile(r'\bVoidFreeFunction(?:NoParams)?\(([A-Za-z_]\w*)'),
+     re.compile(r'\bFreeFunction(?:NoParams)?\([^,]+,\s*([A-Za-z_]\w*)'),
    ]
+   KNOWN_EXCEPTIONS = {
+     ('src/liblt/LTE/ScriptAPI/V2.cpp', 'Vec2_Distance'),
+     ('src/liblt/LTE/ScriptAPI/V4.cpp', 'Vec4_Dot'),
+   }
    def names_on(line):
      out = set()
      for p in NAMES:
@@ -1007,23 +1035,30 @@ ArgBind structs live in `UI/Glyphs.h` and `Game/{Items,Events,Tasks,Renderables,
          out.update(g for g in m.groups() if g)
      return out
    def main(paths):
-     bad, checked = [], 0
+     bad, known, checked = [], [], 0
      for path in paths:
        lines = open(path, encoding='utf-8').read().splitlines()
        seen = set()
        for i, line in enumerate(lines):
+         if line.lstrip().startswith('#define'):
+           continue
          m = ALIAS_NEW.search(line) or ALIAS_OLD.search(line)
          if m:
            checked += 1
            if m.group(1) not in seen:
-             bad.append((path, i + 1, m.group(1), line.strip()))
+             if (path, m.group(1)) in KNOWN_EXCEPTIONS:
+               known.append((path, i + 1, m.group(1), line.strip()))
+             else:
+               bad.append((path, i + 1, m.group(1), line.strip()))
          seen |= names_on(line)
+     for p, ln, src, line in known:
+       print(f"KNOWN: {p}:{ln}: alias of {src!r} before its source (documented exception): {line}")
      if bad:
        for p, ln, src, line in bad:
-         print(f"{p}:{ln}: alias of {src!r} appears before its source: {line}")
-       print(f"FAIL: {len(bad)}/{checked} alias sites violate the invariant")
+         print(f"FAIL: {p}:{ln}: alias of {src!r} appears before its source: {line}")
+       print(f"FAIL: {len(bad)} new violation(s) of {checked} alias sites ({len(known)} known exceptions)")
        sys.exit(1)
-     print(f"OK: {checked} alias sites follow their source")
+     print(f"OK: {checked} alias sites follow their source ({len(known)} known exceptions)")
    if __name__ == '__main__':
      main(sys.argv[1:])
    ```
@@ -1100,6 +1135,12 @@ commit a red build.
 - `remove_cvref_t`: **no polyfill exists anywhere in `src/`** (grep verified).
   `std::remove_cvref_t` is C++20 (P0550R2); this build is C++17
   (`CMakeLists.txt:195`). The local polyfill in `FunctionBind.h` is the only one.
+- **§5.2's `FunctionTraits` name collides** with the unrelated pre-existing
+  `LTE::FunctionTraits<ReturnT>` (`Generic.h:10`), which becomes visible at
+  global scope via `Common.h:352`'s `using namespace LTE;` → `-Wtemplate-body`
+  "ambiguous" errors in every TU that sees both. The binder's introspection
+  trait (internal detail) was renamed to `BindingTraits` (Step 2, first build
+  failure). Note in §5.2/§6.4 examples when reviewing.
 - The committed `script/ltsl-lsp/api-database.json` is **stale**: 1843 fns / 444
   types vs **1849 / 445** from a fresh dump of the current tree (uncommitted WIP
   adds bindings — `SaveGame.cpp`, `Int.cpp`, `StringList.cpp`). Regenerate the
@@ -1114,6 +1155,119 @@ commit a red build.
   entries (both overloads live) — the one intentional API-DB change.
 - `Common.h:352` puts `using namespace LTE;` at global scope — call sites
   (global scope) resolve `String`/`Function`/`Object` unqualified.
+- **`#` is not a comment in the engine's LTSL lexer** — but it only bites some
+  files. `war`/`map`/`rails` (no `#`) and `ltheory-main` (has a `#` header)
+  all compiled and ran clean, while `threads.lts` (has a `#` header) failed
+  with `unknown reference '#'` / `no native function named '#'` until its
+  header was removed. The tokenizer treats `#` as a token (`Grammar.cpp:150`
+  `#` handling is grammar-rule tags, not script comments); the ZED/extension
+  `#`-comment rule is editor syntax only. So the trigger is not simply
+  "a `#` line exists" — likely a specific token/context in the failing file.
+  **Deferred — user: "ignore the '#' for now".** Open question: teach the
+  engine lexer to strip `#` line comments (small C++ change).
+- **`script/migrate_freefunction.py`** (untracked tool, Step 3) — mechanical
+  transformer for the four FreeFunction-family macros → multiline
+  `static Function const X_Registration = Function_Bind("X", "desc", [](…)…, "p", …);`
+  + `static int const X_Alias = Function_Alias("X", "alias");`, plus
+  `ensure_include` for `#include "LTE/FunctionBind.h"`. Not idempotent-safe to
+  re-run (skips files with no macros). Validated against hand-migrated
+  `Bool.cpp`/`Timer.cpp`.
+- **`script/check_binding_alias_order.py`** (Step 3 update) — now understands the
+  migration's multiline `Function_Bind(\n "Name",` layout (name captured from the
+  line following the call-open). Current state: `OK: 509 alias sites follow
+  their source (1 known exception)` — the lone exception is the deferred
+  `V2.cpp 'Vec2_Distance'` copy-paste bug (§11).
+- **`script/migrate_definefunction.py`** (committed Step 5) — mechanical
+  transformer for the `DeclareFunction`/`DeclareFunctionNoParams`/
+  `DeclareFunctionArgBind` families (the §6.2/§6.3 pattern, validated Step 4
+  on Component's 2 sites and applied Step 5 to all of Game). Header:
+  `DeclareFunction` → `LT_API RT Name(T0 const& N0, …);`;
+  `DeclareFunctionNoParams` → `LT_API RT Name();`;
+  `DeclareFunctionArgBind` → `AutoClass(Name_Args, …)` bundle + per-param
+  inline overload + `LT_API RT Name(Name_Args const& args);`; drops the
+  `LTE/DeclareFunction.h` include and adds `LTE/AutoClass.h` when a bundle is
+  emitted. Cpp: `DefineFunction(Name)` bodies become real functions
+  (`args.X`→`X` for plain; bundle kept for argbind), followed by
+  `static Function const Name_Registration = Function_Bind("Name", "None", …)`
+  (+ `Function_Alias` when a `FunctionAlias(Name, Alias)` tail follows the
+  body). Plain bodies that forward the whole bundle (no `args.X` access) are
+  auto-detected and migrated as argbind with a per-param lambda registration
+   (`Object_Missile`, `Object_System`). Skips `#if 0` blocks. Not idempotent
+   (skips files with no macros); re-run dry — `Parsed 0` means done.
+   **Step 5b run notes:** headers whose `#include "DeclareFunction.h"` used the
+   relative form (no `LTE/` prefix — all of LTE/Module/Strukt) were stripped
+   manually via `sed -i '/^#include "DeclareFunction.h"$/d'` (the tool only
+   drops the `LTE/`-prefixed form; `LTE.h` keeps its umbrella include until
+   Step 10). **`FunctionAlias` lines NOT attached to a DefineFunction body brace
+   are not migrated by the tool** — the SDF operator aliases
+   (`SDF/Translate.cpp` `+`, `SDF/Scale.cpp` `*`, `SDF/Add.cpp` `+`,
+   `SDF/Subtract.cpp` `-`) were hand-converted to standalone
+   `static int const X_Alias = Function_Alias("X", "op");` (identical runtime
+   semantics to the old macro — also `Function_AddAlias`). **Declare-in-cpp
+   sites** are not handled — `Mesh_CylinderHUD` (`Meshes.cpp`, the only one in
+   src) was hand-migrated to `static Mesh Mesh_CylinderHUD(float const&, float
+   const&)` + `Function_Bind`. **Overloaded `&Name`** for a migrated function
+   must go through a per-param lambda (Shader_Create, ShaderInstance_Create).
+   Migrated decls may land at column 0 inside `namespace LTE { … }` — re-indent
+   to match neighbors (done for `Script.h`, `Location.h`; `Mouse.h` was already
+   col-0 house style). **Latent-bug find:** the old `DeclareFunctionNoParams`
+   made `ArgRefs=int`, so `ParticleSystem_Pop(particles)` (Component/Interior.cpp)
+   silently compiled via `Reference::operator bool`→int with the arg unused; the
+   migrated 0-arg signature exposed it — fixed to `ParticleSystem_Pop()` (real
+   fix, not a regression).
+   **Step 6 run notes (two manual fixes the tool cannot do):**
+   (1) **Shadowed locals:** `migrate_definefunction.py` warns (does not fix)
+   when a stripped param name collides with a body local. In
+   `WidgetRenderer.cpp` this was a real semantic break — `V4 color = V4(args.color,
+   args.alpha)` became self-referential `V4 color = V4(color, alpha)` (reads
+   the uninitialized local; `-Wshadow`+`-Werror` then forces a fix anyway).
+   Locals renamed: `color`→`color4`, `size`→`sizePx` (DrawPanel),
+   `color`→`color4` (DrawPanelRadial), `pos`→`posGL` (ClipRegion_Push; this
+   one was semantically safe — the local's initializer never reads the param).
+   (2) **Bundles need complete types:** `WidgetRenderer.h`'s
+   `WidgetRenderer_DrawText{,_Glow}_Args` bundles hold `Font`/`String` values;
+   the old DeclareFunction macros only needed the type *names*, but AutoClass
+   needs them complete. Added explicit includes (Font/String/Texture2D/
+   Transform/Renderable + UI/Glyph.h for Glyph/GlyphState/Color) to
+   WidgetRenderer.h. Glyph bundles (V2/float/Color) needed none — Glyph.h
+   already pulls Color.h/V3.h.
+- **`DeclareFunction`/`DefineFunction` migration pattern (validated Step 4,
+  Component — use for Steps 5/6):** header `DeclareFunction(Name, RT, T0, N0, …)`
+  → `LT_API RT Name(T0 const& N0, …);` + drop `#include "LTE/DeclareFunction.h"`;
+  cpp `DefineFunction(Name) { …args.N0… }` → plain `RT Name(T0 const& N0, …) { …N0… }`
+  with an `args.`-prefix-strip rewrite (only the declared param names), then
+  `static Function const Name_Registration = Function_Bind("Name", "None", &Name, "N0", …)`
+  (+ `Function_Alias("Name", "Alias")` when a `FunctionAlias(Name, Alias)` line
+  follows the body). Description must stay `"None"` (old `RegisterFunction`
+  hardcodes it — needed for the API-DB byte-diff). Type visibility at the
+  DeclareFunction point is guaranteed: the old macro already required the
+  param/return type NAMES there (`typedef T0 Name##_ParamType0;` etc.), so the
+   new declaration compiles wherever the old one did. C++ call sites are
+   unchanged — the old inline convenience overload `RT Name(T0 const& N0, …)` has
+   the exact signature of the new real function. Validated on `Object_AddHistory`
+   (external C++ caller `Game/Action/Mine.cpp:40`) and `Object_GetZone` (script
+   caller `Widget/HUD/Container.lts:18` via the `GetZone` alias).
+- **`DefineConversion` migration (Step 8, commit `9196d20`)** — the old macro's
+  lazy `static Type` guard (`Function.h:53`) had **no cross-TU role**: each site
+  lives in its own TU and registers exactly once, so an unconditional
+  `AddConversion` at static-init (`Conversion_Bind`) is equivalent. The old macro
+  was ALSO static-init (via `volatile static Type Name_Registration = Name##_Register<0>()`),
+  so timing is preserved exactly — including the pre-existing `V3F_to_V3D`
+  static-init registration in `V3.cpp` (the §A.7 "V3D→V3F at static-init" trap
+  applies to *newly added* conversions / `Type_Get<Position>()` in the dll ctor,
+  not to this long-standing site). `TypeT::AddConversion` (`Type.cpp:142`) pushes
+  unconditionally — no dedup, exactly 53 registrations across the 14 TUs. The API
+  DB **does not serialize conversions** (grep `conversion` in
+  `api-database.json` → 0) — runtime app runs are the only conversion gate.
+  **Source-type quirks preserved verbatim:** `String.cpp:24` `uint32_to_string`
+  source=`int32` and `:25` `uint64_to_string` source=`int64` (bodies call
+  `ToString<uint32>`/`ToString<uint64>`), and `Bool.cpp` `uint_to_bool` source
+  `int` (not `unsigned int`). Impl fns are file-static (zero cross-TU callers
+  verified); C++17 forbids lambda NTTPs so the impls are named function
+  pointers. Tool `script/migrate_defineconversion.py` (`--apply`) parses
+  `DefineConversion(Name, Source, Dest) {` + balanced-brace body; initial bug
+  (doubled `}}`) was `find_body_end` returning one-past the closing brace — fixed
+  to return the brace index itself.
 
 ---
 
@@ -1130,14 +1284,23 @@ commit a red build.
 - **`Vec3_Distance` dual registration (§6.8):** `V2.cpp` and `V3.cpp` both bind
   the script name `Vec3_Distance`. Today the weak-symbol merge keeps only one
   (init-order-dependent). Migration registers both overloads — an intentional
-  API-DB +1. Options:
-  - *(default)* Keep both; whitelist the +1 in the §8 gate 3 diff. Behavior
-    fix: the V2 overload becomes reliably available (today it wins only by
-    init-order luck).
-  - Fix the apparent copy-paste in `V2.cpp:22` (it binds `Vec3_Distance` with
-    V2 params and aliases the nonexistent `Vec2_Distance` → `Distance`; the
-    intent was likely a `Vec2_Distance` binding). Defer — changes the API DB
-    more (adds a new name, drops a `Distance` alias entry).
+  API-DB +1. **DECIDED (Step 3):** keep both; whitelist the +1 in the §8 gate 3
+  diff. Behavior fix: the V2 overload becomes reliably available (today it wins
+  only by init-order luck). The stray `FunctionAlias(Vec2_Distance, Distance)`
+  in V2.cpp keeps its no-op form (`Function_Alias("Vec2_Distance", "Distance")`)
+  so no extra DB entry appears.
+  - *(deferred alternative)* Fix the apparent copy-paste in `V2.cpp:22` (it
+    binds `Vec3_Distance` with V2 params and aliases the nonexistent
+    `Vec2_Distance` → `Distance`; the intent was likely a `Vec2_Distance`
+    binding). Would add a new name, drop a `Distance` alias entry. Deferred.
+- **`Vec4_Dot` broken alias (found by gate-6 checker, `V4.cpp:102`):** the file
+  registers `FreeFunction(float, Vec4f_Dot, ...)` but aliases
+  `FunctionAlias(Vec4_Dot, Dot)` — `Vec4_Dot` is never registered, so the V4F
+  `Dot` overload is missing today (the `Dot` bucket has 4 valid entries: Vec2,
+  Vec3f, Vec3d, Vec4d). **FIXED (Step 3, vector chunk):** alias source changed
+  to `Vec4f_Dot` (V4.cpp, `Vec4f_Dot_Alias`). This adds one `Dot` entry to the
+  API DB — whitelisted in the gate-3 diff. Removed from the checker's
+  `KNOWN_EXCEPTIONS`.
 - **Commit discipline during review gates:** the user may run each revision
   past another AI. Keep the doc's design-review sections (§4, §8 rows, §6.8)
   as a running log so reviewer findings are never re-derived.
@@ -1146,25 +1309,162 @@ commit a red build.
 
 ## 12. Progress Checklist
 
-- [ ] Save API-DB baseline (`/tmp/api-baseline.json`) **regenerated from the
-      current working tree** (committed `api-database.json` is stale — §6.8).
-- [ ] Commit `script/check_binding_alias_order.py` (§8 gate 6).
-- [ ] Step 1 — core `FunctionBind.h` (+ `remove_cvref_t` polyfill) + `FunctionT`
+- [x] Save API-DB baseline (`build/api-baseline.json`, durable gitignored copy
+      + `/tmp/api-baseline.json`) **regenerated from the current working tree**
+      (committed `api-database.json` is stale — §6.8). Fresh dump = 1849 fns /
+      445 types; diff vs committed 1843/444 is exactly +6 fns (`ClearAssets`,
+      `LoadGame`, `Object_ClearAssets`, `SaveGame`, `SaveGame_Create`,
+      `SaveGame_Load`) + 1 type (`SaveGameData`) — all WIP; zero existing
+      entries changed.
+- [x] Commit `script/check_binding_alias_order.py` (§8 gate 6). Baseline run:
+      `OK: 515 alias sites follow their source (2 known exceptions)` — the
+      exceptions are the pre-existing `V2.cpp` `Vec2_Distance` (deferred, §11)
+      and `V4.cpp` `Vec4_Dot` (new finding, fix during migration). Also added
+      `FreeFunctionNoParams`/`VoidFreeFunctionNoParams` capture + `#define` skip
+      (fixes false positives); chain and failure paths verified.
+- [x] Step 1 — core `FunctionBind.h` (+ `remove_cvref_t` polyfill) + `FunctionT`
       contract + §5.1a compatibility shim + island updates (incl. the 4
       `fn->call` sites in `TestStringBindings.cpp` — deferred until that file is
       registered, §4 baseline note).
-- [ ] Step 1 — new `tests/TestFunctionBind.cpp` (§5.4) registered in
+- [x] Step 1 — new `tests/TestFunctionBind.cpp` (§5.4) registered in
       `tests/CMakeLists.txt`.
-- [ ] Step 1 gate — build, tests (incl. new binder tests), alias-order script,
-      LSP smoke (6).
-- [ ] Decide `Vec3_Distance` outcome (§11) before Step 3.
-- [ ] Step 2 — Vector.h members.
-- [ ] Step 3 — LTE FreeFunction family.
-- [ ] Step 4 — Component subsystem.
-- [ ] Step 5 — Game subsystem (incl. ArgBind).
-- [ ] Step 6 — UI subsystem (incl. Glyphs).
-- [ ] Step 7 — Module subsystem.
-- [ ] Step 8 — DefineConversion.
-- [ ] Step 9 — ObjectComponents.cpp.
-- [ ] Step 10 — delete generator + old headers; update AGENTS.md + this doc.
-- [ ] Full verification: build, tests, API-DB diff, LSP smoke (6), 8 app runs.
+- [x] Step 1 gate — build, tests (incl. new binder tests), alias-order script,
+      LSP smoke (6). Verified: 317 checks / 0 failures; API dump byte-identical
+      to baseline; alias-order OK (515 sites, 2 known exceptions); smoke 6.
+- [x] Decide `Vec3_Distance` outcome (§11) before Step 3. **Decided: keep both
+      overloads; whitelist the +1 in the §8 gate 3 diff.**
+- [x] Step 2 — Vector.h members. `Function_Bind_Member` lazy `GetMetadata`
+      statics replace the 4 MemberFunction macros; §5.2's `FunctionTraits`
+      renamed to `BindingTraits` (collision with `LTE::FunctionTraits`,
+      `Generic.h:10` — see §10 facts log). Gate: build, 317 checks / 0
+      failures, API dump byte-identical, alias-order OK, LSP smoke 6, all app
+      runs OK (user-verified).
+- [x] **Step 3 — LTE FreeFunction family (+ the FF/VFF/NoP families across ALL
+      subsystems).** Bulk-migrated every `FreeFunction`/`VoidFreeFunction`/
+      `FreeFunctionNoParams`/`VoidFreeFunctionNoParams` site outside
+      `Function_Generated.h` (~61 `.cpp` files: LTE, Component, Game, UI,
+      Module) via `script/migrate_freefunction.py` (tool, §10 below), plus
+      hand-rewrote the 6 token-paste generator sites (ObjectComponents,
+      Item, Object, Widget, Keyboard, ShaderInstance block). Compile fixes:
+      `#include "LTE/FunctionBind.h"` in 5 files, `Motion.cpp`
+      `Position hitPoint = {};`. Gate: build 100%, 317 checks / 0 failures,
+      API-DB diff = **3 added / 0 removed** (the sanctioned whitelist:
+      `Vec3_Distance(Vec3f)` under its own name + its `Distance` alias copy,
+      and the `Dot(Vec4f)` restored by the `Vec4_Dot` fix), alias-order
+      **OK: 509 sites / 1 known exception** (checker updated for the migration's
+      multiline `Function_Bind(\n "Name",` format; `Vec4_Dot` exception
+      removed), LSP smoke 6, app runs `war`/`map`/`rails`/`threads` clean
+      (      exit 0). `threads.lts` comment header removed (engine does not lex `#`
+      comments; see note in §10). The `#`-header apps (`ltheory-main`, `ui`,
+      `market`, `hud`, …) were originally assumed blocked by the same `#` lexer
+      quirk — but **`ltheory-main` ran clean for the user (verified)** despite
+      its `#` header, so the `#` compile error seen in `threads.lts` was
+      app-specific, not header-caused. `threads.lts` runs after header removal.
+      Remaining `#`-header apps: not yet re-verified (see note in §10).
+- [x] Step 4 — Component subsystem **FF/VFF family done** (same bulk run).
+      **DefineFunction family done** — the 2 `DeclareFunction`/`DefineFunction`
+      sites (`Object_AddHistory` in `History.h/cpp`, `Object_GetZone` in
+      `Zoned.h/cpp`) migrated to the §6.2 pattern: header decl
+      `LT_API RT Name(T0 const& N0, …);` (dropped the
+      `#include "LTE/DeclareFunction.h"`), cpp body becomes a plain function
+      with direct params (`args.N0` → `N0`), then
+      `Function_Bind("Name", "None", &Name, "N0", …)` + `Function_Alias`.
+      Gate: build 100%, 317 checks / 0 failures, API-DB **byte-identical**
+      (1852/445), alias-order OK (509/1), LSP smoke 6, `war` run clean (exit 0,
+      exercises the `GetZone` alias via `Widget/HUD/Container.lts`). This was the
+      canary for the §6.2 pattern — see §10 facts log before doing Steps 5/6.
+- [x] Step 7 — Module subsystem **FF/VFF family done** (same bulk run).
+- [x] Step 9 — ObjectComponents.cpp X-macro body rewritten to the new API
+      (kept the `#define X(x) … COMPONENT_X` list skeleton).
+- [x] Step 5 — Game subsystem **FF/VFF done** (Step 3 run) + **DefineFunction/
+      ArgBind done** (commit `6cecc22`). All 118 Game files migrated via
+      `script/migrate_definefunction.py` (committed here — same pattern as Step 3;
+      parses DeclareFunction/DeclareFunctionNoParams/DeclareFunctionArgBind,
+      rewrites headers to `LT_API` per-param decls / `AutoClass X_Args` bundles +
+      per-param overloads, rewrites cpp bodies with `args.X`→`X`, adds
+      `Function_Bind` + `Function_Alias`; detects bundle-forwarding bodies and
+      migrates them as argbind with per-param lambda registrations; skips `#if 0`
+      blocks). **Gate:** build green (-Werror), 317 checks / 0 failures, API-DB
+      functions **byte-identical + the 3 sanctioned additions** (0 doc diffs),
+      alias-order OK 509/1, LSP smoke 6, app runs `war`/`ltheory-main`/`rails`/
+      `threads` clean (`map` hit an intermittent amdgpu context loss at GPU
+      render — environmental; `ui`/`market`/`hud` still on the deferred `#`
+      lexer quirk).
+      **Type-order observation (new, non-whitelist):** the API-DB `types` list
+      **reordered** after Step 5 — same 445-type set, **0 content diffs** per
+      type, but registration order shifted. Cause: the migration moved each
+      TU's eager registrations to a bottom-of-file block, changing cross-TU
+      static-init order of `Type_Get<T>()`. Functions section order was
+      unaffected (only the +3 additions). Benign for the LSP (name-keyed). If
+      the gate-3 byte-diff is used for Steps 6–8, compare the functions section
+      + type *sets* (order-insensitive) or regenerate
+      `build/api-baseline.json` from the current tree after this commit.
+- [x] **Step 5b — LTE/Module/Strukt DefineFunction/DeclareFunction family done**
+      (commit `e54f98b`). Same tool run over `src/liblt/LTE` (19 headers + 43
+      cpps, 102 DefineFunction sites), `src/liblt/Module` (Settings, FrameTimer)
+      and `src/liblt/Strukt` (CodeObject_Custom), plus the manual fixes recorded
+      in the §10 facts log (relative-include strip, SDF `FunctionAlias` →
+      `Function_Alias` standalone lines, `Mesh_CylinderHUD` hand-migration,
+      `Shader_Create`/`ShaderInstance_Create` per-param lambdas, decl re-indent
+      in `Script.h`/`Location.h`, and the `ParticleSystem_Pop` latent-bug fix in
+      Component/Interior.cpp). **Gate:** build green (-Werror), 317 checks / 0
+      failures, API-DB **byte-identical to the Step 5 dump** (1852/445 — still
+      just the 3 sanctioned fn additions, 0 doc diffs; SDF operator aliases were
+      already runtime-registered by the old macro so no DB change), alias-order
+      OK 509/1 (now actually *covering* the 4 SDF aliases), LSP smoke 6, app
+      runs `war`/`rails`/`threads` clean. UI (Step 6) is now the last
+      DefineFunction/DeclareFunction holdout (9 headers still include
+      `LTE/DeclareFunction.h`).
+- [x] Step 6 — UI subsystem **DefineFunction/ArgBind done** (commit `28bec13`).
+      All 9 UI headers (45 decls incl. the Glyph_* ArgBind family) + 25 cpps
+      migrated with `migrate_definefunction.py`. **Gate:** build green
+      (-Werror), 317 checks / 0 failures, API-DB **byte-identical to the Step 5b
+      dump** (1852/445, 0 added/0 removed, 0 doc diffs — UI fns were already in
+      the baseline; the alias-order checker counts both old `FunctionAlias` and
+      new `Function_Alias` forms, so the 509 OK / 1 known count is unchanged
+      after the old→new conversion), LSP smoke 6, app runs `war`/`rails`/
+      `threads`/`ltheory-main`/`objectinfo`/`dogfight` clean (`ui`/`market`/
+      `hud`/`launcher`/`platemesh`/`hnn`/`colony` still on the deferred `#`
+      lexer quirk). See §10 facts log for two manual fixes the tool can't do
+      (shadow locals + bundle complete-type includes). **UI is now the last
+      DefineFunction/DeclareFunction holdout cleared — only `DefineConversion`
+      (Step 8) and the shim deletion (Step 10) remain.**
+- [x] Step 8 — **DefineConversion done** (commit `9196d20`). Added
+      `ConversionTrampoline`/`Conversion_Bind` to `FunctionBind.h` (§6.5 spec)
+      and migrated all 53 sites across 14 TUs with new tool
+      `script/migrate_defineconversion.py` (`DefineConversion(Name, S, D) {body}`
+      → `static void Name_Impl(S const& src, D& dest) {body}` +
+      `static int const Name_Registration = Conversion_Bind<&Name_Impl>();`).
+      **Gate:** build green (-Werror), 317/0, API-DB byte-identical (1852/445,
+      0 added/0 removed; conversions are invisible to the fn dump — runtime is
+      the real gate), alias-order 509 OK / 1 known (unchanged), LSP smoke 6,
+      apps `war`/`rails`/`threads`/`objectinfo`/`dogfight`/`ltheory-main`
+      clean. **Declared source types preserved verbatim** incl. the
+      `int32`/`int64` quirks in `String.cpp` (`uint32_to_string`,
+      `uint64_to_string`) and `uint_to_bool`'s `int` source. `TypeAlias`
+      (Type.h) kept per §11 (macro-free-friendly, survives Step 10).
+      `DefineConversion` macro itself remains in `Function.h` until Step 10.
+- [x] Step 10 — **generator + old headers deleted** (commit pending, 2026-08-05).
+      Deleted `src/liblt/LTE/Function_Generated.h`, `src/liblt/LTE/DeclareFunction.h`,
+      `script/meta/DeclareFunction.py`, `script/meta/common.py`. Removed from
+      `Function.h`: the `#include "Function_Generated.h"`, the `DefineConversion`
+      macro, and the `FunctionAlias` macro. Removed `#include "DeclareFunction.h"`
+      from `LTE.h:39`. Deleted dead `#if 0` blocks (`Items.h:118-133`
+      `Item_PulseType`, `Events.h:63-68` `Event_Withdraw`) and the dead
+      `MEMBERFUNCTION` macro (`Type.h:114`, zero users). Removed a stale
+      commented `Event_Withdraw` call in `Game/Task/Transport.cpp:49`. Allowed
+      residuals unchanged: `Vector.h` `_GetMetadata` statics (~314-356) and the
+      `FunctionBind.h:122` comment mention. §7.3 greps now hit only docs, the
+      migration tools (`script/migrate_*.py`, kept as historical one-shot
+      tools), and the accepted residuals. **Gate:** build green (-Werror), 369/0
+      (incl. new `Expression_While_ReturnInLoopBreaks` regression), API-DB
+      **0 added/0 removed vs HEAD** (fresh dump byte-identical; stale
+      `build/api-baseline.json` refreshed), alias-order `OK: 509 / 1 known`,
+      LSP smoke 6, apps `war`/`ltheory-main`/`ui`/`market`/`map`/`hud`/`rails`/
+      `threads` clean to timeout (ui/market/hud print pre-existing spurious
+      literal-probe compile noise — see `ltsl-hardening.md` §5.1).
+      **All legacy macro paths are now gone; `Function_Bind`/`Function_Alias`/
+      `Conversion_Bind` are the only binding mechanism.**
+- [x] Full verification — completed 2026-08-05 as part of Step 10 (build,
+      tests, API-DB diff, alias-order, LSP smoke, 8 app runs). Gates recorded
+      above; see also `ltsl-hardening.md` §7 for the standard gate sequence.

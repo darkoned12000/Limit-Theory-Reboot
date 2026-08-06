@@ -3,6 +3,7 @@
 #include "LTE/Pool.h"
 #include "LTE/Shader.h"
 #include "LTE/V4.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClass(GradientVertex,
@@ -59,7 +60,14 @@ namespace {
   };
 }
 
-DefineFunction(Glyph_Gradient) {
+Glyph Glyph_Gradient(Glyph_Gradient_Args const& args) {
   return new Gradient(args);
 }
+static Function const Glyph_Gradient_Registration = Function_Bind(
+  "Glyph_Gradient",
+  "None",
+  [](V2 const& position, V2 const& size, Color const& color1, float const& alpha1, Color const& color2, float const& alpha2) -> Glyph { return Glyph_Gradient(position, size, color1, alpha1, color2, alpha2); },
+  "position", "size", "color1", "alpha1", "color2", "alpha2");
+
+
 

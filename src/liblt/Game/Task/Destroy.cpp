@@ -15,6 +15,7 @@
 #include "LTE/StackFrame.h"
 
 #include "LTE/Debug.h"
+#include "LTE/FunctionBind.h"
 const Distance kDestroyDistance = 10000;
 
 namespace {
@@ -130,7 +131,14 @@ namespace {
   };
 }
 
-DefineFunction(Task_Destroy) {
+Task Task_Destroy(Task_Destroy_Args const& args) {
   return new TaskDestroy(args);
 }
+static Function const Task_Destroy_Registration = Function_Bind(
+  "Task_Destroy",
+  "None",
+  [](Object const& target) -> Task { return Task_Destroy(target); },
+  "target");
+
+
 

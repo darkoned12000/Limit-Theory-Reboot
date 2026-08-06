@@ -8,6 +8,7 @@
 #include "LTE/Pool.h"
 #include "LTE/SDFs.h"
 #include "LTE/StackFrame.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClass(TaskPatrolInstance,
@@ -53,6 +54,13 @@ namespace {
   };
 }
 
-DefineFunction(Task_Patrol) {
+Task Task_Patrol(Task_Patrol_Args const& args) {
   return new TaskPatrol(args);
 }
+static Function const Task_Patrol_Registration = Function_Bind(
+  "Task_Patrol",
+  "None",
+  [](Object const& zone) -> Task { return Task_Patrol(zone); },
+  "zone");
+
+

@@ -1,26 +1,34 @@
 #include "Account.h"
 #include "Game/Object.h"
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 
-VoidFreeFunction(Object_AddCredits,
+static Function const Object_AddCredits_Registration = Function_Bind(
+  "Object_AddCredits",
   "Transfer 'count' credits to 'object's bank account",
-  Object, object,
-  Quantity, count)
-{
+  [](Object const& object, Quantity const& count)
+  {
   object->AddCredits(count);
-} FunctionAlias(Object_AddCredits, AddCredits);
+  },
+  "object", "count");
+static int const Object_AddCredits_Alias = Function_Alias("Object_AddCredits", "AddCredits");
 
-FreeFunction(Quantity, Object_GetCredits, 
+static Function const Object_GetCredits_Registration = Function_Bind(
+  "Object_GetCredits",
   "Return the number of credits in 'object's bank account",
-  Object, object)
-{
+  [](Object const& object) -> Quantity
+  {
   return object->GetCredits();
-} FunctionAlias(Object_GetCredits, GetCredits);
+  },
+  "object");
+static int const Object_GetCredits_Alias = Function_Alias("Object_GetCredits", "GetCredits");
 
-FreeFunction(bool, Object_RemoveCredits, 
+static Function const Object_RemoveCredits_Registration = Function_Bind(
+  "Object_RemoveCredits",
   "Try to transfer 'count' credits from 'object's bank account; return success",
-  Object, object,
-  Quantity, count)
-{
+  [](Object const& object, Quantity const& count) -> bool
+  {
   return object->RemoveCredits(count);
-} FunctionAlias(Object_RemoveCredits, RemoveCredits);
+  },
+  "object", "count");
+static int const Object_RemoveCredits_Alias = Function_Alias("Object_RemoveCredits", "RemoveCredits");

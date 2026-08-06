@@ -19,6 +19,7 @@
 #include "LTE/Script.h"
 
 #include "UI/Glyphs.h"
+#include "LTE/FunctionBind.h"
 
 const float kThrustMult = 100;
 
@@ -58,7 +59,7 @@ AutoClassDerivedEmpty(ThrusterType, ThrusterTypeBase)
 
 DERIVED_IMPLEMENT(ThrusterType)
 
-DefineFunction(Item_ThrusterType) {
+Item Item_ThrusterType(Item_ThrusterType_Args const& args) {
   static Renderable renderable;
   if (!renderable)
     ScriptFunction_Load("Item/ThrusterType:Generate")->Call(renderable);
@@ -83,3 +84,10 @@ DefineFunction(Item_ThrusterType) {
   self->value = args.value;
   return self;
 }
+static Function const Item_ThrusterType_Registration = Function_Bind(
+  "Item_ThrusterType",
+  "None",
+  [](double const& value, uint const& seed, float const& compactness, float const& efficiency, float const& integrity, float const& rate) -> Item { return Item_ThrusterType(value, seed, compactness, efficiency, integrity, rate); },
+  "value", "seed", "compactness", "efficiency", "integrity", "rate");
+
+

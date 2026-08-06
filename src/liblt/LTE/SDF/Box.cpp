@@ -3,6 +3,7 @@
 #include "LTE/Bound.h"
 #include "LTE/Math.h"
 #include "LTE/TypeTraits.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(SDFBox, SDFT,
@@ -63,10 +64,24 @@ namespace {
   DERIVED_IMPLEMENT(SDFRoundBox)
 }
 
-DefineFunction(SDF_Box) {
-  return new SDFBox(args.center, args.sides);
+SDF SDF_Box(V3 const& center, V3 const& sides) {
+  return new SDFBox(center, sides);
 }
+static Function const SDF_Box_Registration = Function_Bind(
+  "SDF_Box",
+  "None",
+  &SDF_Box,
+  "center", "sides");
 
-DefineFunction(SDF_RoundBox) {
-  return new SDFRoundBox(args.center, args.sides, args.radius);
+
+
+SDF SDF_RoundBox(V3 const& center, V3 const& sides, float const& radius) {
+  return new SDFRoundBox(center, sides, radius);
 }
+static Function const SDF_RoundBox_Registration = Function_Bind(
+  "SDF_RoundBox",
+  "None",
+  &SDF_RoundBox,
+  "center", "sides", "radius");
+
+

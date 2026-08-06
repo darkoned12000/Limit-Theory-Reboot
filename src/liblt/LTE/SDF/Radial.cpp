@@ -2,6 +2,7 @@
 
 #include "LTE/Bound.h"
 #include "LTE/Math.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(SDFRadial, SDFT,
@@ -30,6 +31,13 @@ namespace {
   DERIVED_IMPLEMENT(SDFRadial)
 }
 
-DefineFunction(SDF_Radial) {
-  return new SDFRadial(args.source, args.rMin, args.rMax);
+SDF SDF_Radial(SDF const& source, float const& rMin, float const& rMax) {
+  return new SDFRadial(source, rMin, rMax);
 }
+static Function const SDF_Radial_Registration = Function_Bind(
+  "SDF_Radial",
+  "None",
+  &SDF_Radial,
+  "source", "rMin", "rMax");
+
+

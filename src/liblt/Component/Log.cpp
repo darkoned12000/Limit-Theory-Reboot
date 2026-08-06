@@ -1,6 +1,7 @@
 #include "Log.h"
 #include "Game/Object.h"
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 
 AutoClass(LogIterator,
   Object, object,
@@ -8,48 +9,65 @@ AutoClass(LogIterator,
   LogIterator() = default;
 };
 
-VoidFreeFunction(Object_AddLog,
+static Function const Object_AddLog_Registration = Function_Bind(
+  "Object_AddLog",
   "Add 'message' to 'object's list of logged messages",
-  Object, object,
-  String, message)
-{
+  [](Object const& object, String const& message)
+  {
   object->AddLogMessage(message);
-} FunctionAlias(Object_AddLog, AddLog);
+  },
+  "object", "message");
+static int const Object_AddLog_Alias = Function_Alias("Object_AddLog", "AddLog");
 
-FreeFunction(LogIterator, Object_GetLog,
+static Function const Object_GetLog_Registration = Function_Bind(
+  "Object_GetLog",
   "Return an iterator to the log entries of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> LogIterator
+  {
   return LogIterator(object, 0);
-} FunctionAlias(Object_GetLog, GetLog);
+  },
+  "object");
+static int const Object_GetLog_Alias = Function_Alias("Object_GetLog", "GetLog");
 
-VoidFreeFunction(LogIterator_Advance,
+static Function const LogIterator_Advance_Registration = Function_Bind(
+  "LogIterator_Advance",
   "Advance 'iterator'",
-  LogIterator, iterator)
-{
+  [](LogIterator const& iterator)
+  {
   Mutable(iterator).index++;
-} FunctionAlias(LogIterator_Advance, Advance);
+  },
+  "iterator");
+static int const LogIterator_Advance_Alias = Function_Alias("LogIterator_Advance", "Advance");
 
-FreeFunction(LogEntry, LogIterator_Get,
+static Function const LogIterator_Get_Registration = Function_Bind(
+  "LogIterator_Get",
   "Return the contents of 'iterator'",
-  LogIterator, iterator)
-{
+  [](LogIterator const& iterator) -> LogEntry
+  {
   return iterator.object->GetLog()->elements[iterator.index];
-} FunctionAlias(LogIterator_Get, Get);
+  },
+  "iterator");
+static int const LogIterator_Get_Alias = Function_Alias("LogIterator_Get", "Get");
 
-FreeFunction(bool, LogIterator_HasMore,
+static Function const LogIterator_HasMore_Registration = Function_Bind(
+  "LogIterator_HasMore",
   "Return whether 'iterator' has more elements",
-  LogIterator, iterator)
-{
+  [](LogIterator const& iterator) -> bool
+  {
   return iterator.object->GetLog() &&
     iterator.index < iterator.object->GetLog()->elements.size();
-} FunctionAlias(LogIterator_HasMore, HasMore);
+  },
+  "iterator");
+static int const LogIterator_HasMore_Alias = Function_Alias("LogIterator_HasMore", "HasMore");
 
-FreeFunction(int, LogIterator_Size,
+static Function const LogIterator_Size_Registration = Function_Bind(
+  "LogIterator_Size",
   "Return the total number of elements in 'iterator'",
-  LogIterator, iterator)
-{
+  [](LogIterator const& iterator) -> int
+  {
   return iterator.object->GetLog()
     ? static_cast<int>(iterator.object->GetLog()->elements.size())
     : 0;
-} FunctionAlias(LogIterator_Size, Size);
+  },
+  "iterator");
+static int const LogIterator_Size_Alias = Function_Alias("LogIterator_Size", "Size");

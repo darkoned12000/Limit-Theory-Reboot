@@ -5,6 +5,7 @@
 #include "LTE/V4.h"
 
 #include "UI/Widget.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(WidgetList, WidgetComponentT,
@@ -91,12 +92,28 @@ namespace {
   };
 }
 
-DefineFunction(Widget_ListHorizontal) {
-  args.widget->Add(new WidgetList(args.spacing, false));
-  return args.widget;
-} FunctionAlias(Widget_ListHorizontal, ListH);
+Widget Widget_ListHorizontal(float const& spacing, Widget const& widget) {
+  widget->Add(new WidgetList(spacing, false));
+  return widget;
+}
+static Function const Widget_ListHorizontal_Registration = Function_Bind(
+  "Widget_ListHorizontal",
+  "None",
+  &Widget_ListHorizontal,
+  "spacing", "widget");
+static int const Widget_ListHorizontal_Alias = Function_Alias("Widget_ListHorizontal", "ListH");
 
-DefineFunction(Widget_ListVertical) {
-  args.widget->Add(new WidgetList(args.spacing, true));
-  return args.widget;
-} FunctionAlias(Widget_ListVertical, ListV);
+
+
+Widget Widget_ListVertical(float const& spacing, Widget const& widget) {
+  widget->Add(new WidgetList(spacing, true));
+  return widget;
+}
+static Function const Widget_ListVertical_Registration = Function_Bind(
+  "Widget_ListVertical",
+  "None",
+  &Widget_ListVertical,
+  "spacing", "widget");
+static int const Widget_ListVertical_Alias = Function_Alias("Widget_ListVertical", "ListV");
+
+

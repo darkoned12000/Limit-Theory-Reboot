@@ -3,6 +3,7 @@
 #include "LTE/Pool.h"
 #include "LTE/Shader.h"
 #include "LTE/V4.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClass(BoxVertex,
@@ -56,6 +57,13 @@ namespace {
   };
 }
 
-DefineFunction(Glyph_Box) {
+Glyph Glyph_Box(Glyph_Box_Args const& args) {
   return new Box(args);
 }
+static Function const Glyph_Box_Registration = Function_Bind(
+  "Glyph_Box",
+  "None",
+  [](V2 const& position, V2 const& size, Color const& color, float const& alpha) -> Glyph { return Glyph_Box(position, size, color, alpha); },
+  "position", "size", "color", "alpha");
+
+

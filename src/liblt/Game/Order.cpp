@@ -2,12 +2,20 @@
 
 #include "Item.h"
 #include "Object.h"
+#include "LTE/FunctionBind.h"
 
-DefineFunction(Order_Create) {
+Order Order_Create(Object const& owner, Item const& item, Quantity const& volume, Quantity const& price) {
   Order self = new OrderT;
-  self->owner = args.owner;
-  self->item = args.item;
-  self->volume = args.volume;
-  self->price = args.price;
+  self->owner = owner;
+  self->item = item;
+  self->volume = volume;
+  self->price = price;
   return self;
 }
+static Function const Order_Create_Registration = Function_Bind(
+  "Order_Create",
+  "None",
+  &Order_Create,
+  "owner", "item", "volume", "price");
+
+

@@ -1,7 +1,6 @@
 #ifndef LTE_Meshes_h__
 #define LTE_Meshes_h__
 
-#include "DeclareFunction.h"
 #include "Math.h"
 #include "Mesh.h"
 #include "V3.h"
@@ -12,36 +11,28 @@ LT_API Mesh Mesh_Billboard(
   float minV = -1,
   float maxV =  1);
 
-DeclareFunction(Mesh_Box, Mesh,
-  uint, resolution,
-  bool, closed)
+LT_API Mesh Mesh_Box(
+  uint const& resolution, bool const& closed);
 
-DeclareFunction(Mesh_BoxRounded, Mesh,
-  uint, resolution,
-  float, radius)
+LT_API Mesh Mesh_BoxRounded(
+  uint const& resolution, float const& radius);
 
-DeclareFunction(Mesh_BoxSphere, Mesh,
-  uint, resolution,
-  bool, closed)
+LT_API Mesh Mesh_BoxSphere(
+  uint const& resolution, bool const& closed);
 
 LT_API Mesh Mesh_Cone(uint slices);
 
 LT_API Mesh Mesh_Cylinder(uint slices);
 
-DeclareFunction(Mesh_Plane, Mesh,
-  V3, origin,
-  V3, x,
-  V3, y,
-  uint, cellsX,
-  uint, cellsY)
+LT_API Mesh Mesh_Plane(
+  V3 const& origin, V3 const& x, V3 const& y, uint const& cellsX, uint const& cellsY);
 
-DeclareFunctionNoParams(Mesh_Quad, Mesh)
+LT_API Mesh Mesh_Quad();
 
 LT_API Mesh Mesh_SkirtedPlane(int cellsX, int cellsY);
 
-DeclareFunction(Mesh_Sphere, Mesh,
-  uint, slices,
-  uint, stacks)
+LT_API Mesh Mesh_Sphere(
+  uint const& slices, uint const& stacks);
 
 LT_API Mesh Mesh_Tetrahedron();
 

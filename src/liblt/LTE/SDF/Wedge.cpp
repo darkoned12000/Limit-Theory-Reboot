@@ -2,6 +2,7 @@
 
 #include "LTE/Bound.h"
 #include "LTE/Math.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(SDFWedge, SDFT,
@@ -36,12 +37,19 @@ namespace {
   DERIVED_IMPLEMENT(SDFWedge)
 }
 
-DefineFunction(SDF_Wedge) {
+SDF SDF_Wedge(V3 const& center, float const& angle, float const& angularExtent, float const& radius, float const& radialExtent, float const& height) {
   return new SDFWedge(
-    args.center,
-    args.angle,
-    args.angularExtent,
-    args.radius,
-    args.radialExtent,
-    args.height);
+    center,
+    angle,
+    angularExtent,
+    radius,
+    radialExtent,
+    height);
 }
+static Function const SDF_Wedge_Registration = Function_Bind(
+  "SDF_Wedge",
+  "None",
+  &SDF_Wedge,
+  "center", "angle", "angularExtent", "radius", "radialExtent", "height");
+
+

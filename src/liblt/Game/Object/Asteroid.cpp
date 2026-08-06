@@ -15,6 +15,7 @@
 #include "LTE/Pool.h"
 #include "LTE/RNG.h"
 #include "LTE/ShaderInstance.h"
+#include "LTE/FunctionBind.h"
 
 using AsteroidBaseT = ObjectWrapper
   < Component_BoundingBox
@@ -68,22 +69,36 @@ AutoClassDerivedEmpty(AsteroidRich, AsteroidRichBaseT)
 
 DERIVED_IMPLEMENT(AsteroidRich)
 
-DefineFunction(Object_Asteroid) {
+Object Object_Asteroid(uint const& seed) {
   Reference<Asteroid> self = new Asteroid;
-  self->Seeded.seed = args.seed;
+  self->Seeded.seed = seed;
   self->Initialize();
   return self;
 }
+static Function const Object_Asteroid_Registration = Function_Bind(
+  "Object_Asteroid",
+  "None",
+  &Object_Asteroid,
+  "seed");
 
-DefineFunction(Object_AsteroidRich) {
+
+
+Object Object_AsteroidRich(uint const& seed, Item const& resource, Quantity const& quantity) {
   Reference<AsteroidRich> self = new AsteroidRich;
 
   /* TODO : Factor generating algorithm. */
-  RNG rg = RNG_MTG(args.seed);
-  self->Mineable.item = args.resource;
-  self->Mineable.quantity = args.quantity;
+  RNG rg = RNG_MTG(seed);
+  self->Mineable.item = resource;
+  self->Mineable.quantity = quantity;
   self->Mineable.phase = rg->GetDirection();
-  self->Seeded.seed = args.seed;
+  self->Seeded.seed = seed;
   self->Initialize();
   return self;
 }
+static Function const Object_AsteroidRich_Registration = Function_Bind(
+  "Object_AsteroidRich",
+  "None",
+  &Object_AsteroidRich,
+  "seed", "resource", "quantity");
+
+

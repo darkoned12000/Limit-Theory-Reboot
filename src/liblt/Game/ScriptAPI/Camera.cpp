@@ -1,102 +1,130 @@
 #include "Game/Camera.h"
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 #include "LTE/View.h"
 #include "LTE/Viewport.h"
 #include "LTE/Window.h"
 
 TypeAlias(Reference<CameraT>, Camera);
 
-DefineConversion(camera_to_object, Camera, Object) {
+static void camera_to_object_Impl(Camera const& src, Object& dest) {
   dest = (Object)src;
 }
+static int const camera_to_object_Registration = Conversion_Bind<&camera_to_object_Impl>();
 
-FreeFunction(RayD, Camera_GetRay,
+static Function const Camera_GetRay_Registration = Function_Bind(
+  "Camera_GetRay",
   "Return the world-space ray that projects to 'position' under 'camera'",
-  Camera, camera,
-  V2, position)
-{
+  [](Camera const& camera, V2 const& position) -> RayD
+  {
   return camera->GetView(Viewport_Get()->GetAspect()).GetRay(Viewport_Get()->ToNDC(position));
-} FunctionAlias(Camera_GetRay, GetRay);
+  },
+  "camera", "position");
+static int const Camera_GetRay_Alias = Function_Alias("Camera_GetRay", "GetRay");
 
-FreeFunction(Object, Camera_GetTarget,
+static Function const Camera_GetTarget_Registration = Function_Bind(
+  "Camera_GetTarget",
   "Return the object that 'camera' is tracking",
-  Camera, camera)
-{
+  [](Camera const& camera) -> Object
+  {
   return camera->GetTarget();
-} FunctionAlias(Camera_GetTarget, GetTarget);
+  },
+  "camera");
+static int const Camera_GetTarget_Alias = Function_Alias("Camera_GetTarget", "GetTarget");
 
-FreeFunction(Position, Camera_Project,
+static Function const Camera_Project_Registration = Function_Bind(
+  "Camera_Project",
   "Return the projected position of 'position' from the viewpoint of 'camera'",
-  Camera, camera,
-  Position, position)
-{
+  [](Camera const& camera, Position const& position) -> Position
+  {
   return camera->GetView(Window_Get()->GetAspect()).Project(position);
-} FunctionAlias(Camera_Project, Project);
+  },
+  "camera", "position");
+static int const Camera_Project_Alias = Function_Alias("Camera_Project", "Project");
 
-VoidFreeFunctionNoParams(Camera_Pop,
-  "Pop the last camera from the global camera stack")
-{
+static Function const Camera_Pop_Registration = Function_Bind(
+  "Camera_Pop",
+  "Pop the last camera from the global camera stack",
+  []()
+  {
   Camera_Pop();
-}
+  });
 
-VoidFreeFunction(Camera_Push,
+static Function const Camera_Push_Registration = Function_Bind(
+  "Camera_Push",
   "Push 'camera' to the global camera stack",
-  Camera, camera)
-{
+  [](Camera const& camera)
+  {
   Camera_Push(camera);
-} FunctionAlias(Camera_Push, Push);
+  },
+  "camera");
+static int const Camera_Push_Alias = Function_Alias("Camera_Push", "Push");
 
-VoidFreeFunction(Camera_SetFov,
+static Function const Camera_SetFov_Registration = Function_Bind(
+  "Camera_SetFov",
   "Set 'camera's vertical field of view to 'fov' degrees",
-  Camera, camera,
-  float, fov)
-{
+  [](Camera const& camera, float const& fov)
+  {
   camera->SetFov(Radians(fov));
-} FunctionAlias(Camera_SetFov, SetFov);
+  },
+  "camera", "fov");
+static int const Camera_SetFov_Alias = Function_Alias("Camera_SetFov", "SetFov");
 
-VoidFreeFunction(Camera_SetRelativePos,
+static Function const Camera_SetRelativePos_Registration = Function_Bind(
+  "Camera_SetRelativePos",
   "Set 'camera's position to 'position' relative to the target",
-  Camera, camera,
-  Position, position)
-{
+  [](Camera const& camera, Position const& position)
+  {
   camera->SetRelativePos(position);
-} FunctionAlias(Camera_SetRelativePos, SetRelativePos);
+  },
+  "camera", "position");
+static int const Camera_SetRelativePos_Alias = Function_Alias("Camera_SetRelativePos", "SetRelativePos");
 
-VoidFreeFunction(Camera_SetRelativeLookAt,
+static Function const Camera_SetRelativeLookAt_Registration = Function_Bind(
+  "Camera_SetRelativeLookAt",
   "Set 'camera' to look at 'position' relative to the target",
-  Camera, camera,
-  Position, lookAt)
-{
+  [](Camera const& camera, Position const& lookAt)
+  {
   camera->SetRelativeLookAt(lookAt);
-} FunctionAlias(Camera_SetRelativeLookAt, SetRelativeLookAt);
+  },
+  "camera", "lookAt");
+static int const Camera_SetRelativeLookAt_Alias = Function_Alias("Camera_SetRelativeLookAt", "SetRelativeLookAt");
 
-VoidFreeFunction(Camera_SetRelativeUp,
+static Function const Camera_SetRelativeUp_Registration = Function_Bind(
+  "Camera_SetRelativeUp",
   "Set 'camera's up direction 'up' relative to the target",
-  Camera, camera,
-  V3, up)
-{
+  [](Camera const& camera, V3 const& up)
+  {
   camera->SetRelativeUp(up);
-} FunctionAlias(Camera_SetRelativeUp, SetRelativeUp);
+  },
+  "camera", "up");
+static int const Camera_SetRelativeUp_Alias = Function_Alias("Camera_SetRelativeUp", "SetRelativeUp");
 
-VoidFreeFunction(Camera_SetRigidity,
+static Function const Camera_SetRigidity_Registration = Function_Bind(
+  "Camera_SetRigidity",
   "Set 'camera's to have 'rigidity'",
-  Camera, camera,
-  float, rigidity)
-{
+  [](Camera const& camera, float const& rigidity)
+  {
   camera->SetRigidity(rigidity);
-} FunctionAlias(Camera_SetRigidity, SetRigidity);
+  },
+  "camera", "rigidity");
+static int const Camera_SetRigidity_Alias = Function_Alias("Camera_SetRigidity", "SetRigidity");
 
-VoidFreeFunction(Camera_SetTarget,
+static Function const Camera_SetTarget_Registration = Function_Bind(
+  "Camera_SetTarget",
   "Set 'camera' to track 'target'",
-  Camera, camera,
-  Object, target)
-{
+  [](Camera const& camera, Object const& target)
+  {
   camera->SetTarget(target);
-} FunctionAlias(Camera_SetTarget, SetTarget);
+  },
+  "camera", "target");
+static int const Camera_SetTarget_Alias = Function_Alias("Camera_SetTarget", "SetTarget");
 
-FreeFunction(V2, Position_Frame,
+static Function const Position_Frame_Registration = Function_Bind(
+  "Position_Frame",
   "Return the screen-space coordinate of the projected 'position'",
-  Position, position)
-{
+  [](Position const& position) -> V2
+  {
   return Viewport_Get()->FromNDC(position.GetXY());
-}
+  },
+  "position");

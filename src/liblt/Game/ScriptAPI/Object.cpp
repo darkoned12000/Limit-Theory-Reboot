@@ -10,6 +10,7 @@
 #include "Game/Player.h"
 
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 #include "LTE/Renderable.h"
 #include "LTE/Script.h"
 #include "LTE/Transform.h"
@@ -41,186 +42,246 @@ static void Position_RegisterConstructor() {
   Position_RegisterScriptAPI();
 }
 
-DefineConversion(object_to_player, Object, Player) {
+static void object_to_player_Impl(Object const& src, Player& dest) {
   dest = (Player)src;
 }
+static int const object_to_player_Registration = Conversion_Bind<&object_to_player_Impl>();
 
-DefineConversion(player_to_object, Player, Object) {
+static void player_to_object_Impl(Player const& src, Object& dest) {
   dest = (Object)src;
 }
+static int const player_to_object_Registration = Conversion_Bind<&player_to_object_Impl>();
 
-VoidFreeFunction(Object_AddChild,
+static Function const Object_AddChild_Registration = Function_Bind(
+  "Object_AddChild",
   "Add 'child' to 'object'",
-  Object, object,
-  Object, child)
-{
+  [](Object const& object, Object const& child)
+  {
   object->AddChild(child);
-} FunctionAlias(Object_AddChild, AddChild);
+  },
+  "object", "child");
+static int const Object_AddChild_Alias = Function_Alias("Object_AddChild", "AddChild");
 
-VoidFreeFunction(Object_Attach,
+static Function const Object_Attach_Registration = Function_Bind(
+  "Object_Attach",
   "Attach 'child' to 'object' with 'localTransform'",
-  Object, object,
-  Object, child,
-  Transform, localTransform)
-{
+  [](Object const& object, Object const& child, Transform const& localTransform)
+  {
   object->Attach(child, localTransform);
-} FunctionAlias(Object_Attach, Attach);
+  },
+  "object", "child", "localTransform");
+static int const Object_Attach_Alias = Function_Alias("Object_Attach", "Attach");
 
-VoidFreeFunction(Object_Broadcast,
+static Function const Object_Broadcast_Registration = Function_Bind(
+  "Object_Broadcast",
   "Broadcast 'message' to 'object'",
-  Object, object,
-  Data, message)
-{
+  [](Object const& object, Data const& message)
+  {
   object->Broadcast(Mutable(message));
-} FunctionAlias(Object_Broadcast, Broadcast);
+  },
+  "object", "message");
+static int const Object_Broadcast_Alias = Function_Alias("Object_Broadcast", "Broadcast");
 
-VoidFreeFunction(Object_Delete,
+static Function const Object_Delete_Registration = Function_Bind(
+  "Object_Delete",
   "Delete 'object' from the game world",
-  Object, object)
-{
+  [](Object const& object)
+  {
   object->Delete();
-} FunctionAlias(Object_Delete, Delete);
+  },
+  "object");
+static int const Object_Delete_Alias = Function_Alias("Object_Delete", "Delete");
 
-FreeFunction(bool, Object_Equal,
+static Function const Object_Equal_Registration = Function_Bind(
+  "Object_Equal",
   "Return a == b",
-  Object, a,
-  Object, b)
-{
+  [](Object const& a, Object const& b) -> bool
+  {
   return a == b;
-} FunctionAlias(Object_Equal, ==);
+  },
+  "a", "b");
+static int const Object_Equal_Alias = Function_Alias("Object_Equal", "==");
 
-FreeFunction(Object, Object_GetContainer,
+static Function const Object_GetContainer_Registration = Function_Bind(
+  "Object_GetContainer",
   "Return the container within which 'object' exists",
-  Object, object)
-{
+  [](Object const& object) -> Object
+  {
   return object->GetContainer().t;
-} FunctionAlias(Object_GetContainer, GetContainer);
+  },
+  "object");
+static int const Object_GetContainer_Alias = Function_Alias("Object_GetContainer", "GetContainer");
 
-FreeFunction(DistanceT, Object_GetDistance,
+static Function const Object_GetDistance_Registration = Function_Bind(
+  "Object_GetDistance",
   "Return the distance from 'a' to 'b'",
-  Object, a,
-  Object, b)
-{
+  [](Object const& a, Object const& b) -> DistanceT
+  {
   return Length(a->GetPos() - b->GetPos());
-} FunctionAlias(Object_GetDistance, GetDistance);
+  },
+  "a", "b");
+static int const Object_GetDistance_Alias = Function_Alias("Object_GetDistance", "GetDistance");
 
-FreeFunction(HashT, Object_GetHash,
+static Function const Object_GetHash_Registration = Function_Bind(
+  "Object_GetHash",
   "Return a hash for 'object'",
-  Object, object)
-{
+  [](Object const& object) -> HashT
+  {
   return object->GetHash();
-} FunctionAlias(Object_GetHash, GetHash);
+  },
+  "object");
+static int const Object_GetHash_Alias = Function_Alias("Object_GetHash", "GetHash");
 
-FreeFunction(Icon, Object_GetIcon,
+static Function const Object_GetIcon_Registration = Function_Bind(
+  "Object_GetIcon",
   "Return the icon for 'object'",
-  Object, object)
-{
+  [](Object const& object) -> Icon
+  {
   return object->GetIcon();
-} FunctionAlias(Object_GetIcon, GetIcon);
+  },
+  "object");
+static int const Object_GetIcon_Alias = Function_Alias("Object_GetIcon", "GetIcon");
 
-FreeFunction(ObjectID, Object_GetID,
+static Function const Object_GetID_Registration = Function_Bind(
+  "Object_GetID",
   "Return the globally-unique ID of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> ObjectID
+  {
   return object->GetID();
-} FunctionAlias(Object_GetID, GetID);
+  },
+  "object");
+static int const Object_GetID_Alias = Function_Alias("Object_GetID", "GetID");
 
-FreeFunction(float, Object_GetRadius,
+static Function const Object_GetRadius_Registration = Function_Bind(
+  "Object_GetRadius",
   "Return the world-space radius of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> float
+  {
   return object->GetRadius();
-} FunctionAlias(Object_GetRadius, GetRadius);
+  },
+  "object");
+static int const Object_GetRadius_Alias = Function_Alias("Object_GetRadius", "GetRadius");
 
-FreeFunction(Renderable, Object_GetRenderable,
+static Function const Object_GetRenderable_Registration = Function_Bind(
+  "Object_GetRenderable",
   "Return the renderable for 'object'",
-  Object, object)
-{
+  [](Object const& object) -> Renderable
+  {
   return object->GetRenderable();
-} FunctionAlias(Object_GetRenderable, GetRenderable);
+  },
+  "object");
+static int const Object_GetRenderable_Alias = Function_Alias("Object_GetRenderable", "GetRenderable");
 
-FreeFunction(Object, Object_GetRoot,
+static Function const Object_GetRoot_Registration = Function_Bind(
+  "Object_GetRoot",
   "Return the root object of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> Object
+  {
   return object->GetRoot().t;
-} FunctionAlias(Object_GetRoot, GetRoot);
+  },
+  "object");
+static int const Object_GetRoot_Alias = Function_Alias("Object_GetRoot", "GetRoot");
 
-FreeFunction(uint, Object_GetSeed,
+static Function const Object_GetSeed_Registration = Function_Bind(
+  "Object_GetSeed",
   "Return the seed value of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> uint
+  {
   return object->GetSeed();
-} FunctionAlias(Object_GetSeed, GetSeed);
+  },
+  "object");
+static int const Object_GetSeed_Alias = Function_Alias("Object_GetSeed", "GetSeed");
 
-FreeFunction(Item, Object_GetSupertype,
+static Function const Object_GetSupertype_Registration = Function_Bind(
+  "Object_GetSupertype",
   "Return the item supertype of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> Item
+  {
   return object->GetSupertype();
-} FunctionAlias(Object_GetSupertype, GetSupertype);
+  },
+  "object");
+static int const Object_GetSupertype_Alias = Function_Alias("Object_GetSupertype", "GetSupertype");
 
-FreeFunction(Object, Object_GetSystem,
+static Function const Object_GetSystem_Registration = Function_Bind(
+  "Object_GetSystem",
   "Return the system within which 'object' exists",
-  Object, object)
-{
+  [](Object const& object) -> Object
+  {
   return (ObjectT*)object->GetSystem().t;
-} FunctionAlias(Object_GetSystem, GetSystem);
+  },
+  "object");
+static int const Object_GetSystem_Alias = Function_Alias("Object_GetSystem", "GetSystem");
 
-FreeFunction(Traits, Object_GetTraits,
+static Function const Object_GetTraits_Registration = Function_Bind(
+  "Object_GetTraits",
   "Return the personality traits of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> Traits
+  {
   return object->GetTraits();
-} FunctionAlias(Object_GetTraits, GetTraits);
+  },
+  "object");
+static int const Object_GetTraits_Alias = Function_Alias("Object_GetTraits", "GetTraits");
 
-FreeFunction(String, Object_GetType,
+static Function const Object_GetType_Registration = Function_Bind(
+  "Object_GetType",
   "Return the type of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> String
+  {
   return object->GetTypeString();
-} FunctionAlias(Object_GetType, GetType);
+  },
+  "object");
+static int const Object_GetType_Alias = Function_Alias("Object_GetType", "GetType");
 
-FreeFunction(Widget, Object_GetWidget,
+static Function const Object_GetWidget_Registration = Function_Bind(
+  "Object_GetWidget",
   "Return the object-specific widget for 'object' from 'player's point-of-view",
-  Object, object,
-  Player, player)
-{
+  [](Object const& object, Player const& player) -> Widget
+  {
   return object->GetWidget(player);
-} FunctionAlias(Object_GetWidget, GetWidget);
+  },
+  "object", "player");
+static int const Object_GetWidget_Alias = Function_Alias("Object_GetWidget", "GetWidget");
 
-FreeFunction(bool, Object_NotEqual,
+static Function const Object_NotEqual_Registration = Function_Bind(
+  "Object_NotEqual",
   "Return a != b",
-  Object, a,
-  Object, b)
-{
+  [](Object const& a, Object const& b) -> bool
+  {
   return a != b;
-} FunctionAlias(Object_NotEqual, !=);
+  },
+  "a", "b");
+static int const Object_NotEqual_Alias = Function_Alias("Object_NotEqual", "!=");
 
-VoidFreeFunction(Object_RemoveChild,
+static Function const Object_RemoveChild_Registration = Function_Bind(
+  "Object_RemoveChild",
   "Remove 'child' from 'object'",
-  Object, object,
-  Object, child)
-{
+  [](Object const& object, Object const& child)
+  {
   object->RemoveChild(child);
-} FunctionAlias(Object_RemoveChild, RemoveChild);
+  },
+  "object", "child");
+static int const Object_RemoveChild_Alias = Function_Alias("Object_RemoveChild", "RemoveChild");
 
-VoidFreeFunction(Object_Update,
+static Function const Object_Update_Registration = Function_Bind(
+  "Object_Update",
   "Run one iteration of 'object's update logic, with time step 'dt'",
-  Object, object,
-  float, dt)
-{
+  [](Object const& object, float const& dt)
+  {
   UpdateState state(dt, true);
   object->Update(state);
-} FunctionAlias(Object_Update, Update);
+  },
+  "object", "dt");
+static int const Object_Update_Alias = Function_Alias("Object_Update", "Update");
 
-VoidFreeFunction(Object_Send,
+static Function const Object_Send_Registration = Function_Bind(
+  "Object_Send",
   "Send 'message' to 'object'",
-  Object, object,
-  Data, message)
-{
+  [](Object const& object, Data const& message)
+  {
   object->Send(Mutable(message));
-} FunctionAlias(Object_Send, Send);
+  },
+  "object", "message");
+static int const Object_Send_Alias = Function_Alias("Object_Send", "Send");
 
 namespace Parent {
   AutoClass(ObjectChildIterator,
@@ -229,41 +290,60 @@ namespace Parent {
     ObjectChildIterator() = default;
   };
 
-  FreeFunction(ObjectChildIterator, Object_GetChildren,
-    "Return an iterator to the children of 'object'",
-    Object, object)
+  static Function const Object_GetChildren_Registration = Function_Bind(
+  "Object_GetChildren",
+  "Return an iterator to the children of 'object'",
+  [](Object const& object) -> ObjectChildIterator
   {
     return ObjectChildIterator(object, object->children);
-  } FunctionAlias(Object_GetChildren, GetChildren);
+  
+  },
+  "object");
+static int const Object_GetChildren_Alias = Function_Alias("Object_GetChildren", "GetChildren");
 
-  VoidFreeFunction(ObjectChildIterator_Advance,
-    "Advance 'iterator'",
-    ObjectChildIterator, iterator)
+  static Function const ObjectChildIterator_Advance_Registration = Function_Bind(
+  "ObjectChildIterator_Advance",
+  "Advance 'iterator'",
+  [](ObjectChildIterator const& iterator)
   {
     Mutable(iterator).child = iterator.child->nextSibling;
-  } FunctionAlias(ObjectChildIterator_Advance, Advance);
+  
+  },
+  "iterator");
+static int const ObjectChildIterator_Advance_Alias = Function_Alias("ObjectChildIterator_Advance", "Advance");
 
-  FreeFunction(Object, ObjectChildIterator_Get,
-    "Return the contents of 'iterator'",
-    ObjectChildIterator, iterator)
+  static Function const ObjectChildIterator_Get_Registration = Function_Bind(
+  "ObjectChildIterator_Get",
+  "Return the contents of 'iterator'",
+  [](ObjectChildIterator const& iterator) -> Object
   {
     return iterator.child;
-  } FunctionAlias(ObjectChildIterator_Get, Get);
+  
+  },
+  "iterator");
+static int const ObjectChildIterator_Get_Alias = Function_Alias("ObjectChildIterator_Get", "Get");
 
-  FreeFunction(bool, ObjectChildIterator_HasMore,
-    "Return whether 'iterator' has more elements",
-    ObjectChildIterator, iterator)
+  static Function const ObjectChildIterator_HasMore_Registration = Function_Bind(
+  "ObjectChildIterator_HasMore",
+  "Return whether 'iterator' has more elements",
+  [](ObjectChildIterator const& iterator) -> bool
   {
     return iterator.child != nullptr;
-  } FunctionAlias(ObjectChildIterator_HasMore, HasMore);
+  
+  },
+  "iterator");
+static int const ObjectChildIterator_HasMore_Alias = Function_Alias("ObjectChildIterator_HasMore", "HasMore");
 }
 
 #define Z(x, y, z)                                                             \
-  FreeFunction(bool, Object_Is##y,                                             \
-  "Return whether 'object' is a " z,                                           \
-  Object, object)                                                              \
-  {                                                                            \
-    return object->GetType() == ObjectType_##y;                                \
-  } FunctionAlias(Object_Is##y, Is##y);
+  static Function const Object_Is##y##_Registration =                          \
+    Function_Bind(                                                             \
+      "Object_Is" #y,                                                          \
+      "Return whether 'object' is a " z,                                       \
+      [](Object const& object) -> bool                                         \
+      { return object->GetType() == ObjectType_##y; },                         \
+      "object");                                                               \
+  static int const Object_Is##y##_Alias = Function_Alias(                      \
+    "Object_Is" #y, "Is" #y);
 OBJECT_X
 #undef Z

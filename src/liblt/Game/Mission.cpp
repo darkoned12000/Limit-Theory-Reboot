@@ -1,6 +1,7 @@
 #include "Mission.h"
 
 #include "Game/Object.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(MissionConstraintRange, MissionConstraintT,
@@ -42,8 +43,16 @@ MissionConstraint MissionConstraint_Equality(
   return new MissionConstraintEquality(property, value);
 }
 
-DefineFunction(Mission_Create) {
+Mission Mission_Create(Object const& owner) {
   Mission self = new MissionT;
-  self->owner = args.owner;
+  self->owner = owner;
   return self;
-} FunctionAlias(Mission_Create, Mission);
+}
+static Function const Mission_Create_Registration = Function_Bind(
+  "Mission_Create",
+  "None",
+  &Mission_Create,
+  "owner");
+static int const Mission_Create_Alias = Function_Alias("Mission_Create", "Mission");
+
+

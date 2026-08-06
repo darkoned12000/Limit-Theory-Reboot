@@ -7,6 +7,7 @@
 #include "LTE/StackFrame.h"
 #include "LTE/Texture2D.h"
 #include "LTE/Vector.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   CubeMap Generate(Generator_IRMap_Args const& args) {
@@ -74,6 +75,13 @@ namespace {
   }
 }
 
-DefineFunction(Generator_IRMap) {
+Generic<CubeMap> Generator_IRMap(Generator_IRMap_Args const& args) {
   return Cached(Bind(FreeFn(Generate), Generator_IRMap_Args(args)));
 }
+static Function const Generator_IRMap_Registration = Function_Bind(
+  "Generator_IRMap",
+  "None",
+  [](Generic<CubeMap> const& source, size_t const& samples) -> Generic<CubeMap> { return Generator_IRMap(source, samples); },
+  "source", "samples");
+
+

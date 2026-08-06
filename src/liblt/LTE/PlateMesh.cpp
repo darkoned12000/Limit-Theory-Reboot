@@ -9,6 +9,7 @@
 #include "Renderer.h"
 #include "Shader.h"
 #include "Texture2D.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClass(Plate,
@@ -103,15 +104,22 @@ namespace {
   };
 }
 
-DefineFunction(PlateMesh_Create) {
+PlateMesh PlateMesh_Create(uint const& quality) {
   Reference<PlateMeshImpl> self = new PlateMeshImpl;
-  self->quality = args.quality;
+  self->quality = quality;
   return self;
 }
+static Function const PlateMesh_Create_Registration = Function_Bind(
+  "PlateMesh_Create",
+  "None",
+  &PlateMesh_Create,
+  "quality");
 
-DefineFunction(Mesh_ComputeOcclusion) {
+
+
+void Mesh_ComputeOcclusion(Mesh const& mesh) {
   AUTO_FRAME;
-  Mesh const& m = args.mesh;
+  Mesh const& m = mesh;
 
   Vector<V4> points;
   Vector<V4> normals;
@@ -183,3 +191,10 @@ DefineFunction(Mesh_ComputeOcclusion) {
     m->vertices[i].u = result[i];
   m->version++;
 }
+static Function const Mesh_ComputeOcclusion_Registration = Function_Bind(
+  "Mesh_ComputeOcclusion",
+  "None",
+  &Mesh_ComputeOcclusion,
+  "mesh");
+
+

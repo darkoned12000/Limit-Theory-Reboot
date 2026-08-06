@@ -1,4 +1,5 @@
 #include "Color.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   inline float hueToComponent(float p, float q, float t) {
@@ -11,38 +12,53 @@ namespace {
   }
 }
 
-DefineConversion(int_to_color, int, Color) {
+static void int_to_color_Impl(int const& src, Color& dest) {
   dest = (Color)src;
 }
+static int const int_to_color_Registration = Conversion_Bind<&int_to_color_Impl>();
 
-DefineConversion(float_to_color, float, Color) {
+static void float_to_color_Impl(float const& src, Color& dest) {
   dest = (Color)src;
 }
+static int const float_to_color_Registration = Conversion_Bind<&float_to_color_Impl>();
 
-DefineConversion(double_to_color, double, Color) {
+static void double_to_color_Impl(double const& src, Color& dest) {
   dest = (Color)src;
 }
+static int const double_to_color_Registration = Conversion_Bind<&double_to_color_Impl>();
 
-DefineConversion(V3F_to_color, V3F, Color) {
+static void V3F_to_color_Impl(V3F const& src, Color& dest) {
   dest = (Color)src;
 }
+static int const V3F_to_color_Registration = Conversion_Bind<&V3F_to_color_Impl>();
 
-DefineConversion(color_to_V3F, Color, V3F) {
+static void color_to_V3F_Impl(Color const& src, V3F& dest) {
   dest = (V3F)src;
 }
+static int const color_to_V3F_Registration = Conversion_Bind<&color_to_V3F_Impl>();
 
-DefineFunction(Desaturate) {
-  return Mix(args.color, Color(Luminance(args.color)), args.amount);
+Color Desaturate(Color const& color, float const& amount) {
+  return Mix(color, Color(Luminance(color)), amount);
 }
+static Function const Desaturate_Registration = Function_Bind(
+  "Desaturate",
+  "None",
+  &Desaturate,
+  "color", "amount");
 
-DefineFunction(Luminance) {
-  return Dot(args.color, Color(0.2126f, 0.7152f, 0.0722f));
+float Luminance(Color const& color) {
+  return Dot(color, Color(0.2126f, 0.7152f, 0.0722f));
 }
+static Function const Luminance_Registration = Function_Bind(
+  "Luminance",
+  "None",
+  &Luminance,
+  "color");
 
-DefineFunction(ToHSL) {
-  float r = args.color.x;
-  float g = args.color.y;
-  float b = args.color.z;
+Color ToHSL(Color const& color) {
+  float r = color.x;
+  float g = color.y;
+  float b = color.z;
   float M = Max(r, Max(g, b));
   float m = Min(r, Min(g, b));
   float mSum = M + m;
@@ -54,11 +70,16 @@ DefineFunction(ToHSL) {
   else              h = (r - g) / mDiff + 4.0f;
   return Color(h / 6.0f, s, l);
 }
+static Function const ToHSL_Registration = Function_Bind(
+  "ToHSL",
+  "None",
+  &ToHSL,
+  "color");
 
-DefineFunction(ToRGB) {
-  float h = args.color.x;
-  float s = args.color.y;
-  float l = args.color.z;
+Color ToRGB(Color const& color) {
+  float h = color.x;
+  float s = color.y;
+  float l = color.z;
 
   float q = l < 0.5f ? l * (1.0f + s) : l + s - l * s;
   float p = 2.0f * l - q;
@@ -67,9 +88,14 @@ DefineFunction(ToRGB) {
   float b = hueToComponent(p, q, h - 1.0f / 3.0f);
   return Color(r, g, b);
 }
+static Function const ToRGB_Registration = Function_Bind(
+  "ToRGB",
+  "None",
+  &ToRGB,
+  "color");
 
-DefineFunction(Color_FromWavelength) {
-  float w = args.wavelength;
+Color Color_FromWavelength(float const& wavelength) {
+  float w = wavelength;
   V3 c = 0;
   if (w >= 380.0f && w < 440.0f) {
       c.x = (440.0f - w) / (440.0f - 380.0f);
@@ -99,3 +125,9 @@ DefineFunction(Color_FromWavelength) {
       c *= 0.0f;
   return c;
 }
+static Function const Color_FromWavelength_Registration = Function_Bind(
+  "Color_FromWavelength",
+  "None",
+  &Color_FromWavelength,
+  "wavelength");
+

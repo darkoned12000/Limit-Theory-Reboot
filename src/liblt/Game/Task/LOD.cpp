@@ -5,6 +5,7 @@
 #include "LTE/StackFrame.h"
 
 #include "LTE/Debug.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClass(TaskLODInstance,
@@ -102,6 +103,13 @@ namespace {
   };
 }
 
-DefineFunction(Task_LOD) {
+Task Task_LOD(Task_LOD_Args const& args) {
   return new TaskLOD(args);
 }
+static Function const Task_LOD_Registration = Function_Bind(
+  "Task_LOD",
+  "None",
+  [](Object const& owner, Task const& task) -> Task { return Task_LOD(owner, task); },
+  "owner", "task");
+
+

@@ -2,11 +2,10 @@
 #define Module_FrameTimer_h__
 
 #include "Common.h"
-#include "LTE/DeclareFunction.h"
 
-DeclareFunctionNoParams(FrameTimer_Get, float)
-DeclareFunctionNoParams(FrameTimer_GetEMA01, float)
-DeclareFunctionNoParams(FrameTimer_GetEMA1, float)
-DeclareFunctionNoParams(FrameTimer_GetEMA10, float)
+LT_API float FrameTimer_Get();
+LT_API float FrameTimer_GetEMA01();
+LT_API float FrameTimer_GetEMA1();
+LT_API float FrameTimer_GetEMA10();
 
 #endif

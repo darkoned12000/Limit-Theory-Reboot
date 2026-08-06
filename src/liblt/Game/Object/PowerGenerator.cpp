@@ -13,6 +13,7 @@
 #include "LTE/Pool.h"
 
 #include "Module/Settings.h"
+#include "LTE/FunctionBind.h"
 
 const double kEfficiencyFactor = 1.0;
 const float kCapacitance = 8.0f;
@@ -110,9 +111,16 @@ AutoClassDerived(PowerGenerator, PowerGeneratorBaseT,
 
 DERIVED_IMPLEMENT(PowerGenerator)
 
-DefineFunction(Object_PowerGenerator) {
-  LTE_ASSERT(args.type->GetType() == ItemType_PowerGeneratorType);
+Object Object_PowerGenerator(Item const& type) {
+  LTE_ASSERT(type->GetType() == ItemType_PowerGeneratorType);
   Reference<PowerGenerator> self = new PowerGenerator;
-  self->SetSupertype(args.type);
+  self->SetSupertype(type);
   return self;
 }
+static Function const Object_PowerGenerator_Registration = Function_Bind(
+  "Object_PowerGenerator",
+  "None",
+  &Object_PowerGenerator,
+  "type");
+
+

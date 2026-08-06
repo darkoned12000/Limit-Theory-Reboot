@@ -15,6 +15,7 @@
 #include "LTE/OS.h"
 #include "LTE/V3.h"
 #include "LTE/Vector.h"
+#include "LTE/FunctionBind.h"
 
 const int kSettingsVersion = 8;
 
@@ -168,9 +169,15 @@ GenericFloat Settings_Float(
   return g;
 }
 
-DefineFunction(Widget_Settings) {
+Widget Widget_Settings() {
   return Widget_Create1(new WidgetSettings(GetSettings().root));
 }
+static Function const Widget_Settings_Registration = Function_Bind(
+  "Widget_Settings",
+  "None",
+  &Widget_Settings);
+
+
 
 GenericColor Settings_PrimaryColor() {
   static GenericColor g =

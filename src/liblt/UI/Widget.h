@@ -4,7 +4,6 @@
 #include "WidgetComponent.h"
 #include "LTE/Color.h"
 #include "LTE/Data.h"
-#include "LTE/DeclareFunction.h"
 #include "LTE/Pointer.h"
 #include "LTE/V2.h"
 #include "LTE/Vector.h"
@@ -167,9 +166,9 @@ struct WidgetT : public RefCounted {
   DefineMetadataInline(WidgetT)
 };
 
-DeclareFunctionNoParams(Widget_Create, Widget)
+LT_API Widget Widget_Create();
 
-DeclareFunction(Widget_Create1, Widget,
-  WidgetComponent, component)
+LT_API Widget Widget_Create1(
+  WidgetComponent const& component);
 
 #endif

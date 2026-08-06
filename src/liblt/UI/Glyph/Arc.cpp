@@ -3,6 +3,7 @@
 #include "LTE/Pool.h"
 #include "LTE/Shader.h"
 #include "LTE/V4.h"
+#include "LTE/FunctionBind.h"
 
 const float kExpansion = 16;
 
@@ -58,6 +59,13 @@ namespace {
   };
 }
 
-DefineFunction(Glyph_Arc) {
+Glyph Glyph_Arc(Glyph_Arc_Args const& args) {
   return new Arc(args);
 }
+static Function const Glyph_Arc_Registration = Function_Bind(
+  "Glyph_Arc",
+  "None",
+  [](V2 const& position, float const& radius, float const& radiusS, Color const& color, float const& alpha, float const& angle, float const& angleS) -> Glyph { return Glyph_Arc(position, radius, radiusS, color, alpha, angle, angleS); },
+  "position", "radius", "radiusS", "color", "alpha", "angle", "angleS");
+
+

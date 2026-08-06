@@ -14,6 +14,7 @@
 #include "LTE/Script.h"
 
 #include "UI/Widget.h"
+#include "LTE/FunctionBind.h"
 
 using CustomBaseT = ObjectWrapper
   < Component_BoundingBox
@@ -68,13 +69,20 @@ AutoClassDerived(ObjectCustom, CustomBaseT,
 
 DERIVED_IMPLEMENT(ObjectCustom)
 
-DefineFunction(Object_Custom) {
+Object Object_Custom(Data const& data) {
   Reference<ObjectCustom> self = new ObjectCustom;
-  ScriptType const& type = args.data.type->GetAux().Convert<ScriptType>();
-  self->instance = args.data;
+  ScriptType const& type = data.type->GetAux().Convert<ScriptType>();
+  self->instance = data;
   self->getWidget = type->GetFunction("GetWidget");
   self->onCreate = type->GetFunction("Create");
   self->onDestroy = type->GetFunction("Destroy");
   self->onUpdate = type->GetFunction("Update");
   return self;
 }
+static Function const Object_Custom_Registration = Function_Bind(
+  "Object_Custom",
+  "None",
+  &Object_Custom,
+  "data");
+
+

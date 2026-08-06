@@ -3,9 +3,8 @@
 
 #include "CodeObject.h"
 
-#include "LTE/DeclareFunction.h"
 
-DeclareFunction(CodeObject_Custom, CodeObject,
-  Data, data)
+LT_API CodeObject CodeObject_Custom(
+  Data const& data);
 
 #endif

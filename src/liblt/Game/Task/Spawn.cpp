@@ -5,6 +5,7 @@
 #include "LTE/Math.h"
 #include "LTE/Pool.h"
 #include "LTE/StackFrame.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(TaskSpawn, TaskT, Task_Spawn_Args, args)
@@ -39,6 +40,13 @@ namespace {
   };
 }
 
-DefineFunction(Task_Spawn) {
+Task Task_Spawn(Task_Spawn_Args const& args) {
   return new TaskSpawn(args);
 }
+static Function const Task_Spawn_Registration = Function_Bind(
+  "Task_Spawn",
+  "None",
+  [](Item const& item, float const& rate) -> Task { return Task_Spawn(item, rate); },
+  "item", "rate");
+
+

@@ -14,6 +14,7 @@
 #include "LTE/RNG.h"
 
 #include "UI/Glyphs.h"
+#include "LTE/FunctionBind.h"
 
 const Icon kIcon = Icon_Create()
   ->Add(Glyph_Ring(0, 1, 1, 1, 0))
@@ -47,7 +48,7 @@ AutoClassDerivedEmpty(ShieldType, ShieldTypeBase)
 
 DERIVED_IMPLEMENT(ShieldType)
 
-DefineFunction(Item_ShieldType) {
+Item Item_ShieldType(Item_ShieldType_Args const& args) {
   RNG rg = RNG_MTG(args.seed);
   
   Mass mass = Constant_ValueToMass(args.value, args.compactness);
@@ -64,3 +65,10 @@ DefineFunction(Item_ShieldType) {
   self->value = args.value;
   return self;
 }
+static Function const Item_ShieldType_Registration = Function_Bind(
+  "Item_ShieldType",
+  "None",
+  [](double const& value, uint const& seed, float const& compactness, float const& efficiency, float const& integrity, float const& rate) -> Item { return Item_ShieldType(value, seed, compactness, efficiency, integrity, rate); },
+  "value", "seed", "compactness", "efficiency", "integrity", "rate");
+
+

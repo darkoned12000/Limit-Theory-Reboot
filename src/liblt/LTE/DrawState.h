@@ -2,7 +2,6 @@
 #define LTE_DrawState_h__
 
 #include "CubeMap.h"
-#include "DeclareFunction.h"
 #include "Pushable.h"
 #include "Stack.h"
 #include "Texture2D.h"
@@ -44,13 +43,12 @@ LT_API void DrawState_Inject(Shader const& shader);
 LT_API void DrawState_Link(Shader const& shader);
 LT_API void DrawState_Link(ShaderInstance const& shaderState);
 
-DeclareFunctionNoParams(DrawState_Clear, void)
+LT_API void DrawState_Clear();
 
-DeclareFunction(DrawState_Pop, void,
-  String, name)
+LT_API void DrawState_Pop(
+  String const& name);
 
-DeclareFunction(DrawState_Push, void,
-  String, name,
-  Data, data)
+LT_API void DrawState_Push(
+  String const& name, Data const& data);
 
 #endif

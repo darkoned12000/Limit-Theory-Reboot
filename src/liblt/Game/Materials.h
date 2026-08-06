@@ -1,21 +1,20 @@
 #ifndef Materials_h__
 #define Materials_h__
 
-#include "LTE/DeclareFunction.h"
 #include "LTE/ShaderInstance.h"
 
-DeclareFunctionNoParams(Material_Debug, ShaderInstance)
+LT_API ShaderInstance Material_Debug();
 
-DeclareFunctionNoParams(Material_Grass, ShaderInstance)
+LT_API ShaderInstance Material_Grass();
 
-DeclareFunctionNoParams(Material_Ice, ShaderInstance)
+LT_API ShaderInstance Material_Ice();
 
-DeclareFunctionNoParams(Material_Metal, ShaderInstance)
+LT_API ShaderInstance Material_Metal();
 
-DeclareFunctionNoParams(Material_Rock, ShaderInstance)
+LT_API ShaderInstance Material_Rock();
 
-DeclareFunctionNoParams(Material_RockShiny, ShaderInstance)
+LT_API ShaderInstance Material_RockShiny();
 
-DeclareFunctionNoParams(Material_Water, ShaderInstance)
+LT_API ShaderInstance Material_Water();
 
 #endif

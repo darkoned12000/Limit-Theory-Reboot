@@ -14,6 +14,7 @@
 #include "LTE/StackFrame.h"
 
 #include "LTE/Debug.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClass(TaskPirateInstance,
@@ -90,6 +91,13 @@ namespace {
   };
 }
 
-DefineFunction(Task_Pirate) {
+Task Task_Pirate(Task_Pirate_Args const& args) {
   return new TaskPirate(args);
 }
+static Function const Task_Pirate_Registration = Function_Bind(
+  "Task_Pirate",
+  "None",
+  [](Object const& zone) -> Task { return Task_Pirate(zone); },
+  "zone");
+
+

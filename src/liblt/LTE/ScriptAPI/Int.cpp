@@ -1,4 +1,5 @@
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 #include "LTE/Math.h"
 
 TypeAlias(signed int, int);
@@ -10,246 +11,311 @@ TypeAlias(uint32, Uint32);
 TypeAlias(int64, Int64);
 TypeAlias(uint64, Uint64);
 
-DefineConversion(int_to_double, int, double) {
+static void int_to_double_Impl(int const& src, double& dest) {
   dest = (double)src;
 }
+static int const int_to_double_Registration = Conversion_Bind<&int_to_double_Impl>();
 
-DefineConversion(int_to_float, int, float) {
+static void int_to_float_Impl(int const& src, float& dest) {
   dest = (float)src;
 }
+static int const int_to_float_Registration = Conversion_Bind<&int_to_float_Impl>();
 
-DefineConversion(int_to_uint, int, unsigned int) {
+static void int_to_uint_Impl(int const& src, unsigned int& dest) {
   dest = (unsigned int)src;
 }
+static int const int_to_uint_Registration = Conversion_Bind<&int_to_uint_Impl>();
 
-DefineConversion(uint_to_int, unsigned int, int) {
+static void uint_to_int_Impl(unsigned int const& src, int& dest) {
   dest = (int)src;
 }
+static int const uint_to_int_Registration = Conversion_Bind<&uint_to_int_Impl>();
 
-DefineConversion(int_to_long, int, long) {
+static void int_to_long_Impl(int const& src, long& dest) {
   dest = (long)src;
 }
+static int const int_to_long_Registration = Conversion_Bind<&int_to_long_Impl>();
 
-DefineConversion(int_to_llong, int, long long) {
+static void int_to_llong_Impl(int const& src, long long& dest) {
   dest = (long long)src;
 }
+static int const int_to_llong_Registration = Conversion_Bind<&int_to_llong_Impl>();
 
-DefineConversion(int32_to_int, int32, int) {
+static void int32_to_int_Impl(int32 const& src, int& dest) {
   dest = (int)src;
 }
+static int const int32_to_int_Registration = Conversion_Bind<&int32_to_int_Impl>();
 
-DefineConversion(int64_to_int, int64, int) {
+static void int64_to_int_Impl(int64 const& src, int& dest) {
   dest = (int)src;
 }
+static int const int64_to_int_Registration = Conversion_Bind<&int64_to_int_Impl>();
 
-DefineConversion(int64_to_float, int64, float) {
+static void int64_to_float_Impl(int64 const& src, float& dest) {
   dest = (float)src;
 }
+static int const int64_to_float_Registration = Conversion_Bind<&int64_to_float_Impl>();
 
-DefineConversion(int64_to_double, int64, double) {
+static void int64_to_double_Impl(int64 const& src, double& dest) {
   dest = (double)src;
 }
+static int const int64_to_double_Registration = Conversion_Bind<&int64_to_double_Impl>();
 
-DefineConversion(int64_to_uint, int64, unsigned int) {
+static void int64_to_uint_Impl(int64 const& src, unsigned int& dest) {
   dest = (unsigned int)src;
 }
+static int const int64_to_uint_Registration = Conversion_Bind<&int64_to_uint_Impl>();
 
-FreeFunction(int, Int_Abs,
+static Function const Int_Abs_Registration = Function_Bind(
+  "Int_Abs",
   "Return the absolute value of 'i'",
-  int, i)
-{
+  [](int const& i) -> int
+  {
   return Abs(i);
-} FunctionAlias(Int_Abs, Abs);
+  },
+  "i");
+static int const Int_Abs_Alias = Function_Alias("Int_Abs", "Abs");
 
-FreeFunction(int, Int_Add,
+static Function const Int_Add_Registration = Function_Bind(
+  "Int_Add",
   "Return the sum of 'a' and 'b'",
-  int, a,
-  int, b)
-{
+  [](int const& a, int const& b) -> int
+  {
   return a + b;
-} FunctionAlias(Int_Add, +);
+  },
+  "a", "b");
+static int const Int_Add_Alias = Function_Alias("Int_Add", "+");
 
-VoidFreeFunction(Int_AddInPlace,
+static Function const Int_AddInPlace_Registration = Function_Bind(
+  "Int_AddInPlace",
   "Add 'b' to 'a'",
-  int, a,
-  int, b)
-{
+  [](int const& a, int const& b)
+  {
   (int&)a += b;
-} FunctionAlias(Int_AddInPlace, +=);
+  },
+  "a", "b");
+static int const Int_AddInPlace_Alias = Function_Alias("Int_AddInPlace", "+=");
 
-FreeFunction(int, Int_Clamp,
+static Function const Int_Clamp_Registration = Function_Bind(
+  "Int_Clamp",
   "Return 'i' clamped to the range [a, b]",
-  int, i,
-  int, a,
-  int, b)
-{
+  [](int const& i, int const& a, int const& b) -> int
+  {
   return Clamp(i, a, b);
-} FunctionAlias(Int_Clamp, Clamp);
+  },
+  "i", "a", "b");
+static int const Int_Clamp_Alias = Function_Alias("Int_Clamp", "Clamp");
 
-VoidFreeFunction(Int_Decrement,
+static Function const Int_Decrement_Registration = Function_Bind(
+  "Int_Decrement",
   "Decrement the value of 'i' by 1",
-  int, i)
-{
+  [](int const& i)
+  {
   ((int&)i)--;
-} FunctionAlias(Int_Decrement, --);
+  },
+  "i");
+static int const Int_Decrement_Alias = Function_Alias("Int_Decrement", "--");
 
-FreeFunction(int, Int_Divide,
+static Function const Int_Divide_Registration = Function_Bind(
+  "Int_Divide",
   "Return 'a' divided by 'b' (as an int)",
-  int, a,
-  int, b)
-{
+  [](int const& a, int const& b) -> int
+  {
   return a / b;
-}
+  },
+  "a", "b");
 
-FreeFunction(float, Int_DivideFloat,
+static Function const Int_DivideFloat_Registration = Function_Bind(
+  "Int_DivideFloat",
   "Return 'a' divided by 'b' (as a float)",
-  int, a,
-  int, b)
-{
+  [](int const& a, int const& b) -> float
+  {
   return (float)((double)a / b);
-} FunctionAlias(Int_DivideFloat, /);
+  },
+  "a", "b");
+static int const Int_DivideFloat_Alias = Function_Alias("Int_DivideFloat", "/");
 
-FreeFunction(bool, Int_Equal,
+static Function const Int_Equal_Registration = Function_Bind(
+  "Int_Equal",
   "Return whether 'a' is equal to 'b'",
-  int, a,
-  int, b)
-{
+  [](int const& a, int const& b) -> bool
+  {
   return a == b;
-} FunctionAlias(Int_Equal, ==);
+  },
+  "a", "b");
+static int const Int_Equal_Alias = Function_Alias("Int_Equal", "==");
 
-FreeFunction(bool, Int_Greater,
+static Function const Int_Greater_Registration = Function_Bind(
+  "Int_Greater",
   "Return whether 'a' is greater than 'b'",
-  int, a,
-  int, b)
-{
+  [](int const& a, int const& b) -> bool
+  {
   return a > b;
-} FunctionAlias(Int_Greater, >);
+  },
+  "a", "b");
+static int const Int_Greater_Alias = Function_Alias("Int_Greater", ">");
 
-FreeFunction(bool, Int_GreaterEqual,
+static Function const Int_GreaterEqual_Registration = Function_Bind(
+  "Int_GreaterEqual",
   "Return whether 'a' is greater than or equal to 'b'",
-  int, a,
-  int, b)
-{
+  [](int const& a, int const& b) -> bool
+  {
   return a >= b;
-} FunctionAlias(Int_GreaterEqual, >=);
+  },
+  "a", "b");
+static int const Int_GreaterEqual_Alias = Function_Alias("Int_GreaterEqual", ">=");
 
-VoidFreeFunction(Int_Increment,
+static Function const Int_Increment_Registration = Function_Bind(
+  "Int_Increment",
   "Increment the value of 'i' by 1",
-  int, i)
-{
+  [](int const& i)
+  {
   ((int&)i)++;
-} FunctionAlias(Int_Increment, ++);
+  },
+  "i");
+static int const Int_Increment_Alias = Function_Alias("Int_Increment", "++");
 
-FreeFunction(bool, Int_Less,
+static Function const Int_Less_Registration = Function_Bind(
+  "Int_Less",
   "Return whether 'a' is less than 'b'",
-  int, a,
-  int, b)
-{
+  [](int const& a, int const& b) -> bool
+  {
   return a < b;
-} FunctionAlias(Int_Less, <);
+  },
+  "a", "b");
+static int const Int_Less_Alias = Function_Alias("Int_Less", "<");
 
-FreeFunction(bool, Int_LessEqual,
+static Function const Int_LessEqual_Registration = Function_Bind(
+  "Int_LessEqual",
   "Return whether 'a' is less than or equal to 'b'",
-  int, a,
-  int, b)
-{
+  [](int const& a, int const& b) -> bool
+  {
   return a <= b;
-} FunctionAlias(Int_LessEqual, <=);
+  },
+  "a", "b");
+static int const Int_LessEqual_Alias = Function_Alias("Int_LessEqual", "<=");
 
-FreeFunction(int, Int_Max,
+static Function const Int_Max_Registration = Function_Bind(
+  "Int_Max",
   "Return the max of 'a' and 'b'",
-  int, a,
-  int, b)
-{
+  [](int const& a, int const& b) -> int
+  {
   return Max(a, b);
-} FunctionAlias(Int_Max, Max);
+  },
+  "a", "b");
+static int const Int_Max_Alias = Function_Alias("Int_Max", "Max");
 
-FreeFunction(int, Int_Min,
+static Function const Int_Min_Registration = Function_Bind(
+  "Int_Min",
   "Return the min of 'a' and 'b'",
-  int, a,
-  int, b)
-{
+  [](int const& a, int const& b) -> int
+  {
   return Min(a, b);
-} FunctionAlias(Int_Min, Min);
+  },
+  "a", "b");
+static int const Int_Min_Alias = Function_Alias("Int_Min", "Min");
 
-FreeFunction(int, Int_Mod,
+static Function const Int_Mod_Registration = Function_Bind(
+  "Int_Mod",
   "Return a modulo b",
-  int, a,
-  int, b)
-{
+  [](int const& a, int const& b) -> int
+  {
   return a % b;
-} FunctionAlias(Int_Mod, Mod);
+  },
+  "a", "b");
+static int const Int_Mod_Alias = Function_Alias("Int_Mod", "Mod");
 
-FreeFunction(int, Int_Mult,
+static Function const Int_Mult_Registration = Function_Bind(
+  "Int_Mult",
   "Return the product of 'a' and 'b'",
-  int, a,
-  int, b)
-{
+  [](int const& a, int const& b) -> int
+  {
   return a * b;
-} FunctionAlias(Int_Mult, *);
+  },
+  "a", "b");
+static int const Int_Mult_Alias = Function_Alias("Int_Mult", "*");
 
-VoidFreeFunction(Int_MultInPlace,
+static Function const Int_MultInPlace_Registration = Function_Bind(
+  "Int_MultInPlace",
   "Multiply 'a' by 'b'",
-  int, a,
-  int, b)
-{
+  [](int const& a, int const& b)
+  {
   (int&)a *= b;
-} FunctionAlias(Int_MultInPlace, *=);
+  },
+  "a", "b");
+static int const Int_MultInPlace_Alias = Function_Alias("Int_MultInPlace", "*=");
 
-FreeFunction(bool, Int_NotEqual,
+static Function const Int_NotEqual_Registration = Function_Bind(
+  "Int_NotEqual",
   "Return whether 'a' is not equal to 'b'",
-  int, a,
-  int, b)
-{
+  [](int const& a, int const& b) -> bool
+  {
   return a != b;
-} FunctionAlias(Int_NotEqual, !=);
+  },
+  "a", "b");
+static int const Int_NotEqual_Alias = Function_Alias("Int_NotEqual", "!=");
 
 namespace Priv1 {
-  FreeFunctionNoParams(int, Int_Random,
-    "Return a random integer between 0 and the maximal integer value")
+  static Function const Int_Random_Registration = Function_Bind(
+  "Int_Random",
+  "Return a random integer between 0 and the maximal integer value",
+  []() -> int
   {
     return Rand32();
-  }
+  
+  });
 }
 
 namespace Priv2 {
-  FreeFunction(int, Int_Random,
-    "Return a random integer from 0 to 'upper' - 1",
-    int, upper)
+  static Function const Int_Random_Registration = Function_Bind(
+  "Int_Random",
+  "Return a random integer from 0 to 'upper' - 1",
+  [](int const& upper) -> int
   {
     return RandI(upper);
-  }
+  
+  },
+  "upper");
 }
 
 namespace Priv3 {
-  FreeFunction(int, Int_Random,
-    "Return a random integer from 'lower' to 'upper'",
-    int, lower,
-    int, upper)
+  static Function const Int_Random_Registration = Function_Bind(
+  "Int_Random",
+  "Return a random integer from 'lower' to 'upper'",
+  [](int const& lower, int const& upper) -> int
   {
     return RandI(lower, upper);
-  }
+  
+  },
+  "lower", "upper");
 }
 
-FreeFunction(int, Int_Sign,
+static Function const Int_Sign_Registration = Function_Bind(
+  "Int_Sign",
   "Return the sign of 'i'",
-  int, i)
-{
+  [](int const& i) -> int
+  {
   return i > 0 ? 1 : i == 0 ? 0 : -1;
-} FunctionAlias(Int_Sign, Sign);
+  },
+  "i");
+static int const Int_Sign_Alias = Function_Alias("Int_Sign", "Sign");
 
-FreeFunction(int, Int_Subtract,
+static Function const Int_Subtract_Registration = Function_Bind(
+  "Int_Subtract",
   "Return the difference of 'a' and 'b'",
-  int, a,
-  int, b)
-{
+  [](int const& a, int const& b) -> int
+  {
   return a - b;
-} FunctionAlias(Int_Subtract, -);
+  },
+  "a", "b");
+static int const Int_Subtract_Alias = Function_Alias("Int_Subtract", "-");
 
-VoidFreeFunction(Int_SubtractInPlace,
+static Function const Int_SubtractInPlace_Registration = Function_Bind(
+  "Int_SubtractInPlace",
   "Subtract 'b' from 'a'",
-  int, a,
-  int, b)
-{
+  [](int const& a, int const& b)
+  {
   (int&)a -= b;
-} FunctionAlias(Int_SubtractInPlace, -=);
+  },
+  "a", "b");
+static int const Int_SubtractInPlace_Alias = Function_Alias("Int_SubtractInPlace", "-=");

@@ -15,6 +15,7 @@
 #include "LTE/Viewport.h"
 
 #include "LTE/Debug.h"
+#include "LTE/FunctionBind.h"
 
 const float kPanelShadowSize = 32;
 
@@ -138,89 +139,113 @@ namespace {
   }
 }
 
-DefineFunction(WidgetRenderer_DrawGlyph) {
-  renderer.glyphs[args.glyph->GetDerivedTypeInfo()]
-    .push(GlyphInstance(args.glyph, args.state));
-} FunctionAlias(WidgetRenderer_DrawGlyph, DrawGlyph);
+void WidgetRenderer_DrawGlyph(Glyph const& glyph, GlyphState const& state) {
+  renderer.glyphs[glyph->GetDerivedTypeInfo()]
+    .push(GlyphInstance(glyph, state));
+}
+static Function const WidgetRenderer_DrawGlyph_Registration = Function_Bind(
+  "WidgetRenderer_DrawGlyph",
+  "None",
+  &WidgetRenderer_DrawGlyph,
+  "glyph", "state");
+static int const WidgetRenderer_DrawGlyph_Alias = Function_Alias("WidgetRenderer_DrawGlyph", "DrawGlyph");
 
-DefineFunction(WidgetRenderer_DrawPanel) {
+
+
+void WidgetRenderer_DrawPanel(V2 const& pos, V2 const& size, Color const& color, float const& innerAlpha, float const& alpha, float const& bevel) {
   WidgetRenderer_Flush();
   SFRAME("Panel");
   RendererState rs(BlendMode::Alpha, CullMode::Disabled, false, false);
   renderer.panelBuffer.clear();
   PopulateIndices(1);
 
-  V2 ss1 = args.pos;
-  V2 ss2 = args.pos + args.size;
-  V2 size = ss2 - ss1 + 2.0f * V2(kPanelShadowSize);
-  V4 color = V4(args.color, args.alpha);
+  V2 ss1 = pos;
+  V2 ss2 = pos + size;
+  V2 sizePx = ss2 - ss1 + 2.0f * V2(kPanelShadowSize);
+  V4 color4 = V4(color, alpha);
 
   renderer.panelBuffer.push(PanelVertex(
     V3(V2(ss1.x - kPanelShadowSize, ss1.y - kPanelShadowSize), 0),
-    V4(0, 0, size.x, size.y),
-    color,
-    V2(args.innerAlpha, args.bevel)));
+    V4(0, 0, sizePx.x, sizePx.y),
+    color4,
+    V2(innerAlpha, bevel)));
 
   renderer.panelBuffer.push(PanelVertex(
     V3(V2(ss2.x + kPanelShadowSize, ss1.y - kPanelShadowSize), 0),
-    V4(1, 0, size.x, size.y),
-    color,
-    V2(args.innerAlpha, args.bevel)));
+    V4(1, 0, sizePx.x, sizePx.y),
+    color4,
+    V2(innerAlpha, bevel)));
 
   renderer.panelBuffer.push(PanelVertex(
     V3(V2(ss2.x + kPanelShadowSize, ss2.y + kPanelShadowSize), 0),
-    V4(1, 1, size.x, size.y),
-    color,
-    V2(args.innerAlpha, args.bevel)));
+    V4(1, 1, sizePx.x, sizePx.y),
+    color4,
+    V2(innerAlpha, bevel)));
 
   renderer.panelBuffer.push(PanelVertex(
     V3(V2(ss1.x - kPanelShadowSize, ss2.y + kPanelShadowSize), 0),
-    V4(0, 1, size.x, size.y),
-    color,
-    V2(args.innerAlpha, args.bevel)));
+    V4(0, 1, sizePx.x, sizePx.y),
+    color4,
+    V2(innerAlpha, bevel)));
 
   (*renderer.panelShader)("shadowSize", kPanelShadowSize);
   Render(renderer.panelShader, renderer.panelBuffer);
-} FunctionAlias(WidgetRenderer_DrawPanel, DrawPanel);
+}
+static Function const WidgetRenderer_DrawPanel_Registration = Function_Bind(
+  "WidgetRenderer_DrawPanel",
+  "None",
+  &WidgetRenderer_DrawPanel,
+  "pos", "size", "color", "innerAlpha", "alpha", "bevel");
+static int const WidgetRenderer_DrawPanel_Alias = Function_Alias("WidgetRenderer_DrawPanel", "DrawPanel");
 
-DefineFunction(WidgetRenderer_DrawPanelRadial) {
+
+
+void WidgetRenderer_DrawPanelRadial(V2 const& pos, float const& r1, float const& r2, float const& phase, float const& angle, Color const& color, float const& innerAlpha, float const& alpha, float const& bevel) {
   WidgetRenderer_Flush();
   SFRAME("PanelRadial");
   RendererState rs(BlendMode::Alpha, CullMode::Disabled, false, false);
   renderer.radialPanelBuffer.clear();
   PopulateIndices(1);
 
-  V2 ss1 = args.pos - V2(args.r2 + kPanelShadowSize);
-  V2 ss2 = args.pos + V2(args.r2 + kPanelShadowSize);
-  V4 color = V4(args.color, args.alpha);
+  V2 ss1 = pos - V2(r2 + kPanelShadowSize);
+  V2 ss2 = pos + V2(r2 + kPanelShadowSize);
+  V4 color4 = V4(color, alpha);
 
   renderer.radialPanelBuffer.push(RadialPanelVertex(
     V3(V2(ss1.x - kPanelShadowSize, ss1.y - kPanelShadowSize), 0),
-    V4(0, 0, args.r1, args.r2),
-    color,
-    V4(args.innerAlpha, args.bevel, args.phase, args.angle)));
+    V4(0, 0, r1, r2),
+    color4,
+    V4(innerAlpha, bevel, phase, angle)));
 
   renderer.radialPanelBuffer.push(RadialPanelVertex(
     V3(V2(ss2.x + kPanelShadowSize, ss1.y - kPanelShadowSize), 0),
-    V4(1, 0, args.r1, args.r2),
-    color,
-    V4(args.innerAlpha, args.bevel, args.phase, args.angle)));
+    V4(1, 0, r1, r2),
+    color4,
+    V4(innerAlpha, bevel, phase, angle)));
 
   renderer.radialPanelBuffer.push(RadialPanelVertex(
     V3(V2(ss2.x + kPanelShadowSize, ss2.y + kPanelShadowSize), 0),
-    V4(1, 1, args.r1, args.r2),
-    color,
-    V4(args.innerAlpha, args.bevel, args.phase, args.angle)));
+    V4(1, 1, r1, r2),
+    color4,
+    V4(innerAlpha, bevel, phase, angle)));
 
   renderer.radialPanelBuffer.push(RadialPanelVertex(
     V3(V2(ss1.x - kPanelShadowSize, ss2.y + kPanelShadowSize), 0),
-    V4(0, 1, args.r1, args.r2),
-    color,
-    V4(args.innerAlpha, args.bevel, args.phase, args.angle)));
+    V4(0, 1, r1, r2),
+    color4,
+    V4(innerAlpha, bevel, phase, angle)));
 
   (*renderer.radialPanelShader)("shadowSize", kPanelShadowSize);
   Render(renderer.radialPanelShader, renderer.radialPanelBuffer);
-} FunctionAlias(WidgetRenderer_DrawPanelRadial, DrawPanelRadial);
+}
+static Function const WidgetRenderer_DrawPanelRadial_Registration = Function_Bind(
+  "WidgetRenderer_DrawPanelRadial",
+  "None",
+  &WidgetRenderer_DrawPanelRadial,
+  "pos", "r1", "r2", "phase", "angle", "color", "innerAlpha", "alpha", "bevel");
+static int const WidgetRenderer_DrawPanelRadial_Alias = Function_Alias("WidgetRenderer_DrawPanelRadial", "DrawPanelRadial");
+
+
 
 template <class T>
 void WidgetRenderer_DrawTextGeneric(T const& args, bool additive) {
@@ -238,41 +263,73 @@ void WidgetRenderer_DrawTextGeneric(T const& args, bool additive) {
     additive);
 }
 
-DefineFunction(WidgetRenderer_DrawText) {
+void WidgetRenderer_DrawText(WidgetRenderer_DrawText_Args const& args) {
   WidgetRenderer_Flush();
   RendererState rs(BlendMode::Alpha, CullMode::Disabled, false, false);
   WidgetRenderer_DrawTextGeneric(args, false);
   WidgetRenderer_Flush();
-} FunctionAlias(WidgetRenderer_DrawText, DrawText);
+}
+static Function const WidgetRenderer_DrawText_Registration = Function_Bind(
+  "WidgetRenderer_DrawText",
+  "None",
+  [](Font const& font, String const& text, V2 const& pos, float const& size, Color const& color, float const& alpha, bool const& centered) -> void { return WidgetRenderer_DrawText(font, text, pos, size, color, alpha, centered); },
+  "font", "text", "pos", "size", "color", "alpha", "centered");
+static int const WidgetRenderer_DrawText_Alias = Function_Alias("WidgetRenderer_DrawText", "DrawText");
 
-DefineFunction(WidgetRenderer_DrawTextGlow) {
+
+
+void WidgetRenderer_DrawTextGlow(WidgetRenderer_DrawTextGlow_Args const& args) {
   WidgetRenderer_Flush();
   RendererState rs(BlendMode::Additive, CullMode::Disabled, false, false);
   WidgetRenderer_DrawTextGeneric(args, true);
   WidgetRenderer_Flush();
-} FunctionAlias(WidgetRenderer_DrawTextGlow, DrawTextGlow);
+}
+static Function const WidgetRenderer_DrawTextGlow_Registration = Function_Bind(
+  "WidgetRenderer_DrawTextGlow",
+  "None",
+  [](Font const& font, String const& text, V2 const& pos, float const& size, Color const& color, float const& alpha, bool const& centered) -> void { return WidgetRenderer_DrawTextGlow(font, text, pos, size, color, alpha, centered); },
+  "font", "text", "pos", "size", "color", "alpha", "centered");
+static int const WidgetRenderer_DrawTextGlow_Alias = Function_Alias("WidgetRenderer_DrawTextGlow", "DrawTextGlow");
 
-DefineFunction(WidgetRenderer_DrawTexture) {
+
+
+void WidgetRenderer_DrawTexture(Texture2D const& texture, V2 const& pos, V2 const& size, float const& alpha) {
   WidgetRenderer_Flush();
   RendererState rs(BlendMode::Alpha, CullMode::Disabled, false, false);
   (*renderer.textureShader)
-    ("texture", args.texture)
-    ("alpha", args.alpha);
+    ("texture", texture)
+    ("alpha", alpha);
   Renderer_SetShader(*renderer.textureShader);
-  Renderer_DrawQuad(args.pos, args.pos + args.size);
-} FunctionAlias(WidgetRenderer_DrawTexture, Draw);
+  Renderer_DrawQuad(pos, pos + size);
+}
+static Function const WidgetRenderer_DrawTexture_Registration = Function_Bind(
+  "WidgetRenderer_DrawTexture",
+  "None",
+  &WidgetRenderer_DrawTexture,
+  "texture", "pos", "size", "alpha");
+static int const WidgetRenderer_DrawTexture_Alias = Function_Alias("WidgetRenderer_DrawTexture", "Draw");
 
-DefineFunction(WidgetRenderer_DrawTextureAdditive) {
+
+
+void WidgetRenderer_DrawTextureAdditive(Texture2D const& texture, V2 const& pos, V2 const& size, float const& alpha) {
   WidgetRenderer_Flush();
   RendererState rs(BlendMode::Additive, CullMode::Disabled, false, false);
   (*renderer.textureShaderAdditive)
-    ("texture", args.texture)
-    ("alpha", args.alpha);
+    ("texture", texture)
+    ("alpha", alpha);
   Renderer_SetShader(*renderer.textureShaderAdditive);
-  Renderer_DrawQuad(args.pos, args.pos + args.size);
-} FunctionAlias(WidgetRenderer_DrawTextureAdditive, DrawAdditive);
+  Renderer_DrawQuad(pos, pos + size);
+}
+static Function const WidgetRenderer_DrawTextureAdditive_Registration = Function_Bind(
+  "WidgetRenderer_DrawTextureAdditive",
+  "None",
+  &WidgetRenderer_DrawTextureAdditive,
+  "texture", "pos", "size", "alpha");
+static int const WidgetRenderer_DrawTextureAdditive_Alias = Function_Alias("WidgetRenderer_DrawTextureAdditive", "DrawAdditive");
 
-DefineFunction(WidgetRenderer_Flush) {
+
+
+void WidgetRenderer_Flush() {
   WidgetRenderer_Initialize();
   RendererState rs(
     BlendMode::Additive,
@@ -288,8 +345,23 @@ DefineFunction(WidgetRenderer_Flush) {
       it->second.clear();
     }
   }
-} FunctionAlias(WidgetRenderer_Flush, Flush);
+}
+static Function const WidgetRenderer_Flush_Registration = Function_Bind(
+  "WidgetRenderer_Flush",
+  "None",
+  &WidgetRenderer_Flush);
+static int const WidgetRenderer_Flush_Alias = Function_Alias("WidgetRenderer_Flush", "Flush");
 
-DefineFunction(WidgetRenderer_GetTextSize) {
-  return args.font->GetTextSize(args.text, args.size);
-} FunctionAlias(WidgetRenderer_GetTextSize, GetTextSize);
+
+
+V2 WidgetRenderer_GetTextSize(Font const& font, String const& text, float const& size) {
+  return font->GetTextSize(text, size);
+}
+static Function const WidgetRenderer_GetTextSize_Registration = Function_Bind(
+  "WidgetRenderer_GetTextSize",
+  "None",
+  &WidgetRenderer_GetTextSize,
+  "font", "text", "size");
+static int const WidgetRenderer_GetTextSize_Alias = Function_Alias("WidgetRenderer_GetTextSize", "GetTextSize");
+
+

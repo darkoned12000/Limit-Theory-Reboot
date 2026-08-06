@@ -1,14 +1,14 @@
 #include "UI/Glyph.h"
 
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 
-VoidFreeFunction(Glyph_Draw,
+static Function const Glyph_Draw_Registration = Function_Bind(
+  "Glyph_Draw",
   "Draw 'glyph' at 'center' with 'scale,' 'color,' and 'alpha'",
-  Glyph, glyph,
-  V2, center,
-  V2, scale,
-  Color, color,
-  float, alpha)
-{
+  [](Glyph const& glyph, V2 const& center, V2 const& scale, Color const& color, float const& alpha)
+  {
   glyph->Draw(GlyphState(center, scale, color, alpha));
-} FunctionAlias(Glyph_Draw, Draw);
+  },
+  "glyph", "center", "scale", "color", "alpha");
+static int const Glyph_Draw_Alias = Function_Alias("Glyph_Draw", "Draw");

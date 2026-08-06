@@ -4,6 +4,7 @@
 #include "LTE/Renderer.h"
 #include "LTE/ShaderInstance.h"
 #include "LTE/Texture2D.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   struct RadialBlur : public RenderPassT {
@@ -49,6 +50,13 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_RadialBlur) {
-  return new RadialBlur(args.center, args.radius, args.strength, args.falloff);
+RenderPass RenderPass_RadialBlur(V2 const& center, float const& radius, float const& strength, float const& falloff) {
+  return new RadialBlur(center, radius, strength, falloff);
 }
+static Function const RenderPass_RadialBlur_Registration = Function_Bind(
+  "RenderPass_RadialBlur",
+  "None",
+  &RenderPass_RadialBlur,
+  "center", "radius", "strength", "falloff");
+
+

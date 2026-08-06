@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <cstring>
 #include <iostream>
+#include "LTE/FunctionBind.h"
 
 const bool kDefaultFlush = false;
 
@@ -330,14 +331,33 @@ void Profiler_SetFlushes(bool flushes) {
   GetProfiler()->SetFlushes(flushes);
 }
 
-DefineFunction(Profiler_Auto) {
-  GetProfiler()->Auto(args.duration);
+void Profiler_Auto(float const& duration) {
+  GetProfiler()->Auto(duration);
 }
+static Function const Profiler_Auto_Registration = Function_Bind(
+  "Profiler_Auto",
+  "None",
+  &Profiler_Auto,
+  "duration");
 
-DefineFunction(Profiler_Start) {
+
+
+void Profiler_Start() {
   GetProfiler()->Start();
 }
+static Function const Profiler_Start_Registration = Function_Bind(
+  "Profiler_Start",
+  "None",
+  &Profiler_Start);
 
-DefineFunction(Profiler_Stop) {
+
+
+void Profiler_Stop() {
   GetProfiler()->Stop();
 }
+static Function const Profiler_Stop_Registration = Function_Bind(
+  "Profiler_Stop",
+  "None",
+  &Profiler_Stop);
+
+

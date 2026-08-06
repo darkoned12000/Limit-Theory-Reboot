@@ -15,6 +15,7 @@
 #include "LTE/StackFrame.h"
 
 #include "LTE/Debug.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
 #define XTYPE MetaprojectType
@@ -193,6 +194,13 @@ namespace {
   };
 }
 
-DefineFunction(Task_Manage) {
-  return new TaskManage(args.project);
+Task Task_Manage(Project const& project) {
+  return new TaskManage(project);
 }
+static Function const Task_Manage_Registration = Function_Bind(
+  "Task_Manage",
+  "None",
+  &Task_Manage,
+  "project");
+
+

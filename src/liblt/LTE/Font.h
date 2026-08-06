@@ -1,7 +1,6 @@
 #ifndef LTE_Font_h__
 #define LTE_Font_h__
 
-#include "DeclareFunction.h"
 #include "Reference.h"
 #include "String.h"
 
@@ -29,7 +28,7 @@ struct FontT : public RefCounted {
   DeclareMetadata(FontT)
 };
 
-DeclareFunction(Font_Get, Font,
-  String, path)
+LT_API Font Font_Get(
+  String const& path);
 
 #endif

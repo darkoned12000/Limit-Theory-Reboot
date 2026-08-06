@@ -14,6 +14,7 @@
 #include "LTE/Transform.h"
 
 #include "UI/Glyphs.h"
+#include "LTE/FunctionBind.h"
 
 const Icon kIcon = Icon_Create()
   ->Add(Glyph_Box(V2(0, 0.8f), V2(1, 0.2f), 1, 1))
@@ -52,7 +53,7 @@ AutoClassDerivedEmpty(TurretType, TurretTypeBase)
 
 DERIVED_IMPLEMENT(TurretType)
 
-DefineFunction(Item_TurretType) {
+Item Item_TurretType(Item_TurretType_Args const& args) {
   static Reference<TurretType> self;
   if (!self) {
     self = new TurretType;
@@ -61,3 +62,10 @@ DefineFunction(Item_TurretType) {
   }
   return self;
 }
+static Function const Item_TurretType_Registration = Function_Bind(
+  "Item_TurretType",
+  "None",
+  [](uint const& sockets, float const& trackingSpeed) -> Item { return Item_TurretType(sockets, trackingSpeed); },
+  "sockets", "trackingSpeed");
+
+

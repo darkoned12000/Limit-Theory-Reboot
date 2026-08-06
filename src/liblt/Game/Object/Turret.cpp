@@ -18,6 +18,7 @@
 #include "LTE/Math.h"
 #include "LTE/Matrix.h"
 #include "LTE/Pool.h"
+#include "LTE/FunctionBind.h"
 
 const float kTrackSpeed = 2.0f * kTau;
 
@@ -70,9 +71,16 @@ AutoClassDerived(Turret, TurretBaseT,
 
 DERIVED_IMPLEMENT(Turret)
 
-DefineFunction(Object_Turret) {
+Object Object_Turret(Item const& type) {
   Reference<Turret> self = new Turret;
-  self->SetSupertype(args.type);
+  self->SetSupertype(type);
   self->Attachable.transform.scale = 0.25f;
   return self;
 }
+static Function const Object_Turret_Registration = Function_Bind(
+  "Object_Turret",
+  "None",
+  &Object_Turret,
+  "type");
+
+

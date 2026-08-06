@@ -3,6 +3,7 @@
 #include "LTE/Pool.h"
 #include "LTE/Shader.h"
 #include "LTE/V4.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClass(RingVertex,
@@ -53,6 +54,13 @@ namespace {
   };
 }
 
-DefineFunction(Glyph_Ring) {
+Glyph Glyph_Ring(Glyph_Ring_Args const& args) {
   return new Ring(args);
 }
+static Function const Glyph_Ring_Registration = Function_Bind(
+  "Glyph_Ring",
+  "None",
+  [](V2 const& position, float const& radius, Color const& color, float const& alpha, float const& angle) -> Glyph { return Glyph_Ring(position, radius, color, alpha, angle); },
+  "position", "radius", "color", "alpha", "angle");
+
+

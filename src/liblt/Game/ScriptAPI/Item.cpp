@@ -6,65 +6,95 @@
 #include "LTE/Data.h"
 #include "LTE/Renderable.h"
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 
 #include "UI/Icon.h"
 
 TypeAlias(Reference<ItemT>, Item);
 
-FreeFunction(bool, Item_Equal, "Return a == b", Item, a, Item, b) {
+static Function const Item_Equal_Registration = Function_Bind(
+  "Item_Equal",
+  "Return a == b",
+  [](Item const& a, Item const& b) -> bool
+  {
   return a == b;
-} FunctionAlias(Item_Equal, ==);
+  },
+  "a", "b");
+static int const Item_Equal_Alias = Function_Alias("Item_Equal", "==");
 
-FreeFunction(String, Item_GetTypeString,
+static Function const Item_GetTypeString_Registration = Function_Bind(
+  "Item_GetTypeString",
   "Return the type of 'item'",
-  Item, item)
-{
+  [](Item const& item) -> String
+  {
   return ItemType_String[item->GetType()];
-} FunctionAlias(Item_GetTypeString, GetTypeString);
+  },
+  "item");
+static int const Item_GetTypeString_Alias = Function_Alias("Item_GetTypeString", "GetTypeString");
 
-FreeFunction(bool, Item_NotEqual, "Return a != b", Item, a, Item, b) {
+static Function const Item_NotEqual_Registration = Function_Bind(
+  "Item_NotEqual",
+  "Return a != b",
+  [](Item const& a, Item const& b) -> bool
+  {
   return a != b;
-} FunctionAlias(Item_NotEqual, !=);
+  },
+  "a", "b");
+static int const Item_NotEqual_Alias = Function_Alias("Item_NotEqual", "!=");
 
-FreeFunction(Object, Item_Instantiate,
+static Function const Item_Instantiate_Registration = Function_Bind(
+  "Item_Instantiate",
   "Return an object instantiation of 'item'",
-  Item, item)
-{
+  [](Item const& item) -> Object
+  {
   return item->Instantiate();
-} FunctionAlias(Item_Instantiate, Instantiate);
+  },
+  "item");
+static int const Item_Instantiate_Alias = Function_Alias("Item_Instantiate", "Instantiate");
 
 #define X(type, name, init)                                                    \
-  FreeFunction(bool, Item_Has##name,                                           \
-    "Return whether 'item' has the " #name " attribute",                       \
-    Item, item)                                                                \
-  {                                                                            \
-    return item->Has##name();                                                  \
-  } FunctionAlias(Item_Has##name, Has##name);                                  \
+  static Function const Item_Has##name##_Registration =                        \
+    Function_Bind(                                                             \
+      "Item_Has" #name,                                                        \
+      "Return whether 'item' has the " #name " attribute",                     \
+      [](Item const& item) -> bool { return item->Has##name(); },              \
+      "item");                                                                 \
+  static int const Item_Has##name##_Alias = Function_Alias(                    \
+    "Item_Has" #name, "Has" #name);                                            \
                                                                                \
-  FreeFunction(type, Item_Get##name,                                           \
-    "Return the " #name " of 'item'",                                          \
-    Item, item)                                                                \
-  {                                                                            \
-    return item->Get##name();                                                  \
-  } FunctionAlias(Item_Get##name, Get##name);                                  \
+  static Function const Item_Get##name##_Registration =                        \
+    Function_Bind(                                                             \
+      "Item_Get" #name,                                                        \
+      "Return the " #name " of 'item'",                                        \
+      [](Item const& item) -> type { return item->Get##name(); },              \
+      "item");                                                                 \
+  static int const Item_Get##name##_Alias = Function_Alias(                    \
+    "Item_Get" #name, "Get" #name);                                            \
                                                                                \
-  VoidFreeFunction(Item_Set##name,                                             \
-    "Set the " #name " of 'item' to 'value'",                                  \
-    Item, item,                                                                \
-    type, value)                                                               \
-  {                                                                            \
-    if (item->Has##name())                                                     \
-      (type&)item->Get##name() = value;                                        \
-  } FunctionAlias(Item_Set##name, Set##name);
+  static Function const Item_Set##name##_Registration =                        \
+    Function_Bind(                                                             \
+      "Item_Set" #name,                                                        \
+      "Set the " #name " of 'item' to 'value'",                                \
+      [](Item const& item, type const& value)                                  \
+      {                                                                        \
+        if (item->Has##name())                                                 \
+          (type&)item->Get##name() = value;                                    \
+      },                                                                       \
+      "item", "value");                                                        \
+  static int const Item_Set##name##_Alias = Function_Alias(                    \
+    "Item_Set" #name, "Set" #name);
 ITEMPROPERTY_X
 #undef X
 
 #define Z(x, y, z)                                                             \
-  FreeFunction(bool, Item_Is##y,                                               \
-  "Return whether 'item' is a " z,                                             \
-  Item, item)                                                                  \
-  {                                                                            \
-    return item->GetType() == ItemType_##y;                                    \
-  } FunctionAlias(Item_Is##y, Is##y);
+  static Function const Item_Is##y##_Registration =                            \
+    Function_Bind(                                                             \
+      "Item_Is" #y,                                                            \
+      "Return whether 'item' is a " z,                                         \
+      [](Item const& item) -> bool                                             \
+      { return item->GetType() == ItemType_##y; },                             \
+      "item");                                                                 \
+  static int const Item_Is##y##_Alias = Function_Alias(                        \
+    "Item_Is" #y, "Is" #y);
 ITEM_X
 #undef Z

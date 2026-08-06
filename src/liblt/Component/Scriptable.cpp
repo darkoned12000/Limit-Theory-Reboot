@@ -1,11 +1,14 @@
 #include "Scriptable.h"
 #include "Game/Object.h"
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 
-VoidFreeFunction(Object_AddScript,
+static Function const Object_AddScript_Registration = Function_Bind(
+  "Object_AddScript",
   "Add 'script' to 'object' to be executed each frame during update",
-  Object, object,
-  Data, script)
-{
+  [](Object const& object, Data const& script)
+  {
   object->AddScript(script);
-} FunctionAlias(Object_AddScript, AddScript);
+  },
+  "object", "script");
+static int const Object_AddScript_Alias = Function_Alias("Object_AddScript", "AddScript");

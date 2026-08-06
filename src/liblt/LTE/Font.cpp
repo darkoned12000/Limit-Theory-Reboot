@@ -19,6 +19,7 @@
 #include FT_FREETYPE_H
 #include FT_GLYPH_H
 #include FT_BITMAP_H
+#include "LTE/FunctionBind.h"
 
 const V2U kTextureSize = 1024;
 const V2U kSDFSize = 1024;
@@ -337,15 +338,22 @@ namespace {
   };
 }
 
-DefineFunction(Font_Get) {
-  Font& font = GetFontCache()[args.path];
+Font Font_Get(String const& path) {
+  Font& font = GetFontCache()[path];
   if (!font) {
     Reference<FontImpl> self = new FontImpl;
-    self->Create(args.path);
+    self->Create(path);
     font = self.t;
   }
   return font;
 }
+static Function const Font_Get_Registration = Function_Bind(
+  "Font_Get",
+  "None",
+  &Font_Get,
+  "path");
+
+
 
 
 Type _Type_Get(FontT const& t) {

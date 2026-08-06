@@ -18,6 +18,7 @@
 #include "LTE/Pool.h"
 #include "LTE/SDFs.h"
 #include "LTE/SDFMesh.h"
+#include "LTE/FunctionBind.h"
 
 Renderable GetPodModel() {
   static Renderable model;
@@ -77,9 +78,16 @@ AutoClassDerived(Pod, PodBaseT,
 
 DERIVED_IMPLEMENT(Pod)
 
-DefineFunction(Object_Pod) {
+Object Object_Pod(Mass const& capacity) {
   Reference<Pod> self = new Pod;
   self->SetScale(1);
-  self->Cargo.capacity = args.capacity;
+  self->Cargo.capacity = capacity;
   return self;
 }
+static Function const Object_Pod_Registration = Function_Bind(
+  "Object_Pod",
+  "None",
+  &Object_Pod,
+  "capacity");
+
+

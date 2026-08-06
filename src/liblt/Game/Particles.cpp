@@ -1,4 +1,5 @@
 #include "Particles.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   Shader gRadialShader;
@@ -14,7 +15,7 @@ namespace {
   }
 }
 
-DefineFunction(Particle_Fire) {
+ShaderInstance Particle_Fire() {
   StaticInitialize();
   static ShaderInstance shader;
   if (!shader) {
@@ -30,8 +31,14 @@ DefineFunction(Particle_Fire) {
   }
   return shader;
 }
+static Function const Particle_Fire_Registration = Function_Bind(
+  "Particle_Fire",
+  "None",
+  &Particle_Fire);
 
-DefineFunction(Particle_Firefly) {
+
+
+ShaderInstance Particle_Firefly() {
   StaticInitialize();
   static ShaderInstance shader;
   if (!shader) {
@@ -47,3 +54,9 @@ DefineFunction(Particle_Firefly) {
   }
   return shader;
 }
+static Function const Particle_Firefly_Registration = Function_Bind(
+  "Particle_Firefly",
+  "None",
+  &Particle_Firefly);
+
+

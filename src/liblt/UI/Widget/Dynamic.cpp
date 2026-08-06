@@ -7,6 +7,7 @@
 #include "UI/Widget.h"
 
 #include "LTE/Debug.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   using ChildMapT = HashMap<HashT, Widget>;
@@ -57,7 +58,15 @@ namespace {
   };
 }
 
-DefineFunction(Widget_Dynamic) {
-  args.widget->Add(new WidgetDynamic());
-  return args.widget;
-} FunctionAlias(Widget_Dynamic, Dynamic);
+Widget Widget_Dynamic(Widget const& widget) {
+  widget->Add(new WidgetDynamic());
+  return widget;
+}
+static Function const Widget_Dynamic_Registration = Function_Bind(
+  "Widget_Dynamic",
+  "None",
+  &Widget_Dynamic,
+  "widget");
+static int const Widget_Dynamic_Alias = Function_Alias("Widget_Dynamic", "Dynamic");
+
+

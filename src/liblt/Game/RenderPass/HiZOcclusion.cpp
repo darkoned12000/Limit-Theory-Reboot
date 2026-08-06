@@ -13,6 +13,7 @@
 
 #include <cstdlib>
 #include <climits>
+#include "LTE/FunctionBind.h"
 
 namespace {
   struct HiZOcclusion : public RenderPassT {
@@ -184,6 +185,12 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_HiZOcclusion) {
+RenderPass RenderPass_HiZOcclusion() {
   return new HiZOcclusion;
 }
+static Function const RenderPass_HiZOcclusion_Registration = Function_Bind(
+  "RenderPass_HiZOcclusion",
+  "None",
+  &RenderPass_HiZOcclusion);
+
+

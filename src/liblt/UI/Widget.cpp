@@ -6,6 +6,7 @@
 #include "LTE/V4.h"
 
 #include "Module/Settings.h"
+#include "LTE/FunctionBind.h"
 
 #define X(name, type)                                                          \
   type WidgetT::name() { type t; name(t); return t; }
@@ -170,12 +171,26 @@ void WidgetT::Update(WidgetUpdateState& state) {
     components[components.size() - (i + 1)]->PostUpdate(this);
 }
 
-DefineFunction(Widget_Create) {
+Widget Widget_Create() {
   return new WidgetT;
-} FunctionAlias(Widget_Create, Widget);
+}
+static Function const Widget_Create_Registration = Function_Bind(
+  "Widget_Create",
+  "None",
+  &Widget_Create);
+static int const Widget_Create_Alias = Function_Alias("Widget_Create", "Widget");
 
-DefineFunction(Widget_Create1) {
+
+
+Widget Widget_Create1(WidgetComponent const& component) {
   Widget widget = Widget_Create();
-  widget->Add(args.component);
+  widget->Add(component);
   return widget;
 }
+static Function const Widget_Create1_Registration = Function_Bind(
+  "Widget_Create1",
+  "None",
+  &Widget_Create1,
+  "component");
+
+

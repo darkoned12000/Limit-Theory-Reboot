@@ -1,5 +1,6 @@
 #include "Meshes.h"
 #include "Matrix.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   void BuildPlanarFace(Mesh const& self, V3 origin, V3 d1, V3 d2, uint n) {
@@ -43,33 +44,47 @@ Mesh Mesh_Billboard(float minU, float maxU, float minV, float maxV) {
     ->AddQuad(0, 1, 2, 3);
 }
 
-DefineFunction(Mesh_Box) {
+Mesh Mesh_Box(uint const& resolution, bool const& closed) {
   Mesh self = Mesh_Create();
-  BuildPlanarFace(self, V3(-1,  1, -1), V3(0,  0,  2), V3(2,  0,  0), args.resolution);
-  BuildPlanarFace(self, V3(-1,  1, -1), V3(2,  0,  0), V3(0, -2,  0), args.resolution);
-  BuildPlanarFace(self, V3(-1,  1, -1), V3(0, -2,  0), V3(0,  0,  2), args.resolution);
-  BuildPlanarFace(self, V3( 1,  1, -1), V3(0,  0,  2), V3(0, -2,  0), args.resolution);
-  BuildPlanarFace(self, V3(-1, -1, -1), V3(2,  0,  0), V3(0,  0,  2), args.resolution);
-  BuildPlanarFace(self, V3(-1,  1,  1), V3(0, -2,  0), V3(2,  0,  0), args.resolution);
-  if (args.closed)
+  BuildPlanarFace(self, V3(-1,  1, -1), V3(0,  0,  2), V3(2,  0,  0), resolution);
+  BuildPlanarFace(self, V3(-1,  1, -1), V3(2,  0,  0), V3(0, -2,  0), resolution);
+  BuildPlanarFace(self, V3(-1,  1, -1), V3(0, -2,  0), V3(0,  0,  2), resolution);
+  BuildPlanarFace(self, V3( 1,  1, -1), V3(0,  0,  2), V3(0, -2,  0), resolution);
+  BuildPlanarFace(self, V3(-1, -1, -1), V3(2,  0,  0), V3(0,  0,  2), resolution);
+  BuildPlanarFace(self, V3(-1,  1,  1), V3(0, -2,  0), V3(2,  0,  0), resolution);
+  if (closed)
     self->ShareVertices();
   return self;
 }
+static Function const Mesh_Box_Registration = Function_Bind(
+  "Mesh_Box",
+  "None",
+  &Mesh_Box,
+  "resolution", "closed");
 
-DefineFunction(Mesh_BoxRounded) {
-  Mesh self = Mesh_Box(args.resolution, false);
-  if (args.radius > 0.0f) {
+
+
+Mesh Mesh_BoxRounded(uint const& resolution, float const& radius) {
+  Mesh self = Mesh_Box(resolution, false);
+  if (radius > 0.0f) {
     for (uint i = 0; i < self->GetVertices(); ++i) {
       Vertex& v = self->vertices[i];
-      V3 proj = Clamp(v.p, V3(args.radius - 1.0f), V3(1.0f - args.radius));
-      v.p = proj + args.radius * (v.p - proj) / PNorm(v.p - proj, 2.0f);
+      V3 proj = Clamp(v.p, V3(radius - 1.0f), V3(1.0f - radius));
+      v.p = proj + radius * (v.p - proj) / PNorm(v.p - proj, 2.0f);
     }
   }
   return self;
 }
+static Function const Mesh_BoxRounded_Registration = Function_Bind(
+  "Mesh_BoxRounded",
+  "None",
+  &Mesh_BoxRounded,
+  "resolution", "radius");
 
-DefineFunction(Mesh_BoxSphere) {
-  Mesh self = Mesh_Box(args.resolution, args.closed);
+
+
+Mesh Mesh_BoxSphere(uint const& resolution, bool const& closed) {
+  Mesh self = Mesh_Box(resolution, closed);
   struct {
     void operator()(Vertex& v) {
       v.p = Normalize(v.p);
@@ -81,6 +96,13 @@ DefineFunction(Mesh_BoxSphere) {
   self->Map(displacer);
   return self;
 }
+static Function const Mesh_BoxSphere_Registration = Function_Bind(
+  "Mesh_BoxSphere",
+  "None",
+  &Mesh_BoxSphere,
+  "resolution", "closed");
+
+
 
 Mesh Mesh_Cone(uint slices) {
   struct {
@@ -102,45 +124,53 @@ Mesh Mesh_Cylinder(uint slices) {
 }
 
 /* CRITICAL. */
-DeclareFunction(Mesh_CylinderHUD, Mesh,
-  float, curvature,
-  float, power)
-
-DefineFunction(Mesh_CylinderHUD) {
+static Mesh Mesh_CylinderHUD(float const& curvature, float const& power) {
   Mesh self = Mesh_Plane(V3(-1, -1, 0), V3(2, 0, 0), V3(0, 2, 0), 33, 33);
   for (size_t i = 0; i < self->vertices.size(); ++i) {
     Vertex& v = self->vertices[i];
     float& x = v.p.x;
     float& y = v.p.y;
     float& z = v.p.z;
-    z = 1.0f + args.curvature * (1 - Pow(Abs(x), args.power));
+    z = 1.0f + curvature * (1 - Pow(Abs(x), power));
     x /= z;
     y /= z;
     z -= 1.0f;
   }
   return self;
 }
+static Function const Mesh_CylinderHUD_Registration = Function_Bind(
+  "Mesh_CylinderHUD",
+  "None",
+  &Mesh_CylinderHUD,
+  "curvature", "power");
 
-DefineFunction(Mesh_Plane) {
+Mesh Mesh_Plane(V3 const& origin, V3 const& x, V3 const& y, uint const& cellsX, uint const& cellsY) {
   Mesh self = Mesh_Create();
-  V3 normal = Normalize(Cross(args.y, args.x));
+  V3 normal = Normalize(Cross(y, x));
 
-  for (uint j = 0; j < args.cellsY; ++j) {
-    float v = static_cast<float>(j) / static_cast<float>(args.cellsY - 1);
-    for (uint i = 0; i < args.cellsX; ++i) {
-      float u = static_cast<float>(i) / static_cast<float>(args.cellsX - 1);
+  for (uint j = 0; j < cellsY; ++j) {
+    float v = static_cast<float>(j) / static_cast<float>(cellsY - 1);
+    for (uint i = 0; i < cellsX; ++i) {
+      float u = static_cast<float>(i) / static_cast<float>(cellsX - 1);
       if (i && j) {
         uint index = self->GetVertices();
-        self->AddQuad(index, index - 1, index - args.cellsY - 1, index - args.cellsY);
+        self->AddQuad(index, index - 1, index - cellsY - 1, index - cellsY);
       }
-      self->AddVertex(args.origin + args.x * u + args.y * v, normal, u, v);
+      self->AddVertex(origin + x * u + y * v, normal, u, v);
     }
   }
 
   return self;
 }
+static Function const Mesh_Plane_Registration = Function_Bind(
+  "Mesh_Plane",
+  "None",
+  &Mesh_Plane,
+  "origin", "x", "y", "cellsX", "cellsY");
 
-DefineFunction(Mesh_Quad) {
+
+
+Mesh Mesh_Quad() {
   return Mesh_Create()
     ->AddVertex(V3(-1, -1, 0), V3(0, 0, -1), 0, 0)
     ->AddVertex(V3( 1, -1, 0), V3(0, 0, -1), 1, 0)
@@ -148,6 +178,12 @@ DefineFunction(Mesh_Quad) {
     ->AddVertex(V3(-1,  1, 0), V3(0, 0, -1), 0, 1)
     ->AddQuad(0, 1, 2, 3);
 }
+static Function const Mesh_Quad_Registration = Function_Bind(
+  "Mesh_Quad",
+  "None",
+  &Mesh_Quad);
+
+
 
 Mesh Mesh_SkirtedPlane(int verticesX, int verticesY) {
   Mesh self = Mesh_Create();
@@ -172,7 +208,7 @@ Mesh Mesh_SkirtedPlane(int verticesX, int verticesY) {
   return self;
 }
 
-DefineFunction(Mesh_Sphere) {
+Mesh Mesh_Sphere(uint const& slices, uint const& stacks) {
   struct {
     float operator()(float height, float angle) const {
       height = 2*height - 1;
@@ -180,9 +216,16 @@ DefineFunction(Mesh_Sphere) {
     }
   } displacer;
 
-  return Mesh_Polar(displacer, args.slices, args.stacks, false)->Transform(
+  return Mesh_Polar(displacer, slices, stacks, false)->Transform(
     Matrix::Scale(V3(1, 2, 1)) * Matrix::Translation(V3(0, -0.5f, 0)));
 }
+static Function const Mesh_Sphere_Registration = Function_Bind(
+  "Mesh_Sphere",
+  "None",
+  &Mesh_Sphere,
+  "slices", "stacks");
+
+
 
 Mesh Mesh_Tetrahedron() {
   return Mesh_Create()

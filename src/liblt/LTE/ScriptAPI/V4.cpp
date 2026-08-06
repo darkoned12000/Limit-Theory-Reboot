@@ -2,248 +2,312 @@
 
 #include "LTE/Data.h"
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 #include "LTE/V4.h"
 
 TypeAlias(V4F, Vec4);
 TypeAlias(V4F, Vec4f);
 TypeAlias(V4D, Vec4d);
 
-DefineConversion(V4F_to_V4D, V4F, V4D) {
+static void V4F_to_V4D_Impl(V4F const& src, V4D& dest) {
   dest = V4D(src);
 }
+static int const V4F_to_V4D_Registration = Conversion_Bind<&V4F_to_V4D_Impl>();
 
-DefineConversion(float_to_V4F, float, V4F) {
+static void float_to_V4F_Impl(float const& src, V4F& dest) {
   dest = V4F(src);
 }
+static int const float_to_V4F_Registration = Conversion_Bind<&float_to_V4F_Impl>();
 
-DefineConversion(int_to_V4F, int, V4F) {
+static void int_to_V4F_Impl(int const& src, V4F& dest) {
   dest = V4F(src);
 }
+static int const int_to_V4F_Registration = Conversion_Bind<&int_to_V4F_Impl>();
 
-FreeFunction(V4, Vec4,
+static Function const Vec4_Registration = Function_Bind(
+  "Vec4",
   "Create a 4D vector ('x', 'y', 'z', 'w')",
-  float, x,
-  float, y,
-  float, z,
-  float, w)
-{
+  [](float const& x, float const& y, float const& z, float const& w) -> V4
+  {
   return V4(x, y, z, w);
-}
+  },
+  "x", "y", "z", "w");
 
-FreeFunction(V4F, Vec4f_Abs,
+static Function const Vec4f_Abs_Registration = Function_Bind(
+  "Vec4f_Abs",
   "Return the component-wise absolute value of 'v'",
-  V4F, v)
-{
+  [](V4F const& v) -> V4F
+  {
   return Abs(v);
-} FunctionAlias(Vec4f_Abs, Abs);
+  },
+  "v");
+static int const Vec4f_Abs_Alias = Function_Alias("Vec4f_Abs", "Abs");
 
-FreeFunction(V4D, Vec4d_Abs,
+static Function const Vec4d_Abs_Registration = Function_Bind(
+  "Vec4d_Abs",
   "Return the component-wise absolute value of 'v'",
-  V4D, v)
-{
+  [](V4D const& v) -> V4D
+  {
   return Abs(v);
-} FunctionAlias(Vec4d_Abs, Abs);
+  },
+  "v");
+static int const Vec4d_Abs_Alias = Function_Alias("Vec4d_Abs", "Abs");
 
-FreeFunction(V4F, Vec4f_Add,
+static Function const Vec4f_Add_Registration = Function_Bind(
+  "Vec4f_Add",
   "Return the sum of 'a' and 'b'",
-  V4F, a,
-  V4F, b)
-{
+  [](V4F const& a, V4F const& b) -> V4F
+  {
   return a + b;
-} FunctionAlias(Vec4f_Add, +);
+  },
+  "a", "b");
+static int const Vec4f_Add_Alias = Function_Alias("Vec4f_Add", "+");
 
-VoidFreeFunction(Vec4f_AddInPlace,
+static Function const Vec4f_AddInPlace_Registration = Function_Bind(
+  "Vec4f_AddInPlace",
   "Add 'b' to 'a'",
-  V4F, a,
-  V4F, b)
-{
+  [](V4F const& a, V4F const& b)
+  {
   Mutable(a) += b;
-} FunctionAlias(Vec4f_AddInPlace, +=);
+  },
+  "a", "b");
+static int const Vec4f_AddInPlace_Alias = Function_Alias("Vec4f_AddInPlace", "+=");
 
-FreeFunction(V4D, Vec4d_Add,
+static Function const Vec4d_Add_Registration = Function_Bind(
+  "Vec4d_Add",
   "Return the sum of 'a' and 'b'",
-  V4D, a,
-  V4D, b)
-{
+  [](V4D const& a, V4D const& b) -> V4D
+  {
   return a + b;
-} FunctionAlias(Vec4d_Add, +);
+  },
+  "a", "b");
+static int const Vec4d_Add_Alias = Function_Alias("Vec4d_Add", "+");
 
-VoidFreeFunction(Vec4d_AddInPlace,
+static Function const Vec4d_AddInPlace_Registration = Function_Bind(
+  "Vec4d_AddInPlace",
   "Add 'b' to 'a'",
-  V4D, a,
-  V4D, b)
-{
+  [](V4D const& a, V4D const& b)
+  {
   Mutable(a) += b;
-} FunctionAlias(Vec4d_AddInPlace, +=);
+  },
+  "a", "b");
+static int const Vec4d_AddInPlace_Alias = Function_Alias("Vec4d_AddInPlace", "+=");
 
-FreeFunction(V4, Vec4_Clamp,
+static Function const Vec4_Clamp_Registration = Function_Bind(
+  "Vec4_Clamp",
   "Return the component-wise clamp of 'v' and ['lower', 'upper']",
-  V4, v,
-  V4, lower,
-  V4, upper)
-{
+  [](V4 const& v, V4 const& lower, V4 const& upper) -> V4
+  {
   return Clamp(v, lower, upper);
-} FunctionAlias(Vec4_Clamp, Clamp);
+  },
+  "v", "lower", "upper");
+static int const Vec4_Clamp_Alias = Function_Alias("Vec4_Clamp", "Clamp");
 
-FreeFunction(float, Vec4_Distance,
+static Function const Vec4_Distance_Registration = Function_Bind(
+  "Vec4_Distance",
   "Return the distance between a 'a' and 'b'",
-  V4, a,
-  V4, b)
-{
+  [](V4 const& a, V4 const& b) -> float
+  {
   return Length(a - b);
-} FunctionAlias(Vec4_Distance, Distance);
+  },
+  "a", "b");
+static int const Vec4_Distance_Alias = Function_Alias("Vec4_Distance", "Distance");
 
-FreeFunction(float, Vec4f_Dot,
+static Function const Vec4f_Dot_Registration = Function_Bind(
+  "Vec4f_Dot",
   "Return the dot product of 'a' and 'b'",
-  V4F, a,
-  V4F, b)
-{
+  [](V4F const& a, V4F const& b) -> float
+  {
   return Dot(a, b);
-} FunctionAlias(Vec4_Dot, Dot);
+  },
+  "a", "b");
+static int const Vec4f_Dot_Alias = Function_Alias("Vec4f_Dot", "Dot");
 
-FreeFunction(double, Vec4d_Dot,
+static Function const Vec4d_Dot_Registration = Function_Bind(
+  "Vec4d_Dot",
   "Return the dot product of 'a' and 'b'",
-  V4D, a,
-  V4D, b)
-{
+  [](V4D const& a, V4D const& b) -> double
+  {
   return Dot(a, b);
-} FunctionAlias(Vec4d_Dot, Dot);
+  },
+  "a", "b");
+static int const Vec4d_Dot_Alias = Function_Alias("Vec4d_Dot", "Dot");
 
-
-FreeFunction(V4, Vec4_Floor,
+static Function const Vec4_Floor_Registration = Function_Bind(
+  "Vec4_Floor",
   "Return the component-wise floor of 'v'",
-  V4, v)
-{
+  [](V4 const& v) -> V4
+  {
   return Floor(v);
-} FunctionAlias(Vec4_Floor, Floor);
+  },
+  "v");
+static int const Vec4_Floor_Alias = Function_Alias("Vec4_Floor", "Floor");
 
-FreeFunction(float, Vec4f_Length,
+static Function const Vec4f_Length_Registration = Function_Bind(
+  "Vec4f_Length",
   "Return the length of 'v'",
-  V4F, v)
-{
+  [](V4F const& v) -> float
+  {
   return Length(v);
-} FunctionAlias(Vec4f_Length, Length);
+  },
+  "v");
+static int const Vec4f_Length_Alias = Function_Alias("Vec4f_Length", "Length");
 
-FreeFunction(double, Vec4d_Length,
+static Function const Vec4d_Length_Registration = Function_Bind(
+  "Vec4d_Length",
   "Return the length of 'v'",
-  V4D, v)
-{
+  [](V4D const& v) -> double
+  {
   return Length(v);
-} FunctionAlias(Vec4d_Length, Length);
+  },
+  "v");
+static int const Vec4d_Length_Alias = Function_Alias("Vec4d_Length", "Length");
 
-FreeFunction(V4, Vec4_Max,
+static Function const Vec4_Max_Registration = Function_Bind(
+  "Vec4_Max",
   "Return the component-wise max of 'a' and 'b'",
-  V4, a,
-  V4, b)
-{
+  [](V4 const& a, V4 const& b) -> V4
+  {
   return Max(a, b);
-} FunctionAlias(Vec4_Max, Max);
+  },
+  "a", "b");
+static int const Vec4_Max_Alias = Function_Alias("Vec4_Max", "Max");
 
-FreeFunction(V4, Vec4_Min,
+static Function const Vec4_Min_Registration = Function_Bind(
+  "Vec4_Min",
   "Return the component-wise min of 'a' and 'b'",
-  V4, a,
-  V4, b)
-{
+  [](V4 const& a, V4 const& b) -> V4
+  {
   return Min(a, b);
-} FunctionAlias(Vec4_Min, Min);
+  },
+  "a", "b");
+static int const Vec4_Min_Alias = Function_Alias("Vec4_Min", "Min");
 
-FreeFunction(V4, Vec4_Mix,
+static Function const Vec4_Mix_Registration = Function_Bind(
+  "Vec4_Mix",
   "Return a linear interpolation of 'a' and 'b' with interpolant 't'",
-  V4, a,
-  V4, b,
-  float, t)
-{
+  [](V4 const& a, V4 const& b, float const& t) -> V4
+  {
   return Mix(a, b, t);
-} FunctionAlias(Vec4_Mix, Mix);
+  },
+  "a", "b", "t");
+static int const Vec4_Mix_Alias = Function_Alias("Vec4_Mix", "Mix");
 
 namespace Priv1 {
-  FreeFunction(V4F, Vec4f_Mult,
-    "Return the product of 's' and 'vec'",
-    float, s,
-    V4F, v)
+  static Function const Vec4f_Mult_Registration = Function_Bind(
+  "Vec4f_Mult",
+  "Return the product of 's' and 'vec'",
+  [](float const& s, V4F const& v) -> V4F
   {
     return s * v;
-  }
+  
+  },
+  "s", "v");
 
-  FreeFunction(V4D, Vec4d_Mult,
-    "Return the product of 's' and 'vec'",
-    double, s,
-    V4D, v)
+  static Function const Vec4d_Mult_Registration = Function_Bind(
+  "Vec4d_Mult",
+  "Return the product of 's' and 'vec'",
+  [](double const& s, V4D const& v) -> V4D
   {
     return s * v;
-  }
+  
+  },
+  "s", "v");
 }
 
 namespace Priv2 {
-  FreeFunction(V4F, Vec4f_Mult, "Return the product of 'a' and 'b'",
-    V4F, a,
-    V4F, b)
+  static Function const Vec4f_Mult_Registration = Function_Bind(
+  "Vec4f_Mult",
+  "Return the product of 'a' and 'b'",
+  [](V4F const& a, V4F const& b) -> V4F
   {
     return a * b;
-  }
+  
+  },
+  "a", "b");
 
-  FreeFunction(V4D, Vec4d_Mult, "Return the product of 'a' and 'b'",
-    V4D, a,
-    V4D, b)
+  static Function const Vec4d_Mult_Registration = Function_Bind(
+  "Vec4d_Mult",
+  "Return the product of 'a' and 'b'",
+  [](V4D const& a, V4D const& b) -> V4D
   {
     return a * b;
-  }
+  
+  },
+  "a", "b");
 }
 
-FunctionAlias(Vec4f_Mult, *);
-FunctionAlias(Vec4d_Mult, *);
+static int const Vec4f_Mult_Alias = Function_Alias("Vec4f_Mult", "*");
 
-FreeFunction(V4, Vec4f_Normalize,
+static int const Vec4d_Mult_Alias = Function_Alias("Vec4d_Mult", "*");
+
+static Function const Vec4f_Normalize_Registration = Function_Bind(
+  "Vec4f_Normalize",
   "Return a unit-length vector pointing in the same direction as 'vec'",
-  V4F, v)
-{
+  [](V4F const& v) -> V4
+  {
   return Normalize(v);
-} FunctionAlias(Vec4f_Normalize, Normalize);
+  },
+  "v");
+static int const Vec4f_Normalize_Alias = Function_Alias("Vec4f_Normalize", "Normalize");
 
-FreeFunction(V4, Vec4d_Normalize,
+static Function const Vec4d_Normalize_Registration = Function_Bind(
+  "Vec4d_Normalize",
   "Return a unit-length vector pointing in the same direction as 'vec'",
-  V4D, v)
-{
+  [](V4D const& v) -> V4
+  {
   return Normalize(v);
-} FunctionAlias(Vec4d_Normalize, Normalize);
+  },
+  "v");
+static int const Vec4d_Normalize_Alias = Function_Alias("Vec4d_Normalize", "Normalize");
 
-FreeFunction(V4F, Vec4f_Pow,
+static Function const Vec4f_Pow_Registration = Function_Bind(
+  "Vec4f_Pow",
   "Return the component-wise absolute value of 'v'",
-  V4F, v,
-  V4F, p)
-{
+  [](V4F const& v, V4F const& p) -> V4F
+  {
   return Pow(v, p);
-} FunctionAlias(Vec4f_Pow, ^);
+  },
+  "v", "p");
+static int const Vec4f_Pow_Alias = Function_Alias("Vec4f_Pow", "^");
 
-FreeFunction(V4, Vec4f_Subtract,
+static Function const Vec4f_Subtract_Registration = Function_Bind(
+  "Vec4f_Subtract",
   "Return the difference of 'a' and 'b'",
-  V4F, a,
-  V4F, b)
-{
+  [](V4F const& a, V4F const& b) -> V4
+  {
   return a - b;
-} FunctionAlias(Vec4f_Subtract, -);
+  },
+  "a", "b");
+static int const Vec4f_Subtract_Alias = Function_Alias("Vec4f_Subtract", "-");
 
-VoidFreeFunction(Vec4f_SubtractInPlace,
+static Function const Vec4f_SubtractInPlace_Registration = Function_Bind(
+  "Vec4f_SubtractInPlace",
   "Subtract 'b' from 'a'",
-  V4F, a,
-  V4F, b)
-{
+  [](V4F const& a, V4F const& b)
+  {
   Mutable(a) -= b;
-} FunctionAlias(Vec4f_SubtractInPlace, -=);
+  },
+  "a", "b");
+static int const Vec4f_SubtractInPlace_Alias = Function_Alias("Vec4f_SubtractInPlace", "-=");
 
-FreeFunction(V4D, Vec4d_Subtract,
+static Function const Vec4d_Subtract_Registration = Function_Bind(
+  "Vec4d_Subtract",
   "Return the difference of 'a' and 'b'",
-  V4D, a,
-  V4D, b)
-{
+  [](V4D const& a, V4D const& b) -> V4D
+  {
   return a - b;
-} FunctionAlias(Vec4d_Subtract, -);
+  },
+  "a", "b");
+static int const Vec4d_Subtract_Alias = Function_Alias("Vec4d_Subtract", "-");
 
-VoidFreeFunction(Vec4d_SubtractInPlace,
+static Function const Vec4d_SubtractInPlace_Registration = Function_Bind(
+  "Vec4d_SubtractInPlace",
   "Subtract 'b' from 'a'",
-  V4D, a,
-  V4D, b)
-{
+  [](V4D const& a, V4D const& b)
+  {
   Mutable(a) -= b;
-} FunctionAlias(Vec4d_SubtractInPlace, -=);
+  },
+  "a", "b");
+static int const Vec4d_SubtractInPlace_Alias = Function_Alias("Vec4d_SubtractInPlace", "-=");
 

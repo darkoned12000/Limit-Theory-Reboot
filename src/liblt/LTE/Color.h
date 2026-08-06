@@ -1,7 +1,6 @@
 #ifndef LTE_Color_h__
 #define LTE_Color_h__
 
-#include "DeclareFunction.h"
 #include "V3.h"
 
 struct Color : public V3F {
@@ -15,21 +14,20 @@ struct Color : public V3F {
   DefineMetadataInline(Color)
 };
 
-DeclareFunction(Desaturate, Color,
-  Color, color,
-  float, amount)
+LT_API Color Desaturate(
+  Color const& color, float const& amount);
 
-DeclareFunction(Luminance, float,
-  Color, color)
+LT_API float Luminance(
+  Color const& color);
 
-DeclareFunction(ToHSL, Color,
-  Color, color)
+LT_API Color ToHSL(
+  Color const& color);
 
-DeclareFunction(ToRGB, Color,
-  Color, color)
+LT_API Color ToRGB(
+  Color const& color);
 
-DeclareFunction(Color_FromWavelength, Color,
-  float, wavelength)
+LT_API Color Color_FromWavelength(
+  float const& wavelength);
 
 const Color Color_Black = Color(0.0f);
 const Color Color_White = Color(1.0f);

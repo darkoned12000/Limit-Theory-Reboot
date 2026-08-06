@@ -13,6 +13,7 @@
 #include "LTE/Pool.h"
 
 #include "Module/SoundEngine.h"
+#include "LTE/FunctionBind.h"
 
 using PayloadBaseT = ObjectWrapper
   < Component_Drawable
@@ -76,10 +77,17 @@ AutoClassDerived(Payload, PayloadBaseT,
 
 DERIVED_IMPLEMENT(Payload)
 
-DefineFunction(Object_Payload) {
-  Reference<Payload> self = new Payload(args.payload, args.source, args.thrust);
-  self->Orientation.GetTransformW().pos = args.position;
-  self->Orientation.GetTransformW().look = Normalize(args.thrust);
-  self->Motion.velocity = args.velocity;
+Object Object_Payload(Object const& source, Item const& payload, Position const& position, V3 const& thrust, V3 const& velocity) {
+  Reference<Payload> self = new Payload(payload, source, thrust);
+  self->Orientation.GetTransformW().pos = position;
+  self->Orientation.GetTransformW().look = Normalize(thrust);
+  self->Motion.velocity = velocity;
   return self;
 }
+static Function const Object_Payload_Registration = Function_Bind(
+  "Object_Payload",
+  "None",
+  &Object_Payload,
+  "source", "payload", "position", "thrust", "velocity");
+
+

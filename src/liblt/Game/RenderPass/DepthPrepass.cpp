@@ -11,6 +11,7 @@
 #include "LTE/StackFrame.h"
 #include "LTE/Texture2D.h"
 #include "LTE/View.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   struct DepthPrepassStyle : public RenderStyleT {
@@ -116,6 +117,12 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_DepthPrepass) {
+RenderPass RenderPass_DepthPrepass() {
   return new DepthPrepass;
 }
+static Function const RenderPass_DepthPrepass_Registration = Function_Bind(
+  "RenderPass_DepthPrepass",
+  "None",
+  &RenderPass_DepthPrepass);
+
+

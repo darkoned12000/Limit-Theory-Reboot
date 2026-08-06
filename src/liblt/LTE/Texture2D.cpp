@@ -15,6 +15,7 @@
 #include "Window.h"
 
 #include "SFML/Graphics.hpp"
+#include "LTE/FunctionBind.h"
 
 TypeAlias(Reference<Texture2DT>, Texture);
 
@@ -402,10 +403,10 @@ void Texture_Generate(
   }
 }
 
-DefineFunction(Texture_LoadFrom) {
-  AutoPtr< Array<uchar> > arr = args.source->Read();
+Texture2D Texture_LoadFrom(Location const& source) {
+  AutoPtr< Array<uchar> > arr = source->Read();
   if (!arr)
-    Log_Critical("Failed to load texture from " + args.source->ToString());
+    Log_Critical("Failed to load texture from " + source->ToString());
   sf::Image image(arr->data(), arr->size());
 
   return Texture_Create(
@@ -414,8 +415,15 @@ DefineFunction(Texture_LoadFrom) {
     GL_TextureFormat::RGBA8,
     image.getPixelsPtr());
 }
+static Function const Texture_LoadFrom_Registration = Function_Bind(
+  "Texture_LoadFrom",
+  "None",
+  &Texture_LoadFrom,
+  "source");
 
-DefineFunction(Texture_ScreenCapture) {
+
+
+Texture2D Texture_ScreenCapture() {
   struct char4 {
     uchar c[4];
   };
@@ -439,3 +447,9 @@ DefineFunction(Texture_ScreenCapture) {
 
   return Texture_Create(size.x, size.y, GL_TextureFormat::RGBA8, buf.data());
 }
+static Function const Texture_ScreenCapture_Registration = Function_Bind(
+  "Texture_ScreenCapture",
+  "None",
+  &Texture_ScreenCapture);
+
+

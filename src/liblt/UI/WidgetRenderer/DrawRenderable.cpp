@@ -12,6 +12,7 @@
 #include "LTE/Transform.h"
 #include "LTE/View.h"
 #include "LTE/Viewport.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
 
@@ -79,12 +80,12 @@ namespace {
   }
 }
 
-DefineFunction(WidgetRenderer_DrawRenderable) {
+void WidgetRenderer_DrawRenderable(Renderable const& renderable, Transform const& transform, V3 const& camPos, V3 const& camLook, V3 const& camUp, float const& camFov, V2 const& pos, V2 const& size, Color const& color, float const& alpha, float const& time) {
   Initialize();
   WidgetRenderer_Flush();
 
   Viewport const& currentVp = Viewport_Get();
-  Viewport vp = Viewport_Create(args.pos, args.size, 1, currentVp->windowSpace);
+  Viewport vp = Viewport_Create(pos, size, 1, currentVp->windowSpace);
   Viewport_Push(vp);
   DrawState state;
   state.Push();
@@ -95,9 +96,9 @@ DefineFunction(WidgetRenderer_DrawRenderable) {
   float d = 0.5f * h / tan(0.5f * angle);
 #endif
   View view(
-    Transform_LookUp(args.camPos, args.camLook, args.camUp),
-    args.camFov,
-    args.size.x / args.size.y,
+    Transform_LookUp(camPos, camLook, camUp),
+    camFov,
+    size.x / size.y,
     0.05f,
     1.0e6f);
 
@@ -107,15 +108,15 @@ DefineFunction(WidgetRenderer_DrawRenderable) {
 
   Shader const& shader = holoStyle->GetShader();
   (*shader)
-    ("baseAlpha", args.alpha)
-    ("baseColor", V3(args.color))
-    ("time", args.time);
+    ("baseAlpha", alpha)
+    ("baseColor", V3(color))
+    ("time", time);
 
   RenderStyle_Push(holoStyle);
 
   holoStyle->OnBegin();
-  holoStyle->SetTransform(args.transform);
-  args.renderable->Render(&state);
+  holoStyle->SetTransform(transform);
+  renderable->Render(&state);
   holoStyle->OnEnd();
 
   RenderStyle_Pop();
@@ -123,4 +124,12 @@ DefineFunction(WidgetRenderer_DrawRenderable) {
   state.Pop();
   Viewport_Pop();
   Renderer_PopScissor();
-} FunctionAlias(WidgetRenderer_DrawRenderable, DrawRenderable);
+}
+static Function const WidgetRenderer_DrawRenderable_Registration = Function_Bind(
+  "WidgetRenderer_DrawRenderable",
+  "None",
+  &WidgetRenderer_DrawRenderable,
+  "renderable", "transform", "camPos", "camLook", "camUp", "camFov", "pos", "size", "color", "alpha", "time");
+static int const WidgetRenderer_DrawRenderable_Alias = Function_Alias("WidgetRenderer_DrawRenderable", "DrawRenderable");
+
+

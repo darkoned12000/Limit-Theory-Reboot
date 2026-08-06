@@ -1,31 +1,3 @@
-# Copyright (C) 2025  darkoned12000
-# SPDX-License-Identifier: GPL-3.0-or-later
-# Part of the ltheory-old-test modernization effort (Revamp Work).
-# See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
-
-# threads.lts -- a threading tech-demo.
-#
-# WHAT IT DOES: defines a job type (MyJob) whose Main sums 0..9999 on a
-# background thread (spun up via Thread_Create), then reads the integer result
-# back via Thread_GetResultInt and draws it.
-#
-# Originally a "self-widget" app (function Widget Main + widget:Create). The
-# modern engine only drives "driven" apps (Main -> App + Initialize/Update), so
-# it has been converted to that lifecycle. The result is drawn by a Custom
-# Widget.
-#
-# ENGINE FIX (this session): Thread_GetResult previously returned a torn /
-# uninitialized value because it polled a plain (non-atomic) 'finished' flag
-# with no memory barrier between the worker writing the result and the main
-# thread reading it. Fixed in src/liblt/LTE/Thread.cpp (std::atomic<bool> with
-# release/acquire ordering) and src/liblt/LTE/ScriptAPI/Thread.cpp (GetResult
-# now joins the worker via Wait() before reading the result, so the value is
-# guaranteed published). A typed Thread_GetResultInt accessor was added so the
-# result can be read as an Int directly (avoiding the engine's Data -> Int
-# conversion, which currently hits a pre-existing type-system bug -- the
-# documented exe/dll Type_Get<T> static-storage divergence, see launch.cpp
-# ~62-66 / AGENTS.md S8d #1).
-
 type MyJob
   function Int Main ()
     var sum 0

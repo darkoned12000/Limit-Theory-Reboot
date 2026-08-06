@@ -1,5 +1,6 @@
 #include "Targets.h"
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 
 AutoClass(TargetIterator,
   Object, object,
@@ -7,64 +8,85 @@ AutoClass(TargetIterator,
   TargetIterator() = default;
 };
 
-VoidFreeFunction(Object_AddTarget,
+static Function const Object_AddTarget_Registration = Function_Bind(
+  "Object_AddTarget",
   "Add 'target' to 'object's list of targets",
-  Object, object,
-  Object, target)
-{
+  [](Object const& object, Object const& target)
+  {
   object->GetTargets()->elements.push(target);
-} FunctionAlias(Object_AddTarget, AddTarget);
+  },
+  "object", "target");
+static int const Object_AddTarget_Alias = Function_Alias("Object_AddTarget", "AddTarget");
 
-FreeFunction(TargetIterator, Object_GetTargets,
+static Function const Object_GetTargets_Registration = Function_Bind(
+  "Object_GetTargets",
   "Return an iterator to the targets of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> TargetIterator
+  {
   return TargetIterator(object, 0);
-} FunctionAlias(Object_GetTargets, GetTargets);
+  },
+  "object");
+static int const Object_GetTargets_Alias = Function_Alias("Object_GetTargets", "GetTargets");
 
-FreeFunction(bool, Object_HasTarget,
+static Function const Object_HasTarget_Registration = Function_Bind(
+  "Object_HasTarget",
   "Return whether 'object' has 'target' currently targetted",
-  Object, object,
-  Object, target)
-{
+  [](Object const& object, Object const& target) -> bool
+  {
   return object->GetTargets() && object->GetTargets()->elements.contains(target);
-} FunctionAlias(Object_HasTarget, HasTarget);
+  },
+  "object", "target");
+static int const Object_HasTarget_Alias = Function_Alias("Object_HasTarget", "HasTarget");
 
-VoidFreeFunction(Object_RemoveTarget,
+static Function const Object_RemoveTarget_Registration = Function_Bind(
+  "Object_RemoveTarget",
   "Remove 'target' from 'object's list of targets",
-  Object, object,
-  Object, target)
-{
+  [](Object const& object, Object const& target)
+  {
   object->GetTargets()->elements.remove(target);
-} FunctionAlias(Object_RemoveTarget, RemoveTarget);
+  },
+  "object", "target");
+static int const Object_RemoveTarget_Alias = Function_Alias("Object_RemoveTarget", "RemoveTarget");
 
-VoidFreeFunction(TargetIterator_Advance,
+static Function const TargetIterator_Advance_Registration = Function_Bind(
+  "TargetIterator_Advance",
   "Advance 'iterator'",
-  TargetIterator, iterator)
-{
+  [](TargetIterator const& iterator)
+  {
   Mutable(iterator).index++;
-} FunctionAlias(TargetIterator_Advance, Advance);
+  },
+  "iterator");
+static int const TargetIterator_Advance_Alias = Function_Alias("TargetIterator_Advance", "Advance");
 
-FreeFunction(Object, TargetIterator_Get,
+static Function const TargetIterator_Get_Registration = Function_Bind(
+  "TargetIterator_Get",
   "Return the contents of 'iterator'",
-  TargetIterator, iterator)
-{
+  [](TargetIterator const& iterator) -> Object
+  {
   return iterator.object->GetTargets()->elements[iterator.index];
-} FunctionAlias(TargetIterator_Get, Get);
+  },
+  "iterator");
+static int const TargetIterator_Get_Alias = Function_Alias("TargetIterator_Get", "Get");
 
-FreeFunction(bool, TargetIterator_HasMore,
+static Function const TargetIterator_HasMore_Registration = Function_Bind(
+  "TargetIterator_HasMore",
   "Return whether 'iterator' has more elements",
-  TargetIterator, iterator)
-{
+  [](TargetIterator const& iterator) -> bool
+  {
   return iterator.object->GetTargets() &&
     iterator.index < iterator.object->GetTargets()->elements.size();
-} FunctionAlias(TargetIterator_HasMore, HasMore);
+  },
+  "iterator");
+static int const TargetIterator_HasMore_Alias = Function_Alias("TargetIterator_HasMore", "HasMore");
 
-FreeFunction(int, TargetIterator_Size,
+static Function const TargetIterator_Size_Registration = Function_Bind(
+  "TargetIterator_Size",
   "Return the total number of elements in 'iterator'",
-  TargetIterator, iterator)
-{
+  [](TargetIterator const& iterator) -> int
+  {
   return iterator.object->GetTargets()
     ? static_cast<int>(iterator.object->GetTargets()->elements.size())
     : 0;
-} FunctionAlias(TargetIterator_Size, Size);
+  },
+  "iterator");
+static int const TargetIterator_Size_Alias = Function_Alias("TargetIterator_Size", "Size");

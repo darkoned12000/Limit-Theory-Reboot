@@ -18,6 +18,7 @@
 #include "LTE/ShaderInstance.h"
 
 #include "UI/Icon.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   Renderable GetWormholeModel() {
@@ -74,11 +75,17 @@ AutoClassDerived(Wormhole, WormholeBaseT,
 
 DERIVED_IMPLEMENT(Wormhole)
 
-DefineFunction(Object_Wormhole) {
+Object Object_Wormhole() {
   Reference<Wormhole> self = new Wormhole;
   self->Zoned.region = SDF_Sphere(0, 10);
   return self;
 }
+static Function const Object_Wormhole_Registration = Function_Bind(
+  "Object_Wormhole",
+  "None",
+  &Object_Wormhole);
+
+
 
 void Object_Wormholes(ObjectT* o1, ObjectT* o2) {
   Object a = Object_Wormhole();

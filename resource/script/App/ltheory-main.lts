@@ -18,7 +18,7 @@ function String Config_Get (String key)
           var llen (Length line)
           var vstart (klen + 1)
           var vlen (llen - vstart)
-          Substring line vstart vlen
+          return (Substring line vstart vlen)
   ""
 
 type Node
@@ -129,6 +129,7 @@ type LoadingScreen
 type App
   Interface ui
   Interface gameView
+  Interface loadingUi
   Camera camera
   Player player
   Object root
@@ -145,6 +146,8 @@ type App
 
     ui = (Interface_Create "UI")
     gameView = (Interface_Create "Game View")
+    loadingUi = (Interface_Create "Loading")
+    loadingUi.Add (Custom Widget LoadingScreen)
 
     var universeSeed (ToInt (Config_Get "seed"))
     var playerCredits (ToInt (Config_Get "playerCredits"))
@@ -188,7 +191,10 @@ type App
     ui.Add (Widget/HUD:Create player)
     Sound_PlayLooped "system/ambiance/089.wav" 0.05
 
-    gameView.Add (Custom Widget LoadingScreen)
+    var loadingPasses Vector<Reference<RenderPassT>>
+    loadingPasses.Append (RenderPass_Clear (Vec4 0.02 0.02 0.04 1.0))
+    loadingPasses.Append (RenderPass_Interface loadingUi)
+    gameView.Add (Widget_Rendered loadingPasses)
 
   function Void Update ()
     static started false
@@ -199,6 +205,7 @@ type App
       LOAD_TIME = 18.0
 
     if (! started)
+      loadingUi.Update
       gameView.Update
       gameView.Draw
       loadingElapsed += FrameTimer_Get

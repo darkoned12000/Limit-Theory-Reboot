@@ -7,6 +7,7 @@
 #include "Asset.h"
 
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 
 ComponentAssets::~ComponentAssets() {
   for (size_t i = 0; i < elements.size(); ++i) {
@@ -33,18 +34,21 @@ void ComponentAssets::Remove(ObjectT* self, Object const& asset) {
   elements.remove(asset);
 }
 
-VoidFreeFunction(Object_AddAsset,
+static Function const Object_AddAsset_Registration = Function_Bind(
+  "Object_AddAsset",
   "Transfer ownership of 'asset' to 'object'",
-  Object, object,
-  Object, asset)
-{
+  [](Object const& object, Object const& asset)
+  {
   object->AddAsset(asset);
-} FunctionAlias(Object_AddAsset, AddAsset);
+  },
+  "object", "asset");
+static int const Object_AddAsset_Alias = Function_Alias("Object_AddAsset", "AddAsset");
 
-VoidFreeFunction(Object_ClearAssets,
+static Function const Object_ClearAssets_Registration = Function_Bind(
+  "Object_ClearAssets",
   "Release ownership of all assets owned by 'object'",
-  Object, object)
-{
+  [](Object const& object)
+  {
   Pointer<ComponentAssets> assets = object->GetAssets();
   if (!assets)
     return;
@@ -57,7 +61,9 @@ VoidFreeFunction(Object_ClearAssets,
     }
   }
   assets->elements.clear();
-} FunctionAlias(Object_ClearAssets, ClearAssets);
+  },
+  "object");
+static int const Object_ClearAssets_Alias = Function_Alias("Object_ClearAssets", "ClearAssets");
 
 AutoClass(AssetsIterator,
   Object, object,
@@ -65,39 +71,54 @@ AutoClass(AssetsIterator,
   AssetsIterator() = default;
 };
 
-FreeFunction(AssetsIterator, Object_GetAssets,
+static Function const Object_GetAssets_Registration = Function_Bind(
+  "Object_GetAssets",
   "Return an iterator to the assets owned by 'object'",
-  Object, object)
-{
+  [](Object const& object) -> AssetsIterator
+  {
   return AssetsIterator(object, 0);
-} FunctionAlias(Object_GetAssets, GetAssets);
+  },
+  "object");
+static int const Object_GetAssets_Alias = Function_Alias("Object_GetAssets", "GetAssets");
 
-FreeFunction(Object, AssetsIterator_Access,
+static Function const AssetsIterator_Access_Registration = Function_Bind(
+  "AssetsIterator_Access",
   "Return the contents of 'iterator'",
-  AssetsIterator, iterator)
-{
+  [](AssetsIterator const& iterator) -> Object
+  {
   return iterator.object->GetAssets()->elements[iterator.index];
-} FunctionAlias(AssetsIterator_Access, Get);
+  },
+  "iterator");
+static int const AssetsIterator_Access_Alias = Function_Alias("AssetsIterator_Access", "Get");
 
-VoidFreeFunction(AssetsIterator_Advance,
+static Function const AssetsIterator_Advance_Registration = Function_Bind(
+  "AssetsIterator_Advance",
   "Advance 'iterator'",
-  AssetsIterator, iterator)
-{
+  [](AssetsIterator const& iterator)
+  {
   Mutable(iterator).index++;
-} FunctionAlias(AssetsIterator_Advance, Advance);
+  },
+  "iterator");
+static int const AssetsIterator_Advance_Alias = Function_Alias("AssetsIterator_Advance", "Advance");
 
-FreeFunction(bool, AssetsIterator_HasMore,
+static Function const AssetsIterator_HasMore_Registration = Function_Bind(
+  "AssetsIterator_HasMore",
   "Return whether 'iterator' has more elements",
-  AssetsIterator, iterator)
-{
+  [](AssetsIterator const& iterator) -> bool
+  {
   return 
     iterator.object->GetAssets() &&
     iterator.index < iterator.object->GetAssets()->elements.size();
-} FunctionAlias(AssetsIterator_HasMore, HasMore);
+  },
+  "iterator");
+static int const AssetsIterator_HasMore_Alias = Function_Alias("AssetsIterator_HasMore", "HasMore");
 
-FreeFunction(int, AssetsIterator_Size,
+static Function const AssetsIterator_Size_Registration = Function_Bind(
+  "AssetsIterator_Size",
   "Return the total number of elements in 'iterator'",
-  AssetsIterator, iterator)
-{
+  [](AssetsIterator const& iterator) -> int
+  {
   return static_cast<int>(iterator.object->GetAssets()->elements.size());
-} FunctionAlias(AssetsIterator_Size, Size);
+  },
+  "iterator");
+static int const AssetsIterator_Size_Alias = Function_Alias("AssetsIterator_Size", "Size");

@@ -23,7 +23,10 @@ set(TEST_SRC
   TestSound.cpp
   TestSerializer.cpp
   TestTexture2D.cpp
-  TestWindowInput.cpp)
+  TestWindowInput.cpp
+  TestFunctionBind.cpp
+  TestStringBindings.cpp
+  TestConversionBind.cpp)
 
 add_executable(lte_tests ${TEST_SRC})
 

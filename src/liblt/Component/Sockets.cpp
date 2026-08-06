@@ -4,6 +4,7 @@
 #include "Orientation.h"
 #include "Pluggable.h"
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 
 bool ComponentSockets::Plug(ObjectT* self, Item const& type) {
   for (uint i = 0; i < sockets.size(); ++i)
@@ -65,45 +66,59 @@ AutoClass(SocketsIterator,
   SocketsIterator() = default;
 };
 
-FreeFunction(bool, Object_Plug,
+static Function const Object_Plug_Registration = Function_Bind(
+  "Object_Plug",
   "Attempt to plug 'item' into a free socket of 'object', return success",
-  Object, object,
-  Item, item)
-{
+  [](Object const& object, Item const& item) -> bool
+  {
   return object->Plug(item);
-} FunctionAlias(Object_Plug, Plug);
+  },
+  "object", "item");
+static int const Object_Plug_Alias = Function_Alias("Object_Plug", "Plug");
 
-FreeFunction(SocketsIterator, Object_GetSockets,
+static Function const Object_GetSockets_Registration = Function_Bind(
+  "Object_GetSockets",
   "Return an iterator to the sockets of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> SocketsIterator
+  {
   return SocketsIterator(object, 0);
-} FunctionAlias(Object_GetSockets, GetSockets);
+  },
+  "object");
+static int const Object_GetSockets_Alias = Function_Alias("Object_GetSockets", "GetSockets");
 
-FreeFunction(Object, SocketsIterator_Access,
+static Function const SocketsIterator_Access_Registration = Function_Bind(
+  "SocketsIterator_Access",
   "Return the contents of 'iterator'",
-  SocketsIterator, iterator)
-{
+  [](SocketsIterator const& iterator) -> Object
+  {
   return iterator.object->GetSockets()->instances[iterator.index];
-} FunctionAlias(SocketsIterator_Access, Get);
+  },
+  "iterator");
+static int const SocketsIterator_Access_Alias = Function_Alias("SocketsIterator_Access", "Get");
 
-VoidFreeFunction(SocketsIterator_Advance,
+static Function const SocketsIterator_Advance_Registration = Function_Bind(
+  "SocketsIterator_Advance",
   "Advance 'iterator'",
-  SocketsIterator, iterator)
-{
+  [](SocketsIterator const& iterator)
+  {
   Mutable(iterator).index++;
   ComponentSockets* sockets = iterator.object->GetSockets();
   while (
       iterator.index < sockets->instances.size() &&
       !sockets->instances[iterator.index])
     Mutable(iterator).index++;
-} FunctionAlias(SocketsIterator_Advance, Advance);
+  },
+  "iterator");
+static int const SocketsIterator_Advance_Alias = Function_Alias("SocketsIterator_Advance", "Advance");
 
-FreeFunction(bool, SocketsIterator_HasMore,
+static Function const SocketsIterator_HasMore_Registration = Function_Bind(
+  "SocketsIterator_HasMore",
   "Return whether 'iterator' has more elements",
-  SocketsIterator, iterator)
-{
+  [](SocketsIterator const& iterator) -> bool
+  {
   return
     iterator.object->GetSockets() &&
     iterator.index < iterator.object->GetSockets()->instances.size();
-} FunctionAlias(SocketsIterator_HasMore, HasMore);
+  },
+  "iterator");
+static int const SocketsIterator_HasMore_Alias = Function_Alias("SocketsIterator_HasMore", "HasMore");

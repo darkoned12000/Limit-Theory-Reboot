@@ -6,6 +6,7 @@
 
 #include "UI/Icon.h"
 #include "UI/Widget.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(WidgetCustom, WidgetComponentT,
@@ -108,10 +109,10 @@ namespace {
   };
 }
 
-DefineFunction(Widget_Custom) {
+Widget Widget_Custom(Widget const& widget, Data const& data) {
   Reference<WidgetCustom> self = new WidgetCustom;
-  ScriptType type = args.data.type->GetAux().Convert<ScriptType>();
-  self->instance = args.data;
+  ScriptType type = data.type->GetAux().Convert<ScriptType>();
+  self->instance = data;
   self->captureFocus = type->GetFunction("CaptureFocus");
   self->create = type->GetFunction("Create");
   self->createChildren = type->GetFunction("CreateChildren");
@@ -126,6 +127,14 @@ DefineFunction(Widget_Custom) {
   self->prePosition = type->GetFunction("PrePosition");
   self->preUpdate = type->GetFunction("PreUpdate");
   self->receive = type->GetFunction("Receive");
-  args.widget->Add(self);
-  return args.widget;
-} FunctionAlias(Widget_Custom, Custom);
+  widget->Add(self);
+  return widget;
+}
+static Function const Widget_Custom_Registration = Function_Bind(
+  "Widget_Custom",
+  "None",
+  &Widget_Custom,
+  "widget", "data");
+static int const Widget_Custom_Alias = Function_Alias("Widget_Custom", "Custom");
+
+

@@ -1,11 +1,10 @@
 #ifndef Game_Particles_h__
 #define Game_Particles_h__
 
-#include "LTE/DeclareFunction.h"
 #include "LTE/ShaderInstance.h"
 
-DeclareFunctionNoParams(Particle_Fire, ShaderInstance)
+LT_API ShaderInstance Particle_Fire();
 
-DeclareFunctionNoParams(Particle_Firefly, ShaderInstance)
+LT_API ShaderInstance Particle_Firefly();
 
 #endif

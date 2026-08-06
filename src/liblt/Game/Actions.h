@@ -2,11 +2,8 @@
 #define Game_Actions_h__
 
 #include "Action.h"
-#include "LTE/DeclareFunction.h"
 
-DeclareFunction(Action_Mine, Action,
-  Object, object,
-  Object, target,
-  Position, point)
+LT_API Action Action_Mine(
+  Object const& object, Object const& target, Position const& point);
 
 #endif

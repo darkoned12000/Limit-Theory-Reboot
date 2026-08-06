@@ -2,6 +2,7 @@
 
 #include "LTE/Bound.h"
 #include "LTE/Math.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(SDFSubtract, SDFT,
@@ -56,12 +57,19 @@ namespace {
   DERIVED_IMPLEMENT(SDFSubtract0)
 }
 
-DefineFunction(SDF_Subtract) {
-  if (args.sharpness <= 0)
-    return new SDFSubtract0(args.a, args.b);
+SDF SDF_Subtract(SDF const& a, SDF const& b, float const& sharpness) {
+  if (sharpness <= 0)
+    return new SDFSubtract0(a, b);
   else
-    return new SDFSubtract(args.a, args.b, args.sharpness);
-} FunctionAlias(SDF_Subtract, -);
+    return new SDFSubtract(a, b, sharpness);
+}
+static Function const SDF_Subtract_Registration = Function_Bind(
+  "SDF_Subtract",
+  "None",
+  &SDF_Subtract,
+  "a", "b", "sharpness");
+
+static int const SDF_Subtract_Alias = Function_Alias("SDF_Subtract", "-");
 
 SDF SDFT::Subtract(SDF const& other, float sharpness) {
   return SDF_Subtract(this, other, sharpness);

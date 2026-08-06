@@ -18,6 +18,7 @@
 
 #include "LTE/Debug.h"
 #include "LTE/Pool.h"
+#include "LTE/FunctionBind.h"
 
 AutoClassDerived(PlanetImpl, Planet,
   double, hunger,
@@ -96,16 +97,23 @@ AutoClassDerived(PlanetImpl, Planet,
 
 DERIVED_IMPLEMENT(PlanetImpl)
 
-DefineFunction(Object_Planet) {
+Object Object_Planet(Item const& type) {
   Reference<PlanetImpl> self = new PlanetImpl;
-  self->Seeded.seed = args.type->GetSeed();
+  self->Seeded.seed = type->GetSeed();
 
   RNG rg = RNG_MTG(self->GetSeed());
   self->SetName(String_Capital(Grammar_Get()->Generate(rg, "$system", "")));
-  self->SetSupertype(args.type);
+  self->SetSupertype(type);
 
   self->manager = Player_AI(Traits());
   self->manager->AddCredits(1000000000);
   self->manager->SetName(self->GetName() + " Governor");
   return self;
 }
+static Function const Object_Planet_Registration = Function_Bind(
+  "Object_Planet",
+  "None",
+  &Object_Planet,
+  "type");
+
+

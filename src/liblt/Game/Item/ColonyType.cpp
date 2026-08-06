@@ -8,6 +8,7 @@
 #include "LTE/Math.h"
 
 #include "UI/Glyphs.h"
+#include "LTE/FunctionBind.h"
 
 using ColonyTypeBase = 
     Attribute_Icon
@@ -23,11 +24,18 @@ AutoClassDerivedEmpty(ColonyType, ColonyTypeBase)
 
 DERIVED_IMPLEMENT(ColonyType)
 
-DefineFunction(Item_ColonyType) {
+Item Item_ColonyType(String const& name, Icon const& icon, Task const& task, Traits const& traits) {
   Reference<ColonyType> self = new ColonyType;
-  self->name = args.name;
-  self->icon = args.icon;
-  self->task = args.task;
-  self->traits = args.traits;
+  self->name = name;
+  self->icon = icon;
+  self->task = task;
+  self->traits = traits;
   return self;
 }
+static Function const Item_ColonyType_Registration = Function_Bind(
+  "Item_ColonyType",
+  "None",
+  &Item_ColonyType,
+  "name", "icon", "task", "traits");
+
+

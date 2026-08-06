@@ -16,6 +16,7 @@
 #include "Module/FrameTimer.h"
 
 #include <algorithm>
+#include "LTE/FunctionBind.h"
 
 const float kCullBrightness = 0.01f;
 const float kOcclusionSpeed = 8.0f;
@@ -188,6 +189,12 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_LensFlares) {
+RenderPass RenderPass_LensFlares() {
   return new LensFlares;
 }
+static Function const RenderPass_LensFlares_Registration = Function_Bind(
+  "RenderPass_LensFlares",
+  "None",
+  &RenderPass_LensFlares);
+
+

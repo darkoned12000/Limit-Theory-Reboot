@@ -2,6 +2,7 @@
 
 #include "LTE/Bound.h"
 #include "LTE/Math.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(SDFShell, SDFT,
@@ -30,6 +31,13 @@ namespace {
   DERIVED_IMPLEMENT(SDFShell)
 }
 
-DefineFunction(SDF_Shell) {
-  return new SDFShell(args.center, args.radius, args.thickness);
+SDF SDF_Shell(V3 const& center, float const& radius, float const& thickness) {
+  return new SDFShell(center, radius, thickness);
 }
+static Function const SDF_Shell_Registration = Function_Bind(
+  "SDF_Shell",
+  "None",
+  &SDF_Shell,
+  "center", "radius", "thickness");
+
+

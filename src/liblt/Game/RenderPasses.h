@@ -2,41 +2,40 @@
 #define RenderPasses_h__
 
 #include "Game/Common.h"
-#include "LTE/DeclareFunction.h"
 #include "LTE/RenderPass.h"
 #include "LTE/V3.h"
 #include "LTE/V4.h"
 
-DeclareFunctionNoParams(RenderPass_Blended, RenderPass)
+LT_API RenderPass RenderPass_Blended();
 
-DeclareFunction(RenderPass_Camera, RenderPass,
-  Camera, camera)
+LT_API RenderPass RenderPass_Camera(
+  Camera const& camera);
 
-DeclareFunction(RenderPass_Clear, RenderPass,
-  V4, value)
+LT_API RenderPass RenderPass_Clear(
+  V4 const& value);
 
-DeclareFunctionNoParams(RenderPass_ClearDepth, RenderPass)
+LT_API RenderPass RenderPass_ClearDepth();
 
-DeclareFunctionNoParams(RenderPass_DepthPrepass, RenderPass)
+LT_API RenderPass RenderPass_DepthPrepass();
 
-DeclareFunctionNoParams(RenderPass_DustClouds, RenderPass)
+LT_API RenderPass RenderPass_DustClouds();
 
-DeclareFunctionNoParams(RenderPass_GBuffer, RenderPass)
+LT_API RenderPass RenderPass_GBuffer();
 
-DeclareFunctionNoParams(RenderPass_GlobalLighting, RenderPass)
+LT_API RenderPass RenderPass_GlobalLighting();
 
-DeclareFunctionNoParams(RenderPass_LocalLighting, RenderPass)
+LT_API RenderPass RenderPass_LocalLighting();
 
-DeclareFunctionNoParams(RenderPass_LensFlares, RenderPass)
+LT_API RenderPass RenderPass_LensFlares();
 
-DeclareFunctionNoParams(RenderPass_Particles, RenderPass)
+LT_API RenderPass RenderPass_Particles();
 
-DeclareFunctionNoParams(RenderPass_SMAA, RenderPass)
+LT_API RenderPass RenderPass_SMAA();
 
-DeclareFunctionNoParams(RenderPass_SSAO, RenderPass)
+LT_API RenderPass RenderPass_SSAO();
 
-DeclareFunctionNoParams(RenderPass_Visibility, RenderPass)
+LT_API RenderPass RenderPass_Visibility();
 
-DeclareFunctionNoParams(RenderPass_HiZOcclusion, RenderPass)
+LT_API RenderPass RenderPass_HiZOcclusion();
 
 #endif

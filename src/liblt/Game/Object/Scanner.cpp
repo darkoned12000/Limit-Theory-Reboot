@@ -9,6 +9,7 @@
 #include "Game/Player.h"
 
 #include "LTE/Math.h"
+#include "LTE/FunctionBind.h"
 
 const int kSamples = 1024;
 
@@ -65,12 +66,19 @@ AutoClassDerivedEmpty(Scanner, ScannerBaseT)
 
 DERIVED_IMPLEMENT(Scanner)
 
-DefineFunction(Object_Scanner) {
-  LTE_ASSERT(args.type->GetType() == ItemType_ScannerType);
+Object Object_Scanner(Item const& type) {
+  LTE_ASSERT(type->GetType() == ItemType_ScannerType);
   Reference<Scanner> self = new Scanner;
-  self->SetSupertype(args.type);
+  self->SetSupertype(type);
   return self;
 }
+static Function const Object_Scanner_Registration = Function_Bind(
+  "Object_Scanner",
+  "None",
+  &Object_Scanner,
+  "type");
+
+
 
 AutoClass(ScannerOutput,
   Array<float>, bands)
@@ -131,11 +139,11 @@ void GatherSignalsInterior(
     GatherSignalsObject(output, pos, look, it.Get());
 }
 
-FreeFunction(ScannerOutput, Object_GetScannerOutput,
+static Function const Object_GetScannerOutput_Registration = Function_Bind(
+  "Object_GetScannerOutput",
   "Return the total gathered signal of 'scanner' with 'bands' frequency bands",
-  Object, scanner,
-  uint, bands)
-{
+  [](Object const& scanner, uint const& bands) -> ScannerOutput
+  {
   Object root = scanner->GetRoot().t;
   ScannerOutput output(bands);
   Position pos = root->GetPos();
@@ -147,13 +155,15 @@ FreeFunction(ScannerOutput, Object_GetScannerOutput,
     output.bands[i] += kNoise * RandExp();
 
   return output;
-} FunctionAlias(Object_GetScannerOutput, GetScannerOutput);
+  },
+  "scanner", "bands");
+static int const Object_GetScannerOutput_Alias = Function_Alias("Object_GetScannerOutput", "GetScannerOutput");
 
-FreeFunction(ScannerOutput, Object_GetSignature,
+static Function const Object_GetSignature_Registration = Function_Bind(
+  "Object_GetSignature",
   "Return the raw scanner signature of 'object' with 'bands' frequency bands",
-  Object, object,
-  uint, bands)
-{
+  [](Object const& object, uint const& bands) -> ScannerOutput
+  {
   ScannerOutput output(bands);
   GatherSignal(output, object->GetSignature());
 
@@ -161,23 +171,29 @@ FreeFunction(ScannerOutput, Object_GetSignature,
     output.bands[i] += kNoise * RandExp();
 
   return output;
-} FunctionAlias(Object_GetSignature, GetSignature);
+  },
+  "object", "bands");
+static int const Object_GetSignature_Alias = Function_Alias("Object_GetSignature", "GetSignature");
 
-FreeFunction(float, ScannerOutput_AverageAmplitude,
+static Function const ScannerOutput_AverageAmplitude_Registration = Function_Bind(
+  "ScannerOutput_AverageAmplitude",
   "Return the average amplitude of all frequency bands in 'output'",
-  ScannerOutput, output)
-{
+  [](ScannerOutput const& output) -> float
+  {
   float total = 0;
   for (size_t i = 0; i < output.bands.size(); ++i)
     total += output.bands[i];
 
   return total / static_cast<float>(output.bands.size());
-} FunctionAlias(ScannerOutput_AverageAmplitude, AverageAmplitude);
+  },
+  "output");
+static int const ScannerOutput_AverageAmplitude_Alias = Function_Alias("ScannerOutput_AverageAmplitude", "AverageAmplitude");
 
-FreeFunction(float, ScannerOutput_AverageFrequency,
+static Function const ScannerOutput_AverageFrequency_Registration = Function_Bind(
+  "ScannerOutput_AverageFrequency",
   "Return the amplitude-weighted average frequency of 'output'",
-  ScannerOutput, output)
-{
+  [](ScannerOutput const& output) -> float
+  {
   float total = 0;
   float totalAmplitude = 0;
   for (size_t i = 0; i < output.bands.size(); ++i) {
@@ -187,32 +203,40 @@ FreeFunction(float, ScannerOutput_AverageFrequency,
   }
 
   return total / Max(0.0001f, totalAmplitude);
-} FunctionAlias(ScannerOutput_AverageFrequency, AverageFrequency);
+  },
+  "output");
+static int const ScannerOutput_AverageFrequency_Alias = Function_Alias("ScannerOutput_AverageFrequency", "AverageFrequency");
 
-VoidFreeFunction(ScannerOutput_Blend,
+static Function const ScannerOutput_Blend_Registration = Function_Bind(
+  "ScannerOutput_Blend",
   "Mix 'source's output into 'target' with 'interpolant' blend factor",
-  ScannerOutput, target,
-  ScannerOutput, source,
-  float, interpolant)
-{
+  [](ScannerOutput const& target, ScannerOutput const& source, float const& interpolant)
+  {
   if (target.bands.size() != source.bands.size())
     error("Cannot mix scanner outputs of different resolutions")
   for (size_t i = 0; i < target.bands.size(); ++i)
     Mutable(target).bands[i] = Mix(
       target.bands[i], source.bands[i], interpolant);
-} FunctionAlias(ScannerOutput_Blend, Blend);
+  },
+  "target", "source", "interpolant");
+static int const ScannerOutput_Blend_Alias = Function_Alias("ScannerOutput_Blend", "Blend");
 
-FreeFunction(float, ScannerOutput_Get,
+static Function const ScannerOutput_Get_Registration = Function_Bind(
+  "ScannerOutput_Get",
   "Return the raw 'i'th frequency band amplitude in 'output'",
-  ScannerOutput, output,
-  int, i)
-{
+  [](ScannerOutput const& output, int const& i) -> float
+  {
   return output.bands[i];
-} FunctionAlias(ScannerOutput_Get, Get);
+  },
+  "output", "i");
+static int const ScannerOutput_Get_Alias = Function_Alias("ScannerOutput_Get", "Get");
 
-FreeFunction(int, ScannerOutput_Size,
+static Function const ScannerOutput_Size_Registration = Function_Bind(
+  "ScannerOutput_Size",
   "Return the number of frequency bands in 'output'",
-  ScannerOutput, output)
-{
+  [](ScannerOutput const& output) -> int
+  {
   return static_cast<int>(output.bands.size());
-} FunctionAlias(ScannerOutput_Size, Size);
+  },
+  "output");
+static int const ScannerOutput_Size_Alias = Function_Alias("ScannerOutput_Size", "Size");

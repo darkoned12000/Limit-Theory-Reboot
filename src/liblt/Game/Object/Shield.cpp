@@ -26,6 +26,7 @@
 #include "LTE/Tuple.h"
 #include "LTE/Vector.h"
 #include "LTE/VectorMap.h"
+#include "LTE/FunctionBind.h"
 
 const size_t kMaxHits = 16;
 const float kMaxAge = 1;
@@ -212,9 +213,16 @@ AutoClassDerived(Shield, ShieldBaseT,
 
 DERIVED_IMPLEMENT(Shield)
 
-DefineFunction(Object_Shield) {
-  LTE_ASSERT(args.type->GetType() == ItemType_ShieldType);
+Object Object_Shield(Item const& type) {
+  LTE_ASSERT(type->GetType() == ItemType_ShieldType);
   Reference<Shield> self = new Shield;
-  self->SetSupertype(args.type);
+  self->SetSupertype(type);
   return self;
 }
+static Function const Object_Shield_Registration = Function_Bind(
+  "Object_Shield",
+  "None",
+  &Object_Shield,
+  "type");
+
+

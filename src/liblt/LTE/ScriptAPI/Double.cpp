@@ -1,273 +1,396 @@
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 #include "LTE/Math.h"
 
 TypeAlias(double, Double);
 
-DefineConversion(float_to_double, float, double) {
+static void float_to_double_Impl(float const& src, double& dest) {
   dest = (double)src;
 }
+static int const float_to_double_Registration = Conversion_Bind<&float_to_double_Impl>();
 
 #if 0
-DefineConversion(double_to_int, double, int) {
+static void double_to_int_Impl(double const& src, int& dest) {
   dest = (int)src;
 }
+static int const double_to_int_Registration = Conversion_Bind<&double_to_int_Impl>();
 
-FreeFunction(double, Double_Abs,
+static Function const Double_Abs_Registration = Function_Bind(
+  "Double_Abs",
   "Return the absolute value of 't'",
-  double, t)
-{
+  [](double const& t) -> double
+  {
   return Abs(t);
-} FunctionAlias(Double_Abs, Abs);
+  },
+  "t");
+static int const Double_Abs_Alias = Function_Alias("Double_Abs", "Abs");
 
-FreeFunction(double, Double_Add,
+static Function const Double_Add_Registration = Function_Bind(
+  "Double_Add",
   "Return the sum of 'a' and 'b'",
-  double, a,
-  double, b)
-{
+  [](double const& a, double const& b) -> double
+  {
   return a + b;
-} FunctionAlias(Double_Add, +);
+  },
+  "a", "b");
+static int const Double_Add_Alias = Function_Alias("Double_Add", "+");
 
-VoidFreeFunction(Double_AddInPlace,
+static Function const Double_AddInPlace_Registration = Function_Bind(
+  "Double_AddInPlace",
   "Add 'b' to 'a'",
-  double, a,
-  double, b)
-{
+  [](double const& a, double const& b)
+  {
   (double&)a += b;
-} FunctionAlias(Double_AddInPlace, +=);
+  },
+  "a", "b");
+static int const Double_AddInPlace_Alias = Function_Alias("Double_AddInPlace", "+=");
 
-FreeFunction(double, Double_Atan,
+static Function const Double_Atan_Registration = Function_Bind(
+  "Double_Atan",
   "Return the quadrant-correct of 'y' / 'x'",
-  double, y,
-  double, x)
-{
+  [](double const& y, double const& x) -> double
+  {
   return Atan(y, x);
-} FunctionAlias(Double_Atan, Atan);
+  },
+  "y", "x");
+static int const Double_Atan_Alias = Function_Alias("Double_Atan", "Atan");
 
-FreeFunction(double, Double_Ceil,
+static Function const Double_Ceil_Registration = Function_Bind(
+  "Double_Ceil",
   "Return 'f' rounded up to the nearest integer",
-  double, f)
-{
+  [](double const& f) -> double
+  {
   return Ceil(f);
-} FunctionAlias(Double_Ceil, Ceil);
+  },
+  "f");
+static int const Double_Ceil_Alias = Function_Alias("Double_Ceil", "Ceil");
 
-FreeFunction(double, Double_Clamp,
+static Function const Double_Clamp_Registration = Function_Bind(
+  "Double_Clamp",
   "Return 'f' clamped to the range [lower, upper]",
-  double, f,
-  double, lower,
-  double, upper)
-{
+  [](double const& f, double const& lower, double const& upper) -> double
+  {
   return Clamp(f, lower, upper);
-} FunctionAlias(Double_Clamp, Clamp);
+  },
+  "f", "lower", "upper");
+static int const Double_Clamp_Alias = Function_Alias("Double_Clamp", "Clamp");
 
-FreeFunction(double, Double_Cos,
+static Function const Double_Cos_Registration = Function_Bind(
+  "Double_Cos",
   "Return the cosine of 'angle' (radians)",
-  double, angle)
-{
+  [](double const& angle) -> double
+  {
   return Cos(angle);
-} FunctionAlias(Double_Cos, Cos);
+  },
+  "angle");
+static int const Double_Cos_Alias = Function_Alias("Double_Cos", "Cos");
 
-FreeFunction(double, Double_Divide,
+static Function const Double_Divide_Registration = Function_Bind(
+  "Double_Divide",
   "Return the dividend of 'a' and 'b'",
-  double, a,
-  double, b)
-{
+  [](double const& a, double const& b) -> double
+  {
   return a / b;
-} FunctionAlias(Double_Divide, /);
+  },
+  "a", "b");
+static int const Double_Divide_Alias = Function_Alias("Double_Divide", "/");
 
-VoidFreeFunction(Double_DivideInPlace,
+static Function const Double_DivideInPlace_Registration = Function_Bind(
+  "Double_DivideInPlace",
   "Divide 'b' by 'a'",
-  double, a,
-  double, b)
-{
+  [](double const& a, double const& b)
+  {
   (double&)a /= b;
-} FunctionAlias(Double_DivideInPlace, /=);
+  },
+  "a", "b");
+static int const Double_DivideInPlace_Alias = Function_Alias("Double_DivideInPlace", "/=");
 
-FreeFunction(double, Double_Exp, "Return the e raised to the 't' power",
-  double, t)
-{
+static Function const Double_Exp_Registration = Function_Bind(
+  "Double_Exp",
+  "Return the e raised to the 't' power",
+  [](double const& t) -> double
+  {
   return Exp(t);
-} FunctionAlias(Double_Exp, Exp);
+  },
+  "t");
+static int const Double_Exp_Alias = Function_Alias("Double_Exp", "Exp");
 
-FreeFunction(double, Double_ExpDecay,
+static Function const Double_ExpDecay_Registration = Function_Bind(
+  "Double_ExpDecay",
   "Return the e raised to the '-t / rate' power",
-  double, t,
-  double, rate)
-{
+  [](double const& t, double const& rate) -> double
+  {
   return Exp(-t / rate);
-} FunctionAlias(Double_ExpDecay, ExpDecay);
+  },
+  "t", "rate");
+static int const Double_ExpDecay_Alias = Function_Alias("Double_ExpDecay", "ExpDecay");
 
-FreeFunction(double, Double_Fract, "Return the fractional part of 't'",
-  double, t)
-{
+static Function const Double_Fract_Registration = Function_Bind(
+  "Double_Fract",
+  "Return the fractional part of 't'",
+  [](double const& t) -> double
+  {
   return Fract(t);
-} FunctionAlias(Double_Fract, Fract);
+  },
+  "t");
+static int const Double_Fract_Alias = Function_Alias("Double_Fract", "Fract");
 
-FreeFunction(double, Double_Double, "Construct a double from 'f'", double, f) {
+static Function const Double_Double_Registration = Function_Bind(
+  "Double_Double",
+  "Construct a double from 'f'",
+  [](double const& f) -> double
+  {
   return f;
-} FunctionAlias(Double_Double, Double);
+  },
+  "f");
+static int const Double_Double_Alias = Function_Alias("Double_Double", "Double");
 
-FreeFunction(double, Double_Int, "Convert 'i' into a double", int, i) {
+static Function const Double_Int_Registration = Function_Bind(
+  "Double_Int",
+  "Convert 'i' into a double",
+  [](int const& i) -> double
+  {
   return (double)i;
-} FunctionAlias(Double_Int, Double);
+  },
+  "i");
+static int const Double_Int_Alias = Function_Alias("Double_Int", "Double");
 
-FreeFunction(double, Double_Floor,
+static Function const Double_Floor_Registration = Function_Bind(
+  "Double_Floor",
   "Return 'f' rounded down to the nearest integer",
-  double, f)
-{
+  [](double const& f) -> double
+  {
   return Floor(f);
-} FunctionAlias(Double_Floor, Floor);
+  },
+  "f");
+static int const Double_Floor_Alias = Function_Alias("Double_Floor", "Floor");
 
-FreeFunction(bool, Double_Greater, "Return a > b", double, a, double, b) {
+static Function const Double_Greater_Registration = Function_Bind(
+  "Double_Greater",
+  "Return a > b",
+  [](double const& a, double const& b) -> bool
+  {
   return a > b;
-} FunctionAlias(Double_Greater, >);
+  },
+  "a", "b");
+static int const Double_Greater_Alias = Function_Alias("Double_Greater", ">");
 
-FreeFunction(bool, Double_GreaterEqual, "Return a >= b", double, a, double, b) {
+static Function const Double_GreaterEqual_Registration = Function_Bind(
+  "Double_GreaterEqual",
+  "Return a >= b",
+  [](double const& a, double const& b) -> bool
+  {
   return a >= b;
-} FunctionAlias(Double_GreaterEqual, >=);
+  },
+  "a", "b");
+static int const Double_GreaterEqual_Alias = Function_Alias("Double_GreaterEqual", ">=");
 
-FreeFunction(bool, Double_Less, "Return a < b", double, a, double, b) {
+static Function const Double_Less_Registration = Function_Bind(
+  "Double_Less",
+  "Return a < b",
+  [](double const& a, double const& b) -> bool
+  {
   return a < b;
-} FunctionAlias(Double_Less, <);
+  },
+  "a", "b");
+static int const Double_Less_Alias = Function_Alias("Double_Less", "<");
 
-FreeFunction(bool, Double_LessEqual, "Return a <= b", double, a, double, b) {
+static Function const Double_LessEqual_Registration = Function_Bind(
+  "Double_LessEqual",
+  "Return a <= b",
+  [](double const& a, double const& b) -> bool
+  {
   return a <= b;
-} FunctionAlias(Double_LessEqual, <=);
+  },
+  "a", "b");
+static int const Double_LessEqual_Alias = Function_Alias("Double_LessEqual", "<=");
 
-FreeFunction(double, Double_Max, "Return the maximum of 'a' and 'b'",
-  double, a,
-  double, b)
-{
+static Function const Double_Max_Registration = Function_Bind(
+  "Double_Max",
+  "Return the maximum of 'a' and 'b'",
+  [](double const& a, double const& b) -> double
+  {
   return Max(a, b);
-} FunctionAlias(Double_Max, Max);
+  },
+  "a", "b");
+static int const Double_Max_Alias = Function_Alias("Double_Max", "Max");
 
-FreeFunction(double, Double_Mix,
+static Function const Double_Mix_Registration = Function_Bind(
+  "Double_Mix",
   "Return a linear interpolation 'a' and 'b' with interpolant 't'",
-  double, a,
-  double, b,
-  double, t)
-{
+  [](double const& a, double const& b, double const& t) -> double
+  {
   return Mix(a, b, t);
-} FunctionAlias(Double_Mix, Mix);
+  },
+  "a", "b", "t");
+static int const Double_Mix_Alias = Function_Alias("Double_Mix", "Mix");
 
-FreeFunction(double, Double_Log, "Return the logarithm of 'f'", double, f) {
+static Function const Double_Log_Registration = Function_Bind(
+  "Double_Log",
+  "Return the logarithm of 'f'",
+  [](double const& f) -> double
+  {
   return Log(f);
-} FunctionAlias(Double_Log, Log);
+  },
+  "f");
+static int const Double_Log_Alias = Function_Alias("Double_Log", "Log");
 
-FreeFunction(double, Double_Min,
+static Function const Double_Min_Registration = Function_Bind(
+  "Double_Min",
   "Return the minimum of 'a' and 'b'",
-  double, a,
-  double, b)
-{
+  [](double const& a, double const& b) -> double
+  {
   return Min(a, b);
-} FunctionAlias(Double_Min, Min);
+  },
+  "a", "b");
+static int const Double_Min_Alias = Function_Alias("Double_Min", "Min");
 
-FreeFunction(double, Double_Mod, "Return the remaind of 'a' / 'b'",
-  double, a,
-  double, b)
-{
+static Function const Double_Mod_Registration = Function_Bind(
+  "Double_Mod",
+  "Return the remaind of 'a' / 'b'",
+  [](double const& a, double const& b) -> double
+  {
   return Mod(a, b);
-} FunctionAlias(Double_Mod, Mod);
+  },
+  "a", "b");
+static int const Double_Mod_Alias = Function_Alias("Double_Mod", "Mod");
 
-FreeFunction(double, Double_Mult,
+static Function const Double_Mult_Registration = Function_Bind(
+  "Double_Mult",
   "Return the product of 'a' and 'b'",
-  double, a,
-  double, b)
-{
+  [](double const& a, double const& b) -> double
+  {
   return a * b;
-} FunctionAlias(Double_Mult, *);
+  },
+  "a", "b");
+static int const Double_Mult_Alias = Function_Alias("Double_Mult", "*");
 
-VoidFreeFunction(Double_MultInPlace,
+static Function const Double_MultInPlace_Registration = Function_Bind(
+  "Double_MultInPlace",
   "Multiply 'a' by 'b'",
-  double, a,
-  double, b)
-{
+  [](double const& a, double const& b)
+  {
   (double&)a *= b;
-} FunctionAlias(Double_MultInPlace, *=);
+  },
+  "a", "b");
+static int const Double_MultInPlace_Alias = Function_Alias("Double_MultInPlace", "*=");
 
-FreeFunction(double, Double_Pow,
+static Function const Double_Pow_Registration = Function_Bind(
+  "Double_Pow",
   "Return 'a' raised to the 'b'",
-  double, a,
-  double, b)
-{
+  [](double const& a, double const& b) -> double
+  {
   return Pow(a, b);
-} FunctionAlias(Double_Pow, ^);
+  },
+  "a", "b");
+static int const Double_Pow_Alias = Function_Alias("Double_Pow", "^");
 
-FreeFunction(double, Double_Pow2,
+static Function const Double_Pow2_Registration = Function_Bind(
+  "Double_Pow2",
   "Return f to the 2nd power",
-  double, f)
-{
+  [](double const& f) -> double
+  {
   return f * f;
-} FunctionAlias(Double_Pow2, Pow2);
+  },
+  "f");
+static int const Double_Pow2_Alias = Function_Alias("Double_Pow2", "Pow2");
 
-FreeFunction(double, Double_Pow4,
+static Function const Double_Pow4_Registration = Function_Bind(
+  "Double_Pow4",
   "Return f to the 4th power",
-  double, f)
-{
+  [](double const& f) -> double
+  {
   double s = f * f;
   return s * s;
-} FunctionAlias(Double_Pow4, Pow4);
+  },
+  "f");
+static int const Double_Pow4_Alias = Function_Alias("Double_Pow4", "Pow4");
 
-FreeFunctionNoParams(double, Double_Random,
-  "Return a random between 0 (inclusive) and 1 (exclusive)")
-{
+static Function const Double_Random_Registration = Function_Bind(
+  "Double_Random",
+  "Return a random between 0 (inclusive) and 1 (exclusive)",
+  []() -> double
+  {
   return Rand();
-}
+  });
 
-FreeFunction(double, Double_Round,
+static Function const Double_Round_Registration = Function_Bind(
+  "Double_Round",
   "Return 'f' rounded to the nearest integer",
-  double, f)
-{
+  [](double const& f) -> double
+  {
   return Round(f);
-} FunctionAlias(Double_Round, Round);
+  },
+  "f");
+static int const Double_Round_Alias = Function_Alias("Double_Round", "Round");
 
-FreeFunction(double, Double_Saturate,
+static Function const Double_Saturate_Registration = Function_Bind(
+  "Double_Saturate",
   "Return 'f' clamped to the range [0, 1]",
-  double, f)
-{
+  [](double const& f) -> double
+  {
   return Saturate(f);
-} FunctionAlias(Double_Saturate, Saturate);
+  },
+  "f");
+static int const Double_Saturate_Alias = Function_Alias("Double_Saturate", "Saturate");
 
-FreeFunction(double, Double_Sign,
+static Function const Double_Sign_Registration = Function_Bind(
+  "Double_Sign",
   "Return the sign (-1, 0, or +1) of 'f'",
-  double, f)
-{
+  [](double const& f) -> double
+  {
   return Sign(f);
-} FunctionAlias(Double_Sign, Sign);
+  },
+  "f");
+static int const Double_Sign_Alias = Function_Alias("Double_Sign", "Sign");
 
-FreeFunction(double, Double_Sin,
+static Function const Double_Sin_Registration = Function_Bind(
+  "Double_Sin",
   "Return the sine of 'angle' (radians)",
-  double, angle)
-{
+  [](double const& angle) -> double
+  {
   return Sin(angle);
-} FunctionAlias(Double_Sin, Sin);
+  },
+  "angle");
+static int const Double_Sin_Alias = Function_Alias("Double_Sin", "Sin");
 
-FreeFunction(double, Double_Sqrt,
+static Function const Double_Sqrt_Registration = Function_Bind(
+  "Double_Sqrt",
   "Return the square root of 'f'",
-  double, f)
-{
+  [](double const& f) -> double
+  {
   return Sqrt(f);
-} FunctionAlias(Double_Sqrt, Sqrt);
+  },
+  "f");
+static int const Double_Sqrt_Alias = Function_Alias("Double_Sqrt", "Sqrt");
 
-FreeFunction(double, Double_Subtract,
+static Function const Double_Subtract_Registration = Function_Bind(
+  "Double_Subtract",
   "Return the difference of 'a' and 'b'",
-  double, a,
-  double, b)
-{
+  [](double const& a, double const& b) -> double
+  {
   return a - b;
-} FunctionAlias(Double_Subtract, -);
+  },
+  "a", "b");
+static int const Double_Subtract_Alias = Function_Alias("Double_Subtract", "-");
 
-VoidFreeFunction(Double_SubtractInPlace,
+static Function const Double_SubtractInPlace_Registration = Function_Bind(
+  "Double_SubtractInPlace",
   "Subtract 'b' from 'a'",
-  double, a,
-  double, b)
-{
+  [](double const& a, double const& b)
+  {
   (double&)a -= b;
-} FunctionAlias(Double_SubtractInPlace, -=);
+  },
+  "a", "b");
+static int const Double_SubtractInPlace_Alias = Function_Alias("Double_SubtractInPlace", "-=");
 
-FreeFunction(double, Double_Tan,
+static Function const Double_Tan_Registration = Function_Bind(
+  "Double_Tan",
   "Return the tangent of 'angle' (radians)",
-  double, angle)
-{
+  [](double const& angle) -> double
+  {
   return Tan(angle);
-} FunctionAlias(Double_Tan, Tan);
+  },
+  "angle");
+static int const Double_Tan_Alias = Function_Alias("Double_Tan", "Tan");
 #endif

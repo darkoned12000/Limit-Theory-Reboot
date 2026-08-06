@@ -3,6 +3,7 @@
 #include "Component/Market.h"
 
 #include "LTE/Math.h"
+#include "LTE/FunctionBind.h"
 
 const float kOrderUpdateFrequency = 1.0f;
 
@@ -232,25 +233,33 @@ void ProjectT::UpdateMarketOrders() {
   }
 }
 
-DefineFunction(Project_Allocate) {
-  Project const& self = args.project;
+void Project_Allocate(Project const& project, Object const& asset) {
+  Project const& self = project;
 
-  Pointer<ComponentTasks> tasks = args.asset->GetTasks();
+  Pointer<ComponentTasks> tasks = asset->GetTasks();
   if (tasks->project)
-    Project_Deallocate(tasks->project, args.asset);
+    Project_Deallocate(tasks->project, asset);
 
-  self->allocated.push(ProjectAllocation(args.asset, 0, 0));
+  self->allocated.push(ProjectAllocation(asset, 0, 0));
   tasks->project = self;
-} FunctionAlias(Project_Allocate, Allocate);
+}
+static Function const Project_Allocate_Registration = Function_Bind(
+  "Project_Allocate",
+  "None",
+  &Project_Allocate,
+  "project", "asset");
+static int const Project_Allocate_Alias = Function_Alias("Project_Allocate", "Allocate");
 
-DefineFunction(Project_Deallocate) {
-  Project const& self = args.project;
 
-  Pointer<ComponentTasks> tasks = args.asset->GetTasks();
+
+void Project_Deallocate(Project const& project, Object const& asset) {
+  Project const& self = project;
+
+  Pointer<ComponentTasks> tasks = asset->GetTasks();
   LTE_ASSERT(tasks->project == self);
 
   for (size_t i = 0; i < self->allocated.size(); ++i) {
-    if (self->allocated[i].object == args.asset) {
+    if (self->allocated[i].object == asset) {
       self->inProgress -= self->allocated[i].inProgress;
       self->allocated.removeIndex(i);
       break;
@@ -258,12 +267,27 @@ DefineFunction(Project_Deallocate) {
   }
 
   tasks->project = nullptr;
-} FunctionAlias(Project_Deallocate, Deallocate);
+}
+static Function const Project_Deallocate_Registration = Function_Bind(
+  "Project_Deallocate",
+  "None",
+  &Project_Deallocate,
+  "project", "asset");
+static int const Project_Deallocate_Alias = Function_Alias("Project_Deallocate", "Deallocate");
 
-DefineFunction(Project_Create) {
+
+
+Project Project_Create(Object const& owner, Task const& task) {
   Project self = new ProjectT;
-  self->name = args.task->GetName();
-  self->owner = args.owner;
-  self->task = args.task;
+  self->name = task->GetName();
+  self->owner = owner;
+  self->task = task;
   return self;
 }
+static Function const Project_Create_Registration = Function_Bind(
+  "Project_Create",
+  "None",
+  &Project_Create,
+  "owner", "task");
+
+

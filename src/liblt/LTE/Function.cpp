@@ -1,4 +1,5 @@
 #include "Function.h"
+#include "FunctionBind.h"
 #include "Data.h"
 #include "Map.h"
 #include "Pointer.h"
@@ -30,6 +31,7 @@ Function Function_Create(String const& name) {
 
   self->name = name;
   self->call = 0;
+  self->binding = 0;
   self->paramCount = 0;
   self->params = 0;
   
@@ -41,6 +43,7 @@ Function Function_Create(String const& name) {
 
 FunctionT::~FunctionT() {
   ((FunctionImpl*)this)->extra.~FunctionExtra();
+  delete binding;
   delete[] params;
 }
 

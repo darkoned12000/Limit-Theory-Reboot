@@ -1,50 +1,64 @@
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 
-DefineConversion(int_to_bool, int, bool) {
+static void int_to_bool_Impl(int const& src, bool& dest) {
   dest = (src != 0);
 }
+static int const int_to_bool_Registration = Conversion_Bind<&int_to_bool_Impl>();
 
-DefineConversion(uint_to_bool, int, bool) {
+static void uint_to_bool_Impl(int const& src, bool& dest) {
   dest = (src != 0);
 }
+static int const uint_to_bool_Registration = Conversion_Bind<&uint_to_bool_Impl>();
 
 TypeAlias(bool, Bool);
 
-FreeFunction(bool, Bool_And,
+static Function const Bool_And_Registration = Function_Bind(
+  "Bool_And",
   "Return 'a' && 'b'",
-  bool, a,
-  bool, b)
-{
+  [](bool const& a, bool const& b) -> bool
+  {
   return a && b;
-} FunctionAlias(Bool_And, &&);
+  },
+  "a", "b");
+static int const Bool_And_Alias = Function_Alias("Bool_And", "&&");
 
-FreeFunction(bool, Bool_Equal,
+static Function const Bool_Equal_Registration = Function_Bind(
+  "Bool_Equal",
   "Return 'a' == 'b'",
-  bool, a,
-  bool, b)
-{
+  [](bool const& a, bool const& b) -> bool
+  {
   return a == b;
-} FunctionAlias(Bool_Equal, ==);
+  },
+  "a", "b");
+static int const Bool_Equal_Alias = Function_Alias("Bool_Equal", "==");
 
-FreeFunction(bool, Bool_Not,
+static Function const Bool_Not_Registration = Function_Bind(
+  "Bool_Not",
   "Return !'b'",
-  bool, b)
-{
+  [](bool const& b) -> bool
+  {
   return !b;
-} FunctionAlias(Bool_Not, !);
+  },
+  "b");
+static int const Bool_Not_Alias = Function_Alias("Bool_Not", "!");
 
-FreeFunction(bool, Bool_NotEqual,
+static Function const Bool_NotEqual_Registration = Function_Bind(
+  "Bool_NotEqual",
   "Return 'a' != 'b'",
-  bool, a,
-  bool, b)
-{
+  [](bool const& a, bool const& b) -> bool
+  {
   return a != b;
-} FunctionAlias(Bool_NotEqual, !=);
+  },
+  "a", "b");
+static int const Bool_NotEqual_Alias = Function_Alias("Bool_NotEqual", "!=");
 
-FreeFunction(bool, Bool_Or,
+static Function const Bool_Or_Registration = Function_Bind(
+  "Bool_Or",
   "Return 'a' || 'b'",
-  bool, a,
-  bool, b)
-{
+  [](bool const& a, bool const& b) -> bool
+  {
   return a || b;
-} FunctionAlias(Bool_Or, ||);
+  },
+  "a", "b");
+static int const Bool_Or_Alias = Function_Alias("Bool_Or", "||");

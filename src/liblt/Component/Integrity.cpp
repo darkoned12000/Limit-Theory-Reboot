@@ -4,6 +4,7 @@
 #include "Game/Object.h"
 
 #include "LTE/Mutable.h"
+#include "LTE/FunctionBind.h"
 
 Damage ComponentIntegrity::ApplyDamage(ObjectT* self, Damage damage) {
   Health thisDamage = Min(damage, health);
@@ -25,32 +26,43 @@ ItemT* ComponentIntegrity::GetDataDestroyed(ObjectT const* self) const {
   return dataDestroyed;
 }
 
-FreeFunction(Health, Object_GetHealth,
+static Function const Object_GetHealth_Registration = Function_Bind(
+  "Object_GetHealth",
   "Return 'object's current (non-normalized) health",
-  Object, object)
-{
+  [](Object const& object) -> Health
+  {
   return object->GetHealth();
-} FunctionAlias(Object_GetHealth, GetHealth);
+  },
+  "object");
+static int const Object_GetHealth_Alias = Function_Alias("Object_GetHealth", "GetHealth");
 
-FreeFunction(Health, Object_GetMaxHealth,
+static Function const Object_GetMaxHealth_Registration = Function_Bind(
+  "Object_GetMaxHealth",
   "Return 'object's maximal health value",
-  Object, object)
-{
+  [](Object const& object) -> Health
+  {
   return object->GetMaxHealth();
-} FunctionAlias(Object_GetMaxHealth, GetMaxHealth);
+  },
+  "object");
+static int const Object_GetMaxHealth_Alias = Function_Alias("Object_GetMaxHealth", "GetMaxHealth");
 
-FreeFunction(float, Object_GetHealthNormalized,
+static Function const Object_GetHealthNormalized_Registration = Function_Bind(
+  "Object_GetHealthNormalized",
   "Return 'object's current health on a scale from 0.0 (dead) to 1.0 (max health)",
-  Object, object)
-{
+  [](Object const& object) -> float
+  {
   return object->GetHealthNormalized();
-} FunctionAlias(Object_GetHealthNormalized, GetHealthNormalized);
+  },
+  "object");
+static int const Object_GetHealthNormalized_Alias = Function_Alias("Object_GetHealthNormalized", "GetHealthNormalized");
 
-VoidFreeFunction(Object_SetHealth,
+static Function const Object_SetHealth_Registration = Function_Bind(
+  "Object_SetHealth",
   "Set 'object's current health to 'health'",
-  Object, object,
-  Health, health)
-{
+  [](Object const& object, Health const& health)
+  {
   if (object->GetIntegrity())
     object->GetIntegrity()->health = health;
-} FunctionAlias(Object_SetHealth, SetHealth);
+  },
+  "object", "health");
+static int const Object_SetHealth_Alias = Function_Alias("Object_SetHealth", "SetHealth");

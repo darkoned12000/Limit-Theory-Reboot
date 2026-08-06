@@ -4,60 +4,74 @@
 // See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
 
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 #include "LTE/Window.h"
 
-FreeFunctionNoParams(bool, Window_GetFullscreen,
-  "Return true if the window is in fullscreen mode")
-{
+static Function const Window_GetFullscreen_Registration = Function_Bind(
+  "Window_GetFullscreen",
+  "Return true if the window is in fullscreen mode",
+  []() -> bool
+  {
   return Window_Get() ? Window_Get()->GetFullscreen() : false;
-}
+  });
 
-VoidFreeFunction(Window_SetFullscreen,
+static Function const Window_SetFullscreen_Registration = Function_Bind(
+  "Window_SetFullscreen",
   "Switch between fullscreen and windowed mode. "
   "NOTE: switching to/from fullscreen recreates the window and loses all "
   "OpenGL state (shaders, textures, VBOs). Call Shader_RecompileAll after.",
-  bool, fullscreen)
-{
+  [](bool const& fullscreen)
+  {
   Window win = Window_Get();
   if (win)
     win->SetFullscreen(fullscreen);
-}
+  },
+  "fullscreen");
 
-FreeFunctionNoParams(int, Window_GetWidth,
-  "Return the current window width in pixels")
-{
+static Function const Window_GetWidth_Registration = Function_Bind(
+  "Window_GetWidth",
+  "Return the current window width in pixels",
+  []() -> int
+  {
   return Window_Get() ? (int)Window_Get()->GetSize().x : 0;
-}
+  });
 
-FreeFunctionNoParams(int, Window_GetHeight,
-  "Return the current window height in pixels")
-{
+static Function const Window_GetHeight_Registration = Function_Bind(
+  "Window_GetHeight",
+  "Return the current window height in pixels",
+  []() -> int
+  {
   return Window_Get() ? (int)Window_Get()->GetSize().y : 0;
-}
+  });
 
-VoidFreeFunction(Window_SetSize,
+static Function const Window_SetSize_Registration = Function_Bind(
+  "Window_SetSize",
   "Set the window resolution to 'width' x 'height' pixels. "
   "NOTE: when in fullscreen this recreates the window and loses all "
   "OpenGL state. In windowed mode, this safely resizes in-place.",
-  int, width,
-  int, height)
-{
+  [](int const& width, int const& height)
+  {
   Window win = Window_Get();
   if (win)
     win->SetSize(V2U((uint)width, (uint)height));
-}
+  },
+  "width", "height");
 
-FreeFunctionNoParams(bool, Window_GetVSync,
-  "Return true if vertical sync is enabled")
-{
+static Function const Window_GetVSync_Registration = Function_Bind(
+  "Window_GetVSync",
+  "Return true if vertical sync is enabled",
+  []() -> bool
+  {
   return Window_Get() ? Window_Get()->GetVSync() : false;
-}
+  });
 
-VoidFreeFunction(Window_SetVSync,
+static Function const Window_SetVSync_Registration = Function_Bind(
+  "Window_SetVSync",
   "Enable or disable vertical sync",
-  bool, enabled)
-{
+  [](bool const& enabled)
+  {
   Window win = Window_Get();
   if (win)
     win->SetSync(enabled);
-}
+  },
+  "enabled");

@@ -3,6 +3,7 @@
 #include "Math.h"
 #include "Plane.h"
 #include "Vector.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(FractalWorley, SDFT,
@@ -57,13 +58,27 @@ namespace {
   DERIVED_IMPLEMENT(FractalPerlin)
 }
 
-DefineFunction(SDF_FractalPerlin) {
-  return new FractalPerlin(args.center, args.octaves, args.lac);
+SDF SDF_FractalPerlin(V3 const& center, int const& octaves, float const& lac) {
+  return new FractalPerlin(center, octaves, lac);
 }
+static Function const SDF_FractalPerlin_Registration = Function_Bind(
+  "SDF_FractalPerlin",
+  "None",
+  &SDF_FractalPerlin,
+  "center", "octaves", "lac");
 
-DefineFunction(SDF_FractalWorley) {
-  return new FractalWorley(args.seed, args.octaves, args.lac);
+
+
+SDF SDF_FractalWorley(float const& seed, int const& octaves, float const& lac) {
+  return new FractalWorley(seed, octaves, lac);
 }
+static Function const SDF_FractalWorley_Registration = Function_Bind(
+  "SDF_FractalWorley",
+  "None",
+  &SDF_FractalWorley,
+  "seed", "octaves", "lac");
+
+
 
 V3 SDFT::Gradient(V3 const& point) const {
   const float ds = 1e-5f;

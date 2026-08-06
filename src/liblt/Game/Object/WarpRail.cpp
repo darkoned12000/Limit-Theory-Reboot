@@ -10,6 +10,7 @@
 #include "LTE/SDFMesh.h"
 #include "LTE/Pool.h"
 #include "LTE/ShaderInstance.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   Renderable GetModel() {
@@ -50,9 +51,16 @@ AutoClassDerived(WarpRail, WarpRailBaseT,
 
 DERIVED_IMPLEMENT(WarpRail)
 
-DefineFunction(Object_WarpRail) {
+Object Object_WarpRail(Object const& node1, Object const& node2) {
   Reference<WarpRail> self = new WarpRail;
-  self->node1 = args.node1;
-  self->node2 = args.node2;
+  self->node1 = node1;
+  self->node2 = node2;
   return self;
 }
+static Function const Object_WarpRail_Registration = Function_Bind(
+  "Object_WarpRail",
+  "None",
+  &Object_WarpRail,
+  "node1", "node2");
+
+

@@ -17,6 +17,7 @@
 #include "Game/Attribute/Value.h"
 
 #include "LTE/Script.h"
+#include "LTE/FunctionBind.h"
 
 using TransferUnitTypeBase = 
     Attribute_Capability
@@ -49,7 +50,7 @@ AutoClassDerivedEmpty(TransferUnitType, TransferUnitTypeBase)
 
 DERIVED_IMPLEMENT(TransferUnitType)
 
-DefineFunction(Item_TransferUnitType) {
+Item Item_TransferUnitType(Item_TransferUnitType_Args const& args) {
   static Renderable renderable;
   if (!renderable)
     ScriptFunction_Load("Item/TransferUnitType:Generate")->Call(renderable);
@@ -72,3 +73,10 @@ DefineFunction(Item_TransferUnitType) {
   self->value = args.value;
   return self;
 }
+static Function const Item_TransferUnitType_Registration = Function_Bind(
+  "Item_TransferUnitType",
+  "None",
+  [](double const& value, uint const& seed, float const& compactness, float const& efficiency, float const& range, float const& rate) -> Item { return Item_TransferUnitType(value, seed, compactness, efficiency, range, rate); },
+  "value", "seed", "compactness", "efficiency", "range", "rate");
+
+

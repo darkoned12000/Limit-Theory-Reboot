@@ -5,6 +5,7 @@
 #include "LTE/Renderer.h"
 #include "LTE/ShaderInstance.h"
 #include "LTE/Texture2D.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   struct MotionBlur : public RenderPassT {
@@ -37,6 +38,12 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_MotionBlur) {
+RenderPass RenderPass_MotionBlur() {
   return new MotionBlur;
 }
+static Function const RenderPass_MotionBlur_Registration = Function_Bind(
+  "RenderPass_MotionBlur",
+  "None",
+  &RenderPass_MotionBlur);
+
+

@@ -18,6 +18,7 @@
 #include "LTE/Vector.h"
 
 #include "LTE/Debug.h"
+#include "LTE/FunctionBind.h"
 
 const uint kMaxProjects = 1;
 const Quantity kMinProfit = 1;
@@ -259,6 +260,13 @@ namespace {
   };
 }
 
-DefineFunction(Task_Play) {
+Task Task_Play(Task_Play_Args const& args) {
   return new TaskPlay(args);
 }
+static Function const Task_Play_Registration = Function_Bind(
+  "Task_Play",
+  "None",
+  [](Player const& player) -> Task { return Task_Play(player); },
+  "player");
+
+

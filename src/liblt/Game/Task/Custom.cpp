@@ -7,6 +7,7 @@
 #include "LTE/Pool.h"
 #include "LTE/Script.h"
 #include "LTE/StackFrame.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(TaskCustom, TaskT,
@@ -58,10 +59,10 @@ namespace {
   };
 }
 
-DefineFunction(Task_Custom) {
+Task Task_Custom(Data const& data) {
   Reference<TaskCustom> self = new TaskCustom;
-  ScriptType type = args.data.type->GetAux().Convert<ScriptType>();
-  self->instance = args.data;
+  ScriptType type = data.type->GetAux().Convert<ScriptType>();
+  self->instance = data;
   self->begin = type->GetFunction("Begin");
   self->end = type->GetFunction("End");
   self->getIcon = type->GetFunction("GetIcon");
@@ -69,3 +70,10 @@ DefineFunction(Task_Custom) {
   self->update = type->GetFunction("Update");
   return self;
 }
+static Function const Task_Custom_Registration = Function_Bind(
+  "Task_Custom",
+  "None",
+  &Task_Custom,
+  "data");
+
+

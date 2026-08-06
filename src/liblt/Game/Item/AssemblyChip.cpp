@@ -6,8 +6,9 @@
 #include "Game/Universe.h"
 
 #include "LTE/RNG.h"
+#include "LTE/FunctionBind.h"
 
-DefineFunction(Item_AssemblyChip) {
+Item Item_AssemblyChip(Item_AssemblyChip_Args const& args) {
   Reference<AssemblyChip> self = new AssemblyChip;
   self->blueprint = args.blueprint;
   self->duration = 1.0f;
@@ -32,3 +33,10 @@ DefineFunction(Item_AssemblyChip) {
 
   return self;
 }
+static Function const Item_AssemblyChip_Registration = Function_Bind(
+  "Item_AssemblyChip",
+  "None",
+  [](Item const& blueprint, Item const& source) -> Item { return Item_AssemblyChip(blueprint, source); },
+  "blueprint", "source");
+
+

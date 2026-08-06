@@ -5,6 +5,7 @@
 
 #include "LTE/DrawState.h"
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 #include "LTE/RenderStyle.h"
 
 void ComponentDrawable::Draw(ObjectT* self, DrawState* state) {
@@ -16,10 +17,12 @@ void ComponentDrawable::Draw(ObjectT* self, DrawState* state) {
   renderable()->Render(state);
 }
 
-VoidFreeFunction(Object_SetRenderable,
+static Function const Object_SetRenderable_Registration = Function_Bind(
+  "Object_SetRenderable",
   "Set 'object's renderable to 'renderable'",
-  Object, object,
-  Renderable, renderable)
-{
+  [](Object const& object, Renderable const& renderable)
+  {
   object->GetDrawable()->renderable = renderable;
-} FunctionAlias(Object_SetRenderable, SetRenderable);
+  },
+  "object", "renderable");
+static int const Object_SetRenderable_Alias = Function_Alias("Object_SetRenderable", "SetRenderable");

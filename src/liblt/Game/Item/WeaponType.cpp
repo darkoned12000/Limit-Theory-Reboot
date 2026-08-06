@@ -20,6 +20,7 @@
 #include "LTE/VectorMap.h"
 
 #include "UI/Glyphs.h"
+#include "LTE/FunctionBind.h"
 
 DERIVED_IMPLEMENT(WeaponType)
 
@@ -143,12 +144,12 @@ Object WeaponType::Instantiate(ObjectT* parent) {
   return turret;
 }
 
-DefineFunction(Item_WeaponType) {
+Item Item_WeaponType(int const& id) {
   static Renderable renderable;
   if (!renderable)
     ScriptFunction_Load("Item/WeaponType:Generate")->Call(renderable);
 
-  RNG rng = RNG_MTG(args.id);
+  RNG rng = RNG_MTG(id);
   Reference<WeaponType> self = new WeaponType;
 
   float typeValue = rng->GetFloat();
@@ -238,3 +239,10 @@ DefineFunction(Item_WeaponType) {
 
   return self;
 }
+static Function const Item_WeaponType_Registration = Function_Bind(
+  "Item_WeaponType",
+  "None",
+  &Item_WeaponType,
+  "id");
+
+

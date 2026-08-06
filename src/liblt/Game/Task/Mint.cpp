@@ -8,6 +8,7 @@
 #include "LTE/Math.h"
 #include "LTE/Pool.h"
 #include "LTE/StackFrame.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(TaskMint, TaskT,
@@ -46,6 +47,13 @@ namespace {
   };
 }
 
-DefineFunction(Task_Mint) {
+Task Task_Mint(Task_Mint_Args const& args) {
   return new TaskMint(args);
 }
+static Function const Task_Mint_Registration = Function_Bind(
+  "Task_Mint",
+  "None",
+  [](Item const& blueprint) -> Task { return Task_Mint(blueprint); },
+  "blueprint");
+
+

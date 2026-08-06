@@ -8,7 +8,6 @@
 #define LTE_ParticleSystem_h__
 
 #include "BaseType.h"
-#include "DeclareFunction.h"
 #include "Reference.h"
 #include "V3.h"
 
@@ -19,35 +18,27 @@ struct ParticleSystemT : public RefCounted {
   virtual void Run(float dt) = 0;
 };
 
-DeclareFunction(ParticleSystem_Add, void,
-  ParticleSystem, particleSystem,
-  ShaderInstance, particle,
-  V3D, position,
-  V3, velocity,
-  float, scale,
-  float, life,
-  V3, attribute)
+LT_API void ParticleSystem_Add(
+  ParticleSystem const& particleSystem, ShaderInstance const& particle,
+  V3D const& position, V3 const& velocity, float const& scale, float const& life,
+  V3 const& attribute);
 
 /* Overload accepting Position (V3D) for velocity/attribute so scripts that work
  * in double-precision Position space (e.g. WarpRail) don't need a V3D -> V3F
  * conversion (which corrupts the engine's global conversion table; see
  * AGENTS.md §8d #1). */
-DeclareFunction(ParticleSystem_Add_Position, void,
-  ParticleSystem, particleSystem,
-  ShaderInstance, particle,
-  V3D, position,
-  V3D, velocity,
-  float, scale,
-  float, life,
-  V3D, attribute)
+LT_API void ParticleSystem_Add_Position(
+  ParticleSystem const& particleSystem, ShaderInstance const& particle,
+  V3D const& position, V3D const& velocity, float const& scale, float const& life,
+  V3D const& attribute);
 
-DeclareFunctionNoParams(ParticleSystem_Create, ParticleSystem)
+LT_API ParticleSystem ParticleSystem_Create();
 
-DeclareFunctionNoParams(ParticleSystem_Get, ParticleSystem)
+LT_API ParticleSystem ParticleSystem_Get();
 
-DeclareFunctionNoParams(ParticleSystem_Pop, void)
+LT_API void ParticleSystem_Pop();
 
-DeclareFunction(ParticleSystem_Push, void,
-  ParticleSystem, ps)
+LT_API void ParticleSystem_Push(
+  ParticleSystem const& ps);
 
 #endif

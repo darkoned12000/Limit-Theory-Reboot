@@ -3,17 +3,13 @@
 
 #include "Common.h"
 #include "Compositor.h"
-#include "LTE/DeclareFunction.h"
 
-DeclareFunctionNoParams(Compositor_None, Compositor)
+LT_API Compositor Compositor_None();
 
-DeclareFunction(Compositor_Basic, Compositor,
-  float, noise,
-  float, lines,
-  V3, gradeBlue)
+LT_API Compositor Compositor_Basic(
+  float const& noise, float const& lines, V3 const& gradeBlue);
 
-DeclareFunction(Compositor_Custom, Compositor,
-  Compositor, base,
-  Data, data)
+LT_API Compositor Compositor_Custom(
+  Compositor const& base, Data const& data);
 
 #endif

@@ -4,6 +4,7 @@
 #include "Game/Player.h"
 
 #include <algorithm>
+#include "LTE/FunctionBind.h"
 
 const Time kMarketIntervalDuration = 1000;
 
@@ -183,62 +184,74 @@ AutoClass(MarketIterator,
   MarketIterator() = default;
 };
 
-FreeFunction(MarketIterator, Object_GetMarketListings,
+static Function const Object_GetMarketListings_Registration = Function_Bind(
+  "Object_GetMarketListings",
   "Return an iterator to the market listings 'object'",
-  Object, object)
-{
+  [](Object const& object) -> MarketIterator
+  {
   return MarketIterator(object->GetMarket()->elements.begin(), object);
-} FunctionAlias(Object_GetMarketListings, GetMarketListings);
+  },
+  "object");
+static int const Object_GetMarketListings_Alias = Function_Alias("Object_GetMarketListings", "GetMarketListings");
 
-FreeFunction(MarketData*, MarketIterator_Access,
+static Function const MarketIterator_Access_Registration = Function_Bind(
+  "MarketIterator_Access",
   "Return the value of 'iterator'",
-  MarketIterator, iterator)
-{
+  [](MarketIterator const& iterator) -> MarketData*
+  {
   return &iterator.iterator->second;
-} FunctionAlias(MarketIterator_Access, Get);
+  },
+  "iterator");
+static int const MarketIterator_Access_Alias = Function_Alias("MarketIterator_Access", "Get");
 
-VoidFreeFunction(MarketIterator_Advance,
+static Function const MarketIterator_Advance_Registration = Function_Bind(
+  "MarketIterator_Advance",
   "Advance 'iterator'",
-  MarketIterator, iterator)
-{
+  [](MarketIterator const& iterator)
+  {
   ++((MarketIterator&)iterator).iterator;
-} FunctionAlias(MarketIterator_Advance, Advance);
+  },
+  "iterator");
+static int const MarketIterator_Advance_Alias = Function_Alias("MarketIterator_Advance", "Advance");
 
-FreeFunction(bool, MarketIterator_HasMore,
+static Function const MarketIterator_HasMore_Registration = Function_Bind(
+  "MarketIterator_HasMore",
   "Return whether 'iterator' has more elements",
-  MarketIterator, iterator)
-{
+  [](MarketIterator const& iterator) -> bool
+  {
   return iterator.iterator != iterator.object->GetMarket()->elements.end();
-} FunctionAlias(MarketIterator_HasMore, HasMore);
+  },
+  "iterator");
+static int const MarketIterator_HasMore_Alias = Function_Alias("MarketIterator_HasMore", "HasMore");
 
-VoidFreeFunction(Object_AddMarketSellOrder,
+static Function const Object_AddMarketSellOrder_Registration = Function_Bind(
+  "Object_AddMarketSellOrder",
   "Add a sell order to 'market' with 'owner', 'item', 'volume', and 'price'",
-  Object, market,
-  Object, owner,
-  Item, item,
-  Quantity, volume,
-  Quantity, price)
-{
+  [](Object const& market, Object const& owner, Item const& item, Quantity const& volume, Quantity const& price)
+  {
   market->AddMarketAsk(Order_Create(owner, item, volume, price));
-} FunctionAlias(Object_AddMarketSellOrder, AddMarketSellOrder);
+  },
+  "market", "owner", "item", "volume", "price");
+static int const Object_AddMarketSellOrder_Alias = Function_Alias("Object_AddMarketSellOrder", "AddMarketSellOrder");
 
-VoidFreeFunction(Object_AddMarketBuyOrder,
+static Function const Object_AddMarketBuyOrder_Registration = Function_Bind(
+  "Object_AddMarketBuyOrder",
   "Add a buy order to 'market' with 'owner', 'item', 'volume', and 'price'",
-  Object, market,
-  Object, owner,
-  Item, item,
-  Quantity, volume,
-  Quantity, price)
-{
+  [](Object const& market, Object const& owner, Item const& item, Quantity const& volume, Quantity const& price)
+  {
   market->AddMarketBid(Order_Create(owner, item, volume, price));
-} FunctionAlias(Object_AddMarketBuyOrder, AddMarketBuyOrder);
+  },
+  "market", "owner", "item", "volume", "price");
+static int const Object_AddMarketBuyOrder_Alias = Function_Alias("Object_AddMarketBuyOrder", "AddMarketBuyOrder");
 
-FreeFunction(MarketData*, Object_GetMarketData,
+static Function const Object_GetMarketData_Registration = Function_Bind(
+  "Object_GetMarketData",
   "Return the market data for 'item' at 'market'",
-  Object, market,
-  Item, item)
-{
+  [](Object const& market, Item const& item) -> MarketData*
+  {
   return market->GetMarket()
     ? Mutable(market->GetMarket()->GetMarketDataConst(item))
     : nullptr;
-} FunctionAlias(Object_GetMarketData, GetMarketData);
+  },
+  "market", "item");
+static int const Object_GetMarketData_Alias = Function_Alias("Object_GetMarketData", "GetMarketData");

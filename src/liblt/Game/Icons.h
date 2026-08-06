@@ -1,29 +1,25 @@
 #ifndef Game_Icons_h__
 #define Game_Icons_h__
 
-#include "LTE/DeclareFunction.h"
 #include "UI/Icon.h"
 
-DeclareFunctionNoParams(Icon_Crosshair, Icon)
+LT_API Icon Icon_Crosshair();
 
-DeclareFunctionNoParams(Icon_Database, Icon)
+LT_API Icon Icon_Database();
 
-DeclareFunctionNoParams(Icon_Disc, Icon)
+LT_API Icon Icon_Disc();
 
-DeclareFunctionNoParams(Icon_Dock, Icon)
+LT_API Icon Icon_Dock();
 
-DeclareFunction(Icon_Gear, Icon,
-  float, width,
-  uint, spokes,
-  float, spokeWidth,
-  float, spacing)
+LT_API Icon Icon_Gear(
+  float const& width, uint const& spokes, float const& spokeWidth, float const& spacing);
 
-DeclareFunctionNoParams(Icon_Refresh, Icon)
+LT_API Icon Icon_Refresh();
 
-DeclareFunctionNoParams(Icon_Task_Mine, Icon)
+LT_API Icon Icon_Task_Mine();
 
-DeclareFunctionNoParams(Icon_Task_Produce, Icon)
+LT_API Icon Icon_Task_Produce();
 
-DeclareFunctionNoParams(Icon_Task_Research, Icon)
+LT_API Icon Icon_Task_Research();
 
 #endif

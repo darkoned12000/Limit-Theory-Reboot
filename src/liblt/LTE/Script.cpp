@@ -8,6 +8,7 @@
 #include "StackFrame.h"
 #include "StringList.h"
 #include "Types.h"
+#include "LTE/FunctionBind.h"
 
 #define AUTORELOAD 1
 
@@ -151,16 +152,22 @@ namespace LTE {
     return nullptr;
   }
 
-  DefineFunction(Script_ClearCache) {
+  void Script_ClearCache() {
     GetScriptCache().clear();
   }
+static Function const Script_ClearCache_Registration = Function_Bind(
+  "Script_ClearCache",
+  "None",
+  &Script_ClearCache);
 
-  DefineFunction(Script_Load) {
-    Script& script = GetCache(args.name);
+
+
+  Script Script_Load(String const& name) {
+    Script& script = GetCache(name);
     if (script)
       return script;
 
-    String scriptPath = args.name + kScriptExtension;
+    String scriptPath = name + kScriptExtension;
     Location location = Location_Script(scriptPath);
     if (!location->Exists()) {
       Log_Error(Stringize()
@@ -169,14 +176,21 @@ namespace LTE {
     }
 
     script = new ScriptT;
-    script->name = args.name;
+    script->name = name;
     script->Reload();
     return script;
   }
+static Function const Script_Load_Registration = Function_Bind(
+  "Script_Load",
+  "None",
+  &Script_Load,
+  "name");
 
-  DefineFunction(Script_Reload) {
-    bool loaded = GetCache(args.name) != nullptr;
-    Script script = Script_Load(args.name);
+
+
+  void Script_Reload(String const& name) {
+    bool loaded = GetCache(name) != nullptr;
+    Script script = Script_Load(name);
     if (loaded) {
       Vector<Script> scripts;
       scripts.push(script);
@@ -191,13 +205,20 @@ namespace LTE {
         scripts[i]->Reload();
     }
   }
+static Function const Script_Reload_Registration = Function_Bind(
+  "Script_Reload",
+  "None",
+  &Script_Reload,
+  "name");
 
-  DefineFunction(ScriptFunction_Load) {
+
+
+  ScriptFunction ScriptFunction_Load(String const& name) {
     Vector<String> strings;
-    String_Split(strings, args.name, ':');
+    String_Split(strings, name, ':');
     if (strings.size() != 2) {
       Log_Error(Stringize()
-        | "ScriptFunction_Load received bad path '" | args.name
+        | "ScriptFunction_Load received bad path '" | name
         | "' (expected 'ScriptName:functionName')");
       return nullptr;
     }
@@ -227,13 +248,20 @@ namespace LTE {
 
     return fn;
   }
+static Function const ScriptFunction_Load_Registration = Function_Bind(
+  "ScriptFunction_Load",
+  "None",
+  &ScriptFunction_Load,
+  "name");
 
-  DefineFunction(ScriptType_Load) {
+
+
+  ScriptType ScriptType_Load(String const& name) {
     Vector<String> strings;
-    String_Split(strings, args.name, ':');
+    String_Split(strings, name, ':');
     if (strings.size() != 2) {
       Log_Error(Stringize()
-        | "ScriptType_Load received bad path '" | args.name
+        | "ScriptType_Load received bad path '" | name
         | "' (expected 'ScriptName:typeName')");
       return nullptr;
     }
@@ -259,4 +287,11 @@ namespace LTE {
 
     return type;
   }
+static Function const ScriptType_Load_Registration = Function_Bind(
+  "ScriptType_Load",
+  "None",
+  &ScriptType_Load,
+  "name");
+
+
 }

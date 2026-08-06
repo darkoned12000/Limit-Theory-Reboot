@@ -19,6 +19,7 @@
 
 #include <sstream>
 #include <iostream>
+#include "LTE/FunctionBind.h"
 
 const String kVersionDirective = "#version 460 core\n";
 const uint kTextureUnits = 16;
@@ -604,12 +605,21 @@ namespace {
   };
 }
 
-DefineFunction(Shader_Create) {
+Shader Shader_Create(String const& vsPath, String const& fsPath) {
   Reference<ShaderImpl> self = new ShaderImpl;
-  self->program = ProgramObject_Load(args.vsPath, args.fsPath);
+  self->program = ProgramObject_Load(vsPath, fsPath);
   LTE_ASSERT(self->program);
   return self;
 }
+static Function const Shader_Create_Registration = Function_Bind(
+  "Shader_Create",
+  "None",
+  [](String const& vsPath, String const& fsPath) -> Shader {
+    return Shader_Create(vsPath, fsPath);
+  },
+  "vsPath", "fsPath");
+
+
 
 Shader Shader_Create(
   String const& vs,
@@ -649,7 +659,7 @@ GL_Program Shader_GetCurrentProgram() {
   return gActiveProgram;
 }
 
-DefineFunction(Shader_RecompileAll) {
+void Shader_RecompileAll() {
   for (ShaderMap::iterator it = GetShaderCache().begin();
        it != GetShaderCache().end(); ++it)
   {
@@ -677,6 +687,12 @@ DefineFunction(Shader_RecompileAll) {
       it->second->Link();
   }
 }
+static Function const Shader_RecompileAll_Registration = Function_Bind(
+  "Shader_RecompileAll",
+  "None",
+  &Shader_RecompileAll);
+
+
 
 void Shader_UseFixedFunction() {
   if (gActiveProgram != GL_NullProgram) {

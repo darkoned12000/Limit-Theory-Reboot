@@ -6,6 +6,7 @@
 #include "LTE/Debug.h"
 #include "LTE/Math.h"
 #include "LTE/StackFrame.h"
+#include "LTE/FunctionBind.h"
 
 void ComponentMotion::Run(ObjectT* self, UpdateState& state) { AUTO_FRAME;
   LTE_ASSERT(force.IsFinite());
@@ -44,57 +45,76 @@ void ComponentMotion::Run(ObjectT* self, UpdateState& state) { AUTO_FRAME;
   LTE_ASSERT(velocityA.IsFinite());
 }
 
-VoidFreeFunction(Object_ApplyForce,
+static Function const Object_ApplyForce_Registration = Function_Bind(
+  "Object_ApplyForce",
   "Apply 'force' to 'object'",
-  Object, object,
-  V3, force)
-{
+  [](Object const& object, V3 const& force)
+  {
   return object->ApplyForce(force);
-} FunctionAlias(Object_ApplyForce, ApplyForce);
+  },
+  "object", "force");
+static int const Object_ApplyForce_Alias = Function_Alias("Object_ApplyForce", "ApplyForce");
 
-FreeFunction(Mass, Object_GetMass,
+static Function const Object_GetMass_Registration = Function_Bind(
+  "Object_GetMass",
   "Return the mass of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> Mass
+  {
   return object->GetMass();
-} FunctionAlias(Object_GetMass, GetMass);
+  },
+  "object");
+static int const Object_GetMass_Alias = Function_Alias("Object_GetMass", "GetMass");
 
-FreeFunction(float, Object_GetSpeed,
+static Function const Object_GetSpeed_Registration = Function_Bind(
+  "Object_GetSpeed",
   "Return the current speed of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> float
+  {
   return object->GetSpeed();
-} FunctionAlias(Object_GetSpeed, GetSpeed);
+  },
+  "object");
+static int const Object_GetSpeed_Alias = Function_Alias("Object_GetSpeed", "GetSpeed");
 
-FreeFunction(float, Object_GetTopSpeed,
+static Function const Object_GetTopSpeed_Registration = Function_Bind(
+  "Object_GetTopSpeed",
   "Return the top speed of 'object' under normal propulsion",
-  Object, object)
-{
+  [](Object const& object) -> float
+  {
   return object->GetTopSpeed();
-} FunctionAlias(Object_GetTopSpeed, GetTopSpeed);
+  },
+  "object");
+static int const Object_GetTopSpeed_Alias = Function_Alias("Object_GetTopSpeed", "GetTopSpeed");
 
-FreeFunction(V3, Object_GetVelocity,
+static Function const Object_GetVelocity_Registration = Function_Bind(
+  "Object_GetVelocity",
   "Return the current velocity of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> V3
+  {
   return object->GetVelocity();
-} FunctionAlias(Object_GetVelocity, GetVelocity);
+  },
+  "object");
+static int const Object_GetVelocity_Alias = Function_Alias("Object_GetVelocity", "GetVelocity");
 
-FreeFunction(V3, Object_GetVelocityAngular,
+static Function const Object_GetVelocityAngular_Registration = Function_Bind(
+  "Object_GetVelocityAngular",
   "Return the current angular velocity of 'object'",
-  Object, object)
-{
+  [](Object const& object) -> V3
+  {
   return object->GetVelocityA();
-} FunctionAlias(Object_GetVelocityAngular, GetVelocityAngular);
+  },
+  "object");
+static int const Object_GetVelocityAngular_Alias = Function_Alias("Object_GetVelocityAngular", "GetVelocityAngular");
 
-VoidFreeFunction(Object_SetMass,
+static Function const Object_SetMass_Registration = Function_Bind(
+  "Object_SetMass",
   "Set the mass of 'object' to 'mass'",
-  Object, object,
-  Mass, mass)
-{
+  [](Object const& object, Mass const& mass)
+  {
   if (object->GetMotion())
     object->GetMotion()->mass = mass;
-} FunctionAlias(Object_SetMass, SetMass);
+  },
+  "object", "mass");
+static int const Object_SetMass_Alias = Function_Alias("Object_SetMass", "SetMass");
 
 AutoClass(Impact,
   float, t,
@@ -102,15 +122,13 @@ AutoClass(Impact,
   Impact() = default;
 };
 
-FreeFunction(Impact, GetImpact,
+static Function const GetImpact_Registration = Function_Bind(
+  "GetImpact",
   "Compute the time and location of impact for a munition with 'speed' going from 'source' to 'dest'",
-  Position, sourcePos,
-  Position, destPos,
-  V3, sourceVelocity,
-  V3, destVelocity,
-  float, speed)
-{
-  Position hitPoint;
+  [](Position const& sourcePos, Position const& destPos, V3 const& sourceVelocity, V3 const& destVelocity, float const& speed) -> Impact
+  {
+  Position hitPoint = {};
   float t = ComputeImpact(sourcePos, destPos, sourceVelocity, destVelocity, speed, &hitPoint);
   return Impact(t, hitPoint);
-}
+  },
+  "sourcePos", "destPos", "sourceVelocity", "destVelocity", "speed");

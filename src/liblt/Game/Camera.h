@@ -5,7 +5,6 @@
 
 #include "Component/Motion.h"
 #include "Component/Orientation.h"
-#include "LTE/DeclareFunction.h"
 #include "Module/Common.h"
 
 using CameraBaseT = ObjectWrapper
@@ -28,12 +27,11 @@ struct CameraT : public CameraBaseT {
   virtual void SetTarget(Object const&) = 0;
 };
 
-DeclareFunction(Camera_CanSee, bool,
-  Object, object,
-  float, maxDistance)
+LT_API bool Camera_CanSee(
+  Object const& object, float const& maxDistance);
 
-DeclareFunctionNoParams(Camera_Create, Camera)
-DeclareFunctionNoParams(Camera_Get, Camera)
+LT_API Camera Camera_Create();
+LT_API Camera Camera_Get();
 
 LT_API void Camera_Pop();
 LT_API void Camera_Push(Camera const&);

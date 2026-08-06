@@ -11,6 +11,7 @@
 #include "Texture2D.h"
 #include "Texture3D.h"
 #include "V4.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClass(Cell,
@@ -403,6 +404,15 @@ ShaderInstanceT& ShaderInstanceT::SetTexture3D(
   return *this;
 }
 
-DefineFunction(ShaderInstance_Create) {
-  return new ShaderInstanceT(args.shader);
+ShaderInstance ShaderInstance_Create(Shader const& shader) {
+  return new ShaderInstanceT(shader);
 }
+static Function const ShaderInstance_Create_Registration = Function_Bind(
+  "ShaderInstance_Create",
+  "None",
+  [](Shader const& shader) -> ShaderInstance {
+    return ShaderInstance_Create(shader);
+  },
+  "shader");
+
+

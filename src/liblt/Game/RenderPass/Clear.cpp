@@ -3,6 +3,7 @@
 #include "LTE/DrawState.h"
 #include "LTE/Renderer.h"
 #include "LTE/Texture2D.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   struct Clear : public RenderPassT {
@@ -48,10 +49,23 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_Clear) {
-  return new Clear(args.value);
+RenderPass RenderPass_Clear(V4 const& value) {
+  return new Clear(value);
 }
+static Function const RenderPass_Clear_Registration = Function_Bind(
+  "RenderPass_Clear",
+  "None",
+  &RenderPass_Clear,
+  "value");
 
-DefineFunction(RenderPass_ClearDepth) {
+
+
+RenderPass RenderPass_ClearDepth() {
   return new ClearDepth;
 }
+static Function const RenderPass_ClearDepth_Registration = Function_Bind(
+  "RenderPass_ClearDepth",
+  "None",
+  &RenderPass_ClearDepth);
+
+

@@ -10,6 +10,7 @@
 #include "LTE/StackFrame.h"
 #include "LTE/Texture2D.h"
 #include "LTE/View.h"
+#include "LTE/FunctionBind.h"
 
 const size_t kCloudCount = 4;
 const float kBaseScale = 1024;
@@ -101,6 +102,10 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_DustClouds) {
+RenderPass RenderPass_DustClouds() {
   return new DustClouds;
 }
+static Function const RenderPass_DustClouds_Registration = Function_Bind(
+  "RenderPass_DustClouds",
+  "None",
+  &RenderPass_DustClouds);

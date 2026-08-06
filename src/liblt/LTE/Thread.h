@@ -1,7 +1,6 @@
 #ifndef LTE_Thread_h__
 #define LTE_Thread_h__
 
-#include "DeclareFunction.h"
 #include "Reference.h"
 
 struct ThreadT : public RefCounted {
@@ -15,7 +14,9 @@ struct ThreadT : public RefCounted {
 
 LT_API Thread Thread_Create(Job const& job);
 
-DeclareFunction(Thread_SleepMS, void, uint, ms)
-DeclareFunction(Thread_SleepUS, void, uint, us)
+LT_API void Thread_SleepMS(
+  uint const& ms);
+LT_API void Thread_SleepUS(
+  uint const& us);
 
 #endif

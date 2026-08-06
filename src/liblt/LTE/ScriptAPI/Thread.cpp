@@ -1,6 +1,7 @@
 #include "LTE/AutoClass.h"
 #include "LTE/Data.h"
 #include "LTE/Function.h"
+#include "LTE/FunctionBind.h"
 #include "LTE/Job.h"
 #include "LTE/ProgramLog.h"
 #include "LTE/Script.h"
@@ -34,11 +35,11 @@ AutoClassDerived(ScriptedJob, JobT,
   }
 };
 
-FreeFunction(Thread, Thread_Create,
+static Function const Thread_Create_Registration = Function_Bind(
+  "Thread_Create",
   "Create a thread that executes the function named 'function' in 'object'",
-  Data, object,
-  String, function)
-{
+  [](Data const& object, String const& function) -> Thread
+  {
   ScriptType type = object.type->GetAux().Convert<ScriptType>();
   ScriptFunction fn = type->GetFunction(function);
   if (!fn) {
@@ -49,19 +50,24 @@ FreeFunction(Thread, Thread_Create,
   }
 
   return Thread_Create(new ScriptedJob(object, fn, 0));
-}
+  },
+  "object", "function");
 
-FreeFunction(bool, Thread_IsFinished,
+static Function const Thread_IsFinished_Registration = Function_Bind(
+  "Thread_IsFinished",
   "Return whether 'thread' has finished executing",
-  Thread, thread)
-{
+  [](Thread const& thread) -> bool
+  {
   return thread->IsFinished();
-} FunctionAlias(Thread_IsFinished, IsFinished);
+  },
+  "thread");
+static int const Thread_IsFinished_Alias = Function_Alias("Thread_IsFinished", "IsFinished");
 
-FreeFunction(Data, Thread_GetResult,
+static Function const Thread_GetResult_Registration = Function_Bind(
+  "Thread_GetResult",
   "Get the return value (if any) of 'thread'",
-  Thread, thread)
-{
+  [](Thread const& thread) -> Data
+  {
   /* Block until the worker has finished and joined. Joining provides a
      full memory synchronization, so the result written by the worker is
      guaranteed to be visible here (a plain IsFinished poll has no such
@@ -69,13 +75,18 @@ FreeFunction(Data, Thread_GetResult,
   thread->Wait();
   ScriptedJob* job = (ScriptedJob*)thread->GetJob().t;
   return Data(job->function->returnType, job->returnValue);
-} FunctionAlias(Thread_GetResult, GetResult);
+  },
+  "thread");
+static int const Thread_GetResult_Alias = Function_Alias("Thread_GetResult", "GetResult");
 
-FreeFunction(int, Thread_GetResultInt,
+static Function const Thread_GetResultInt_Registration = Function_Bind(
+  "Thread_GetResultInt",
   "Get the integer return value of 'thread' (convenience for Int-returning jobs)",
-  Thread, thread)
-{
+  [](Thread const& thread) -> int
+  {
   thread->Wait();
   ScriptedJob* job = (ScriptedJob*)thread->GetJob().t;
   return job->returnValue ? *(int*)job->returnValue : 0;
-} FunctionAlias(Thread_GetResultInt, GetResultInt);
+  },
+  "thread");
+static int const Thread_GetResultInt_Alias = Function_Alias("Thread_GetResultInt", "GetResultInt");

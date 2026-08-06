@@ -6,65 +6,61 @@
 #include "Item.h"
 
 #include "LTE/Color.h"
-#include "LTE/DeclareFunction.h"
 #include "LTE/Distribution.h"
 #include "LTE/SDF.h"
+#include "LTE/AutoClass.h"
 
-DeclareFunction(Object_Asteroid, Object,
-  uint, seed)
+LT_API Object Object_Asteroid(
+  uint const& seed);
 
-DeclareFunction(Object_AsteroidRich, Object,
-  uint, seed,
-  Item, resource,
-  Quantity, quantity)
+LT_API Object Object_AsteroidRich(
+  uint const& seed, Item const& resource, Quantity const& quantity);
 
-DeclareFunction(Object_Colony, Object,
-  uint, seed,
-  Item, type,
-  Object, planet,
-  Quantity, population)
+LT_API Object Object_Colony(
+  uint const& seed, Item const& type, Object const& planet, Quantity const& population);
 
-DeclareFunction(Object_Custom, Object,
-  Data, data)
+LT_API Object Object_Custom(
+  Data const& data);
 
-DeclareFunctionNoParams(Object_DustFlecks, Object)
+LT_API Object Object_DustFlecks();
 
 LT_API Object Object_Dynamic(Generic<Renderable, void> const& renderable);
 
-DeclareFunction(Object_Explosion, Object,
-  ExplosionType, type,
-  float, age,
-  float, duration)
+LT_API Object Object_Explosion(
+  ExplosionType const& type, float const& age, float const& duration);
 
-DeclareFunction(Object_Light, Object,
-  Color, color,
-  float, radius,
-  bool, lensFlare)
+LT_API Object Object_Light(
+  Color const& color, float const& radius, bool const& lensFlare);
 
-DeclareFunction(Object_Missile, Object,
+AutoClass(Object_Missile_Args,
   V3, thrust,
   V3, velocity,
   Object, target,
   V3, targetOffset)
+  Object_Missile_Args() {}
+};
 
-DeclareFunction(Object_Pod, Object,
-  Mass, capacity)
+LT_API Object Object_Missile(Object_Missile_Args const& args);
+inline Object Object_Missile(
+  V3 const& thrust, V3 const& velocity, Object const& target, V3 const& targetOffset) {
+  return Object_Missile(Object_Missile_Args(thrust, velocity, target, targetOffset));
+}
 
-DeclareFunction(Object_Payload, Object,
-  Object, source,
-  Item, payload,
-  Position,  position,
-  V3, thrust,
-  V3, velocity)
+LT_API Object Object_Pod(
+  Mass const& capacity);
 
-DeclareFunction(Object_Planet, Object,
-  Item, type)
+LT_API Object Object_Payload(
+  Object const& source, Item const& payload, Position const& position, V3 const& thrust,
+  V3 const& velocity);
 
-DeclareFunction(Object_PowerGenerator, Object,
-  Item, type)
+LT_API Object Object_Planet(
+  Item const& type);
 
-DeclareFunction(Object_ProductionLab, Object,
-  Item, type)
+LT_API Object Object_PowerGenerator(
+  Item const& type);
+
+LT_API Object Object_ProductionLab(
+  Item const& type);
 
 LT_API Object Object_Pulse(
   V3 const& velocity,
@@ -76,46 +72,61 @@ LT_API Object Object_Rail(
   V3 const& direction,
   V3 const& velocity);
 
-DeclareFunctionArgBind(Object_Region, Object,
+AutoClass(Object_Region_Args,
   int, level,
   Position, pos,
   float, radius,
   Distribution<Item>, resources,
   uint, seed)
+  Object_Region_Args() {}
+};
+
+LT_API Object Object_Region(Object_Region_Args const& args);
+inline Object Object_Region(
+  int const& level, Position const& pos, float const& radius,
+  Distribution<Item> const& resources, uint const& seed) {
+  return Object_Region(Object_Region_Args(level, pos, radius, resources, seed));
+}
 
 using RegionType = Object_Region_Args;
 
-DeclareFunction(Object_Scanner, Object,
-  Item, type)
+LT_API Object Object_Scanner(
+  Item const& type);
 
-DeclareFunction(Object_Shield, Object,
-  Item, type)
+LT_API Object Object_Shield(
+  Item const& type);
 
-DeclareFunction(Object_Ship, Object,
-  Item, type)
+LT_API Object Object_Ship(
+  Item const& type);
 
-DeclareFunction(Object_SoundEmitter, Object,
-  String, filename,
-  Position, position,
-  float, volume,
-  float, distanceDiv)
+LT_API Object Object_SoundEmitter(
+  String const& filename, Position const& position, float const& volume,
+  float const& distanceDiv);
 
-DeclareFunction(Object_Star, Object,
-  Color, color)
+LT_API Object Object_Star(
+  Color const& color);
 
-DeclareFunction(Object_Station, Object,
-  Item, type)
+LT_API Object Object_Station(
+  Item const& type);
 
 LT_API Object Object_Static(Generic<Renderable, void> const& renderable);
 
-DeclareFunctionArgBind(Object_System, Object,
+AutoClass(Object_System_Args,
   Position, position,
   uint, seed)
+  Object_System_Args() {}
+};
+
+LT_API Object Object_System(Object_System_Args const& args);
+inline Object Object_System(
+  Position const& position, uint const& seed) {
+  return Object_System(Object_System_Args(position, seed));
+}
 
 using SystemType = Object_System_Args;
 
-DeclareFunction(Object_TechLab, Object,
-  Item, type)
+LT_API Object Object_TechLab(
+  Item const& type);
 
 LT_API Object Object_Thruster(Item const& type, ObjectT* parent);
 
@@ -125,39 +136,30 @@ LT_API Object Object_Trail(
   Color const& color,
   float size);
 
-DeclareFunction(Object_TransferUnit, Object,
-  Item, type)
+LT_API Object Object_TransferUnit(
+  Item const& type);
 
-DeclareFunction(Object_Turret, Object,
-  Item, type)
+LT_API Object Object_Turret(
+  Item const& type);
 
-DeclareFunction(Object_Universe, Object,
-  uint, seed,
-  uint, depth)
+LT_API Object Object_Universe(
+  uint const& seed, uint const& depth);
 
-DeclareFunctionNoParams(Object_WarpNode, Object)
+LT_API Object Object_WarpNode();
 
-DeclareFunction(Object_WarpRail, Object,
-  Object, node1,
-  Object, node2)
+LT_API Object Object_WarpRail(
+  Object const& node1, Object const& node2);
 
-DeclareFunction(Object_Weapon, Object,
-  Item, type)
+LT_API Object Object_Weapon(
+  Item const& type);
 
-DeclareFunctionNoParams(Object_Wormhole, Object)
+LT_API Object Object_Wormhole();
 
 LT_API void Object_Wormholes(ObjectT* a, ObjectT* b);
 
-DeclareFunction(Object_Zone, Object,
-  Object, parent,
-  uint, seed,
-  Position, position,
-  V3, scale,
-  SDF, shape,
-  uint, statics,
-  float, asteroids,
-  float, gas,
-  float, ice,
-  float, planet)
+LT_API Object Object_Zone(
+  Object const& parent, uint const& seed, Position const& position, V3 const& scale,
+  SDF const& shape, uint const& statics, float const& asteroids, float const& gas,
+  float const& ice, float const& planet);
 
 #endif

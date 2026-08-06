@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include "Debug.h"
+#include "LTE/FunctionBind.h"
 
 const size_t kMaxParticles = 1024 * 1024;
 const float kLodFactor = Squared(512);
@@ -153,41 +154,82 @@ namespace {
   };
 }
 
-DefineFunction(ParticleSystem_Add) {
-  ((ParticleSystemImpl*)args.particleSystem.t)
-    ->particles[args.particle].push(Particle(
-    args.position,
-    args.velocity,
-    args.scale,
-    args.life,
-    args.attribute));
-} FunctionAlias(ParticleSystem_Add, Add);
+void ParticleSystem_Add(ParticleSystem const& particleSystem, ShaderInstance const& particle, V3D const& position, V3 const& velocity, float const& scale, float const& life, V3 const& attribute) {
+  ((ParticleSystemImpl*)particleSystem.t)
+    ->particles[particle].push(Particle(
+    position,
+    velocity,
+    scale,
+    life,
+    attribute));
+}
+static Function const ParticleSystem_Add_Registration = Function_Bind(
+  "ParticleSystem_Add",
+  "None",
+  &ParticleSystem_Add,
+  "particleSystem", "particle", "position", "velocity", "scale", "life", "attribute");
+static int const ParticleSystem_Add_Alias = Function_Alias("ParticleSystem_Add", "Add");
+
+
 
 /* Overload accepting Position (V3D) for velocity/attribute. See AGENTS.md §8d #1
  * and ParticleSystem.h. Avoids a V3D -> V3F conversion that corrupts the global
  * conversion table. */
-DefineFunction(ParticleSystem_Add_Position) {
-  ((ParticleSystemImpl*)args.particleSystem.t)
-    ->particles[args.particle].push(Particle(
-    V3(args.position),
-    V3(args.velocity),
-    args.scale,
-    args.life,
-    V3(args.attribute)));
-} FunctionAlias(ParticleSystem_Add_Position, Add);
+void ParticleSystem_Add_Position(ParticleSystem const& particleSystem, ShaderInstance const& particle, V3D const& position, V3D const& velocity, float const& scale, float const& life, V3D const& attribute) {
+  ((ParticleSystemImpl*)particleSystem.t)
+    ->particles[particle].push(Particle(
+    V3(position),
+    V3(velocity),
+    scale,
+    life,
+    V3(attribute)));
+}
+static Function const ParticleSystem_Add_Position_Registration = Function_Bind(
+  "ParticleSystem_Add_Position",
+  "None",
+  &ParticleSystem_Add_Position,
+  "particleSystem", "particle", "position", "velocity", "scale", "life", "attribute");
+static int const ParticleSystem_Add_Position_Alias = Function_Alias("ParticleSystem_Add_Position", "Add");
 
-DefineFunction(ParticleSystem_Create) {
+
+
+ParticleSystem ParticleSystem_Create() {
   return new ParticleSystemImpl;
 }
+static Function const ParticleSystem_Create_Registration = Function_Bind(
+  "ParticleSystem_Create",
+  "None",
+  &ParticleSystem_Create);
 
-DefineFunction(ParticleSystem_Get) {
+
+
+ParticleSystem ParticleSystem_Get() {
   return GetStack().size() ? GetStack().back() : nullptr;
 }
+static Function const ParticleSystem_Get_Registration = Function_Bind(
+  "ParticleSystem_Get",
+  "None",
+  &ParticleSystem_Get);
 
-DefineFunction(ParticleSystem_Pop) {
+
+
+void ParticleSystem_Pop() {
   GetStack().pop();
 }
+static Function const ParticleSystem_Pop_Registration = Function_Bind(
+  "ParticleSystem_Pop",
+  "None",
+  &ParticleSystem_Pop);
 
-DefineFunction(ParticleSystem_Push) {
-  GetStack().push(args.ps);
+
+
+void ParticleSystem_Push(ParticleSystem const& ps) {
+  GetStack().push(ps);
 }
+static Function const ParticleSystem_Push_Registration = Function_Bind(
+  "ParticleSystem_Push",
+  "None",
+  &ParticleSystem_Push,
+  "ps");
+
+

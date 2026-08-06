@@ -111,9 +111,6 @@
 #define MAPFIELD(name)                                                         \
   m(&((SelfType*)addr)->name, #name, Type_Get(((SelfType*)addr)->name), aux);
 
-#define MEMBERFUNCTION(name)                                                   \
-  type->AddFunction(name##_GetMetadata<0>());
-
 #define METADATA                                                               \
   static void FillMetadata(Type const& type)
 

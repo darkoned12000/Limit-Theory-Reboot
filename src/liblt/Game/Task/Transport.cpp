@@ -4,6 +4,7 @@
 #include "Game/Object.h"
 #include "LTE/Pool.h"
 #include "LTE/StackFrame.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(TaskTransport, TaskT, Task_Transport_Args, args)
@@ -45,7 +46,6 @@ namespace {
       if (self->GetContainer() == args.source) {
         // Quantity quantity =
         //  (Quantity)Floor(self->GetFreeCapacity() / args.item->GetMass());
-        // Event_Withdraw(self, args.source, args.item, quantity);
         self->PushTask(Task_Dock(args.dest));
       }
 
@@ -60,6 +60,13 @@ namespace {
   };
 }
 
-DefineFunction(Task_Transport) {
+Task Task_Transport(Task_Transport_Args const& args) {
   return new TaskTransport(args);
 }
+static Function const Task_Transport_Registration = Function_Bind(
+  "Task_Transport",
+  "None",
+  [](Object const& source, Object const& dest, Item const& item) -> Task { return Task_Transport(source, dest, item); },
+  "source", "dest", "item");
+
+

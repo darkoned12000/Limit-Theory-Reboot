@@ -18,6 +18,7 @@
 #include "LTE/Shader.h"
 #include "LTE/StackFrame.h"
 #include "LTE/Window.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   struct InterfaceImpl : public InterfaceT {
@@ -124,13 +125,27 @@ namespace {
   };
 }
 
-DefineFunction(Interface_Create) {
-  return new InterfaceImpl(args.name);
+Interface Interface_Create(String const& name) {
+  return new InterfaceImpl(name);
 }
+static Function const Interface_Create_Registration = Function_Bind(
+  "Interface_Create",
+  "None",
+  &Interface_Create,
+  "name");
 
-DefineFunction(RenderPass_Interface) {
-  return new RenderPassInterface(args.interface);
+
+
+RenderPass RenderPass_Interface(Interface const& interface) {
+  return new RenderPassInterface(interface);
 }
+static Function const RenderPass_Interface_Registration = Function_Bind(
+  "RenderPass_Interface",
+  "None",
+  &RenderPass_Interface,
+  "interface");
+
+
 
 
 Type _Type_Get(InterfaceT const& t) {

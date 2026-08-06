@@ -7,6 +7,7 @@
 #include "LTE/Pool.h"
 
 #include "Module/SoundEngine.h"
+#include "LTE/FunctionBind.h"
 
 using SoundEmitterBaseT = ObjectWrapper
   < Component_Drawable
@@ -39,10 +40,17 @@ AutoClassDerived(SoundEmitter, SoundEmitterBaseT,
 
 DERIVED_IMPLEMENT(SoundEmitter)
 
-DefineFunction(Object_SoundEmitter) {
+Object Object_SoundEmitter(String const& filename, Position const& position, float const& volume, float const& distanceDiv) {
   Reference<SoundEmitter> self = new SoundEmitter;
-  self->SetPos(args.position);
-  self->sound = Sound_Play3D(args.filename, self, 0, args.volume, args.distanceDiv, false);
+  self->SetPos(position);
+  self->sound = Sound_Play3D(filename, self, 0, volume, distanceDiv, false);
   self->life = self->sound->GetDuration() / 1000.0f;
   return self;
 }
+static Function const Object_SoundEmitter_Registration = Function_Bind(
+  "Object_SoundEmitter",
+  "None",
+  &Object_SoundEmitter,
+  "filename", "position", "volume", "distanceDiv");
+
+

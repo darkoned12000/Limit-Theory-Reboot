@@ -5,6 +5,7 @@
 #include "Module/FrameTimer.h"
 
 #include "SFML/Graphics.hpp"
+#include "LTE/FunctionBind.h"
 
 const float kDoubleClickThresh = 0.1f;
 
@@ -41,10 +42,16 @@ namespace {
 }
 
 namespace LTE {
-  DefineFunction(Mouse_DoubleClicked) {
+  bool Mouse_DoubleClicked() {
     return Mouse_LeftPressed()
       && gMouse.releaseTimer[MouseButton_Left].GetElapsed() < kDoubleClickThresh;
   }
+static Function const Mouse_DoubleClicked_Registration = Function_Bind(
+  "Mouse_DoubleClicked",
+  "None",
+  &Mouse_DoubleClicked);
+
+
 
   bool Mouse_Down(MouseButton button) {
     return gMouse.down[button];
@@ -62,49 +69,109 @@ namespace LTE {
     return gMouse.downTimer[button].GetElapsed();
   }
 
-  DefineFunction(Mouse_GetScrollDelta) {
+  float Mouse_GetScrollDelta() {
     return gMouse.scrollDelta;
   }
+static Function const Mouse_GetScrollDelta_Registration = Function_Bind(
+  "Mouse_GetScrollDelta",
+  "None",
+  &Mouse_GetScrollDelta);
 
-  DefineFunction(Mouse_GetDP) {
+
+
+  V2 Mouse_GetDP() {
     return V2(
       (float)(gMouse.x - gMouse.lastX),
       (float)(gMouse.y - gMouse.lastY));
   }
+static Function const Mouse_GetDP_Registration = Function_Bind(
+  "Mouse_GetDP",
+  "None",
+  &Mouse_GetDP);
 
-  DefineFunction(Mouse_GetIdleTime) {
+
+
+  float Mouse_GetIdleTime() {
     return gMouse.idleTime;
   }
+static Function const Mouse_GetIdleTime_Registration = Function_Bind(
+  "Mouse_GetIdleTime",
+  "None",
+  &Mouse_GetIdleTime);
 
-  DefineFunction(Mouse_GetDX) {
+
+
+  int Mouse_GetDX() {
     return gMouse.x - gMouse.lastX;
   }
+static Function const Mouse_GetDX_Registration = Function_Bind(
+  "Mouse_GetDX",
+  "None",
+  &Mouse_GetDX);
 
-  DefineFunction(Mouse_GetDY) {
+
+
+  int Mouse_GetDY() {
     return gMouse.y - gMouse.lastY;
   }
+static Function const Mouse_GetDY_Registration = Function_Bind(
+  "Mouse_GetDY",
+  "None",
+  &Mouse_GetDY);
 
-  DefineFunction(Mouse_GetPos) {
+
+
+  V2 Mouse_GetPos() {
     return V2((float)gMouse.x, (float)gMouse.y);
   }
+static Function const Mouse_GetPos_Registration = Function_Bind(
+  "Mouse_GetPos",
+  "None",
+  &Mouse_GetPos);
 
-  DefineFunction(Mouse_GetPosImmediate) {
+
+
+  V2 Mouse_GetPosImmediate() {
     sf::Vector2i p = sf::Mouse::getPosition(
       *(sf::RenderWindow*)Window_Get()->GetImplData());
     return V2((float)p.x, (float)p.y);
   }
+static Function const Mouse_GetPosImmediate_Registration = Function_Bind(
+  "Mouse_GetPosImmediate",
+  "None",
+  &Mouse_GetPosImmediate);
 
-  DefineFunction(Mouse_GetPosLast) {
+
+
+  V2 Mouse_GetPosLast() {
     return V2((float)gMouse.lastX, (float)gMouse.lastY);
   }
+static Function const Mouse_GetPosLast_Registration = Function_Bind(
+  "Mouse_GetPosLast",
+  "None",
+  &Mouse_GetPosLast);
 
-  DefineFunction(Mouse_GetX) {
+
+
+  int Mouse_GetX() {
     return gMouse.x;
   }
+static Function const Mouse_GetX_Registration = Function_Bind(
+  "Mouse_GetX",
+  "None",
+  &Mouse_GetX);
 
-  DefineFunction(Mouse_GetY) {
+
+
+  int Mouse_GetY() {
     return gMouse.y;
   }
+static Function const Mouse_GetY_Registration = Function_Bind(
+  "Mouse_GetY",
+  "None",
+  &Mouse_GetY);
+
+
 
   void Mouse_SetPos(V2 const& v) {
     gMouse.x = (int)v.x;
@@ -145,28 +212,64 @@ namespace LTE {
     gMouse.y = p.y;
   }
 
-  DefineFunction(Mouse_LeftDown) {
+  bool Mouse_LeftDown() {
     return Mouse_Down(MouseButton_Left);
   }
+static Function const Mouse_LeftDown_Registration = Function_Bind(
+  "Mouse_LeftDown",
+  "None",
+  &Mouse_LeftDown);
 
-  DefineFunction(Mouse_LeftPressed) {
+
+
+  bool Mouse_LeftPressed() {
     return Mouse_Pressed(MouseButton_Left);
   }
+static Function const Mouse_LeftPressed_Registration = Function_Bind(
+  "Mouse_LeftPressed",
+  "None",
+  &Mouse_LeftPressed);
 
-  DefineFunction(Mouse_LeftReleased) {
+
+
+  bool Mouse_LeftReleased() {
     return Mouse_Released(MouseButton_Left);
   }
+static Function const Mouse_LeftReleased_Registration = Function_Bind(
+  "Mouse_LeftReleased",
+  "None",
+  &Mouse_LeftReleased);
 
-  DefineFunction(Mouse_RightDown) {
+
+
+  bool Mouse_RightDown() {
     return Mouse_Down(MouseButton_Right);
   }
+static Function const Mouse_RightDown_Registration = Function_Bind(
+  "Mouse_RightDown",
+  "None",
+  &Mouse_RightDown);
 
 
-  DefineFunction(Mouse_RightPressed) {
+
+
+  bool Mouse_RightPressed() {
     return Mouse_Pressed(MouseButton_Right);
   }
+static Function const Mouse_RightPressed_Registration = Function_Bind(
+  "Mouse_RightPressed",
+  "None",
+  &Mouse_RightPressed);
 
-  DefineFunction(Mouse_RightReleased) {
+
+
+  bool Mouse_RightReleased() {
     return Mouse_Released(MouseButton_Right);
   }
+static Function const Mouse_RightReleased_Registration = Function_Bind(
+  "Mouse_RightReleased",
+  "None",
+  &Mouse_RightReleased);
+
+
 }

@@ -5,6 +5,7 @@
 #include "LTE/Math.h"
 #include "LTE/Pool.h"
 #include "LTE/StackFrame.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   AutoClassDerived(TaskWait, TaskT, Task_Wait_Args, args)
@@ -35,6 +36,13 @@ namespace {
   };
 }
 
-DefineFunction(Task_Wait) {
+Task Task_Wait(Task_Wait_Args const& args) {
   return new TaskWait(args);
 }
+static Function const Task_Wait_Registration = Function_Bind(
+  "Task_Wait",
+  "None",
+  [](float const& duration) -> Task { return Task_Wait(duration); },
+  "duration");
+
+

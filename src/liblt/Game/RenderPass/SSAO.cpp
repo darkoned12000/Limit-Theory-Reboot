@@ -7,6 +7,7 @@
 #include "LTE/Shader.h"
 #include "LTE/Texture2D.h"
 #include "LTE/View.h"
+#include "LTE/FunctionBind.h"
 
 const uint kSamples = 16;
 const uint kNoiseBufferWidth = 1024;
@@ -84,6 +85,12 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_SSAO) {
+RenderPass RenderPass_SSAO() {
   return new SSAO;
 }
+static Function const RenderPass_SSAO_Registration = Function_Bind(
+  "RenderPass_SSAO",
+  "None",
+  &RenderPass_SSAO);
+
+

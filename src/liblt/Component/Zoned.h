@@ -3,7 +3,6 @@
 
 #include "Common.h"
 #include "LTE/AutoClass.h"
-#include "LTE/DeclareFunction.h"
 #include "LTE/SDF.h"
 
 AutoClass(ComponentZoned,
@@ -15,8 +14,7 @@ AutoClass(ComponentZoned,
   LT_API float GetContainment(ObjectT*, Position const&);
 };
 
-DeclareFunction(Object_GetZone, Object,
-  Object, object)
+LT_API Object Object_GetZone(Object const& object);
 
 AutoComponent(Zoned)
 };

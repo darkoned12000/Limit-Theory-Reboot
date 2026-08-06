@@ -7,6 +7,7 @@
 #include <atomic>
 #include <chrono>
 #include <thread>
+#include "LTE/FunctionBind.h"
 
 namespace {
   Lock GetThreadLock() {
@@ -77,10 +78,24 @@ Thread Thread_Create(Job const& job) {
   return new ThreadImpl(job);
 }
 
-DefineFunction(Thread_SleepMS) {
-  std::this_thread::sleep_for(std::chrono::milliseconds(args.ms));
+void Thread_SleepMS(uint const& ms) {
+  std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 }
+static Function const Thread_SleepMS_Registration = Function_Bind(
+  "Thread_SleepMS",
+  "None",
+  &Thread_SleepMS,
+  "ms");
 
-DefineFunction(Thread_SleepUS) {
-  std::this_thread::sleep_for(std::chrono::microseconds(args.us));
+
+
+void Thread_SleepUS(uint const& us) {
+  std::this_thread::sleep_for(std::chrono::microseconds(us));
 }
+static Function const Thread_SleepUS_Registration = Function_Bind(
+  "Thread_SleepUS",
+  "None",
+  &Thread_SleepUS,
+  "us");
+
+

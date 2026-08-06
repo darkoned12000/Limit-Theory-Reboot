@@ -17,6 +17,7 @@
 #include "LTE/Pool.h"
 #include "LTE/StackFrame.h"
 #include "LTE/View.h"
+#include "LTE/FunctionBind.h"
 
 const float kInitialSize = 8;
 const uint kAsteroidCount = 24;
@@ -63,7 +64,7 @@ struct DynamicCell {
     V3I cell = (V3I)Floor(eye / cellSize);
     if (currentCell == cell)
       return;
-    
+
     currentCell = cell;
 
     for (size_t i = 0; i < elements.size(); ++i)
@@ -146,29 +147,29 @@ void Displace(Position& p, double g) {
   p += displace * g;
 }
 
-DefineFunction(Object_Zone) { AUTO_FRAME;
+Object Object_Zone(Object const& parent, uint const& seed, Position const& position, V3 const& scale, SDF const& shape, uint const& statics, float const& asteroids, float const& gas, float const& ice, float const& planet) { AUTO_FRAME;
   Reference<Zone> self = new Zone;
-  self->SetPos(args.position);
-  self->SetScale(args.scale);
-  self->Resources.elements = args.parent->GetResources()->elements;
-  self->Seeded.seed = args.seed;
-  self->Zoned.region = args.shape;
+  self->SetPos(position);
+  self->SetScale(scale);
+  self->Resources.elements = parent->GetResources()->elements;
+  self->Seeded.seed = seed;
+  self->Zoned.region = shape;
   self->Zoned.fogDensity = 1;
 
   /* TODO : Interesting resource variation. */
   RNG rng = RNG_MTG(self->GetSeed());
   Bound3 fieldBound = self->Zoned.region->GetBound();
-  for (uint i = 0; i < args.statics; ++i) {
+  for (uint i = 0; i < statics; ++i) {
     Position center;
     while (true) {
-      center = args.position + fieldBound.Sample(rng->GetV3()) * args.scale;
+      center = position + fieldBound.Sample(rng->GetV3()) * scale;
       if (self->Zoned.GetContainment(self, center) >= 1)
         break;
     }
 
     Object object;
-    if (args.parent->GetResources()->elements.size()) {
-      Item resource = args.parent->GetResources()->elements.sample(rng->GetFloat());
+    if (parent->GetResources()->elements.size()) {
+      Item resource = parent->GetResources()->elements.sample(rng->GetFloat());
       Quantity value = (Quantity)(1000.0f * rng->GetExp());
       uint seed = rng->GetInt();
       Quantity quantity = value / resource->GetValue();
@@ -177,16 +178,21 @@ DefineFunction(Object_Zone) { AUTO_FRAME;
       object = Object_Asteroid(rng->GetInt());
     }
 
-    float scale = Min(kMaxScale, 1 + args.scale.GetMax() * 0.01f * rng->GetExp());
+    float objectScale = Min(kMaxScale, 1 + scale.GetMax() * 0.01f * rng->GetExp());
     object->SetPos(center);
-    object->SetScale(scale);
+    object->SetScale(objectScale);
 
     V3 look = rng->GetDirection();
     V3 up = Normalize(Cross(look, rng->GetDirection()));
     object->SetLook(look);
     object->SetUp(up);
-    args.parent->AddInterior(object);
+    parent->AddInterior(object);
   }
 
   return self;
 }
+static Function const Object_Zone_Registration = Function_Bind(
+  "Object_Zone",
+  "None",
+  &Object_Zone,
+  "parent", "seed", "position", "scale", "shape", "statics", "asteroids", "gas", "ice", "planet");

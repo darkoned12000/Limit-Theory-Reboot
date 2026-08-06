@@ -16,6 +16,7 @@
 #include "LTE/RNG.h"
 #include "LTE/Script.h"
 #include "LTE/Tuple.h"
+#include "LTE/FunctionBind.h"
 
 const uint kMaxChildren = 1;//4;
 const uint kPlanetCount = 1;
@@ -68,7 +69,7 @@ void Connect(ObjectT* src, ObjectT* dst) {
   Object_Wormholes(e1, e2);
 }
 
-DefineFunction(Object_Region) {
+Object Object_Region(Object_Region_Args const& args) {
   Reference<Region> self = new Region;
   self->level = args.level;
   self->Resources.elements = args.resources;
@@ -188,3 +189,10 @@ DefineFunction(Object_Region) {
 
   return self;
 }
+static Function const Object_Region_Registration = Function_Bind(
+  "Object_Region",
+  "None",
+  [](int const& level, Position const& pos, float const& radius, Distribution<Item> const& resources, uint const& seed) -> Object { return Object_Region(level, pos, radius, resources, seed); },
+  "level", "pos", "radius", "resources", "seed");
+
+

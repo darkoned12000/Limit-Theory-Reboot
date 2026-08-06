@@ -11,6 +11,7 @@
 #include "Game/Attribute/Value.h"
 
 #include "LTE/Pool.h"
+#include "LTE/FunctionBind.h"
 
 using DroneConstructionBaseT = ObjectWrapper
   < Component_Drawable
@@ -47,8 +48,15 @@ AutoClassDerivedEmpty(DroneConstructionType, DroneConstructionTypeBaseT)
   }
 };
 
-DefineFunction(Item_DroneConstructionType) {
+Item Item_DroneConstructionType(Item_DroneConstructionType_Args const& args) {
   return new DroneConstructionType;
 }
+static Function const Item_DroneConstructionType_Registration = Function_Bind(
+  "Item_DroneConstructionType",
+  "None",
+  [](double const& value, uint const& seed) -> Item { return Item_DroneConstructionType(value, seed); },
+  "value", "seed");
+
+
 
 DERIVED_IMPLEMENT(DroneConstructionType)

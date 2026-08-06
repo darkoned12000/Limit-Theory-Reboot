@@ -5,6 +5,7 @@
 #include "LTE/RenderStyle.h"
 #include "LTE/Shader.h"
 #include "LTE/Texture2D.h"
+#include "LTE/FunctionBind.h"
 
 namespace {
   struct GlobalLighting : public RenderPassT {
@@ -41,6 +42,12 @@ namespace {
   };
 }
 
-DefineFunction(RenderPass_GlobalLighting) {
+RenderPass RenderPass_GlobalLighting() {
   return new GlobalLighting;
 }
+static Function const RenderPass_GlobalLighting_Registration = Function_Bind(
+  "RenderPass_GlobalLighting",
+  "None",
+  &RenderPass_GlobalLighting);
+
+
