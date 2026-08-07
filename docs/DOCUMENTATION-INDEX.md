@@ -37,11 +37,18 @@
    **Length:** 10,000+ words  
    **Key concept:** All assets = runtime-generated from seed
 
+6. **[UNIVERSE-POPULATION.md](universe-population.md)** — Galaxy/world generation pipeline  
+   **Audience:** World builders, gameplay designers  
+   **When to read:** Understanding how the galaxy is populated, tuning system counts  
+   **Length:** ~3,000 words  
+   **Key concept:** `Object_Universe(seed, depth)` builds a deterministic galaxy (Universe → Region → System); `depth=1` ≈ 36 connected systems (the old client's demo), `depth=2` ≈ 216
+   **Companion to:** PROCEDURAL-GENERATION-GUIDE.md (assets vs. space layout)
+
 ---
 
 ### Strategic Planning & Design
 
-6. **[PRD-LIMIT-THEORY-REBOOT.md](PRD-LIMIT-THEORY-REBOOT.md)** — Product Requirements Document  
+7. **[PRD-LIMIT-THEORY-REBOOT.md](PRD-LIMIT-THEORY-REBOOT.md)** — Product Requirements Document  
    **Audience:** Project planners, contributors, stakeholders  
    **When to read:** Before starting work, quarterly reviews  
    **Length:** 15,000+ words (comprehensive)  
@@ -53,7 +60,7 @@
    - Community strategy
    - Risk mitigation
 
-7. **[VULKAN-AND-SPACE-PHENOMENA.md](VULKAN-AND-SPACE-PHENOMENA.md)** — Vulkan migration + living universe design  
+8. **[VULKAN-AND-SPACE-PHENOMENA.md](VULKAN-AND-SPACE-PHENOMENA.md)** — Vulkan migration + living universe design  
    **Audience:** Graphics programmers, game designers  
    **When to read:** Considering Vulkan upgrade, designing space phenomena  
    **Length:** 12,000+ words  
@@ -65,7 +72,7 @@
    - **Space whales!** 🐋
    - Complete implementation roadmap
 
-8. **[ENGINE-STABILITY-AND-MODDING.md](ENGINE-STABILITY-AND-MODDING.md)** — Production-ready engine + modding system  
+9. **[ENGINE-STABILITY-AND-MODDING.md](ENGINE-STABILITY-AND-MODDING.md)** — Production-ready engine + modding system  
    **Audience:** Engine developers, modders, game designers  
    **When to read:** Stabilizing engine, adding save/load, creating modding support  
    **Length:** 15,000+ words (comprehensive)  
@@ -78,7 +85,7 @@
    - Scanner & atmospheric effects (dust, clouds, nebula)
    - 5-phase implementation roadmap (13-18 weeks)
 
-9. **[SAVE-LOAD-AND-INVENTORY.md](SAVE-LOAD-AND-INVENTORY.md)** — Save system + JSON schemas + inventory  
+10. **[SAVE-LOAD-AND-INVENTORY.md](SAVE-LOAD-AND-INVENTORY.md)** — Save system + JSON schemas + inventory  
    **Audience:** Gameplay programmers, save system implementers  
    **When to read:** Implementing save/load, exposing inventory, adding mining  
    **Length:** 12,000+ words (comprehensive)  
@@ -92,7 +99,7 @@
    - Loot drop system (NPC cargo pods)
    - 7-phase implementation roadmap (5-6 weeks)
 
-10. **[LTSL-ARCHITECTURE-AND-IMPROVEMENTS.md](LTSL-ARCHITECTURE-AND-IMPROVEMENTS.md)** — LTSL deep-dive + user-friendliness  
+11. **[LTSL-ARCHITECTURE-AND-IMPROVEMENTS.md](LTSL-ARCHITECTURE-AND-IMPROVEMENTS.md)** — LTSL deep-dive + user-friendliness  
    **Audience:** Language designers, LTSL developers, scripters  
    **When to read:** Understanding LTSL internals, improving scripting ergonomics  
    **Length:** 15,000+ words (comprehensive)  
