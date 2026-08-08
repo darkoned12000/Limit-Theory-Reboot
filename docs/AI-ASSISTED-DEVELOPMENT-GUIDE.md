@@ -106,7 +106,7 @@ AI agents are like "you in 6 months" - they need:
 | **PROCEDURAL-GENERATION-GUIDE.md** | ⭐⭐⭐⭐⭐ Excellent | Algorithm explanations, code traces, performance data |
 | **SAVE-LOAD-AND-INVENTORY.md** | ⭐⭐⭐⭐⭐ Excellent | Discovery of hidden systems, implementation roadmap |
 | **LTSL-ARCHITECTURE-AND-IMPROVEMENTS.md** | ⭐⭐⭐⭐⭐ Excellent | Interpreter deep-dive, 26 expression types, examples |
-| **DOCUMENTATION-INDEX.md** | ⭐⭐⭐⭐⭐ Excellent | Quick navigation, use-case paths |
+| **ROADMAP.md** | ⭐⭐⭐⭐⭐ Excellent | Forward work plan (single source of truth); AGENTS.md §6.2/§7 are the doc index |
 | **PRD-LIMIT-THEORY-REBOOT.md** | ⭐⭐⭐⭐ Very Good | Strategic vision, but less code-focused |
 | **VULKAN-AND-SPACE-PHENOMENA.md** | ⭐⭐⭐⭐ Very Good | Design docs with code, but speculative |
 | **ENGINE-STABILITY-AND-MODDING.md** | ⭐⭐⭐⭐ Very Good | Architecture plans, but some sections TODO |
@@ -383,7 +383,7 @@ python configure.py run ltheory-main  # Main universe app
 
 ### Test
 ```bash
-python configure.py test     # Run all unit tests (148 tests)
+python configure.py test     # Run all unit tests (399 checks)
 ```
 
 ---
@@ -490,7 +490,7 @@ A: Serialization exists, needs JSON wrapper. See SAVE-LOAD-AND-INVENTORY.md Part
 ### Memory
 - Intrusive refcounting via `Reference<T>`
 - ~585 raw `new`/`delete` calls (most wrapped)
-- No leaks detected in 148 tests
+- No leaks detected in 399 unit checks
 
 ---
 

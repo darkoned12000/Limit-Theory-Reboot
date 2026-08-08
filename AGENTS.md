@@ -248,15 +248,18 @@ node script/ltsl-lsp/test-rpc.js                        # full protocol check
 node script/ltsl-lsp/out/smoke.js $(find resource/script -name '*.lts' | sort)
 ```
 
-Smoke must report exactly **6 diagnostics** (4 structural problems + 2
+Smoke must report exactly **8 diagnostics** (4 structural problems + 4
 warnings). The 4 structural problems are the **known engine unbalanced-paren
 bugs — trusted fixtures, do NOT fix them**: `resource/script/App/draw.lts:57`,
-`App/draw.lts:58`, `Widget/Slider.lts:42`, `Widget/Text.lts:26`. The 2 warnings
-are legitimate cross-file symbols: `SelectItem`
-(`Widget/Market/MidPanel.lts:108`, script type defined in another file) and
-`WidgetSettings` (`Widget/Settings.lts:13`, a C++ engine value).
+`App/draw.lts:58`, `Widget/Slider.lts:42`, `Widget/Text.lts:26`. The 4 warnings
+are known/accepted: `SelectItem` (`Widget/Market/MidPanel.lts:108`, script
+type defined in another file), `WidgetSettings` (`Widget/Settings.lts:13`, a
+C++ engine value), `break` (`App/ltheory-unitest.lts:201`, the WIP unitest app
+uses a `break` statement, which is not valid LTSL), and `RenderPass_Bloom`
+(`App/ltheory-main.lts:217`, a comma-paren call the analyzer counts as one
+arg but the engine's tolerant tokenizer compiles as two — valid at runtime).
 
-Any count above 6 = analyzer regression; investigate before committing.
+Any count above 8 = analyzer regression; investigate before committing.
 
 ### Analyzer semantics to preserve
 

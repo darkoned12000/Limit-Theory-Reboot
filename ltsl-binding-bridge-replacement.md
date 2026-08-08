@@ -958,7 +958,7 @@ ArgBind structs live in `UI/Glyphs.h` and `Game/{Items,Events,Tasks,Renderables,
    to `/tmp/api-baseline.json`).
 4. **LSP regression:** `node script/ltsl-lsp/test-rpc.js` and
    `node script/ltsl-lsp/out/smoke.js $(find resource/script -name '*.lts' | sort)`
-   must stay at exactly **6 diagnostics** (see AGENTS.md §6.2).
+    must stay at exactly **8 diagnostics** (see AGENTS.md §6.2).
 5. **App runs (trampoline coverage — the tests/LSP do NOT cover this):**
    ```bash
    python3 configure.py run war

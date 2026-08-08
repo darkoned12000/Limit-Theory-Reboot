@@ -11,7 +11,7 @@
 
 **My Answer:** ✅ **Delivered:**
 1. **GRAPHICS-TECH.md** — Full graphics capabilities assessment + 2 demo apps you can run RIGHT NOW
-2. **assessment.md § 9 Priority 4** — Complete visual upgrade implementation guide (PBR, HDR+bloom, volumetric nebula, planet biomes)
+2. **GRAPHICS-TECH.md § 9 Priority 4** — Complete visual upgrade implementation guide (PBR, HDR+bloom, volumetric nebula, planet biomes)
 3. **Fixed map.lts bug** — Added `Main()` function + Escape key handler
 
 ---
@@ -130,7 +130,7 @@ passes.Append (RenderPass_PostFilter "post/dither.jsl")
 
 ## Major Upgrades (Implementation Required)
 
-**See `assessment.md` § 9, Priority 4 for complete code.**
+**See `GRAPHICS-TECH.md` for complete code.**
 
 ### 1. PBR (Physically-Based Rendering) — 2-3 weeks
 
@@ -146,7 +146,7 @@ passes.Append (RenderPass_PostFilter "post/dither.jsl")
 - New shader: `resource/shader/fragment/pbr.jsl`
 - C++ integration: `src/liblt/Component/Drawable.cpp`
 
-**Code:** See `GRAPHICS-TECH.md` § 2.1 OR `assessment.md` § 9, Priority 4, Step 4.1
+**Code:** See `GRAPHICS-TECH.md` § 2.1
 
 ---
 
@@ -164,7 +164,7 @@ passes.Append (RenderPass_PostFilter "post/dither.jsl")
 - `resource/shader/fragment/post/bloom_blur.jsl`
 - `resource/shader/fragment/post/bloom_composite.jsl`
 
-**Code:** See `GRAPHICS-TECH.md` § 2.2 OR `assessment.md` § 9, Priority 4, Step 4.2
+**Code:** See `GRAPHICS-TECH.md` § 2.2
 
 ---
 
@@ -181,7 +181,7 @@ passes.Append (RenderPass_PostFilter "post/dither.jsl")
 - `resource/shader/compute/nebula_volume.glsl` (compute shader)
 - `resource/shader/fragment/gen/nebula_volumetric.jsl` (raymarch)
 
-**Code:** See `GRAPHICS-TECH.md` § 2.3 OR `assessment.md` § 9, Priority 4, Step 4.3
+**Code:** See `GRAPHICS-TECH.md` § 2.3
 
 **Performance Cost:** 10-15ms per frame (expensive but worth it)
 
@@ -202,7 +202,7 @@ passes.Append (RenderPass_PostFilter "post/dither.jsl")
 - `src/liblt/Game/Item/PlanetType.cpp` (add biome enum)
 - `resource/shader/fragment/gen/planet.jsl` (color palettes)
 
-**Code:** See `assessment.md` § 9, Priority 4, Step 4.4
+**Code:** See `GRAPHICS-TECH.md`, Step 4.4
 
 ---
 
@@ -256,7 +256,7 @@ passes.Append (RenderPass_PostFilter "post/dither.jsl")
 
 1. **You have a LOT more than you thought.** 35 post-processing shaders exist but aren't wired. Enabling them takes 5 minutes.
 
-2. **All major upgrades are achievable.** PBR, HDR+bloom, volumetric nebula, planet biomes — all standard OpenGL 4.6 techniques. See complete code in `assessment.md` § 9, Priority 4.
+2. **All major upgrades are achievable.** PBR, HDR+bloom, volumetric nebula, planet biomes — all standard OpenGL 4.6 techniques. See complete code in `GRAPHICS-TECH.md`.
 
 3. **Demo apps prove it works.** Copy `graphics_demo.lts` and `planet_viewer.lts` from `GRAPHICS-TECH.md` → Run them → See the possibilities.
 
@@ -272,7 +272,7 @@ passes.Append (RenderPass_PostFilter "post/dither.jsl")
 
 2. **Run the Demo Apps** — Copy code from `GRAPHICS-TECH.md` Part 3 into new `.lts` files. See what's possible with existing shaders.
 
-3. **Follow Priority 4 Guide** — `assessment.md` § 9, Priority 4 has complete step-by-step implementation for PBR, HDR+bloom, volumetric nebula, planet biomes. All code is ready to copy-paste.
+3. **Follow Priority 4 Guide** — `GRAPHICS-TECH.md` has complete step-by-step implementation for PBR, HDR+bloom, volumetric nebula, planet biomes. All code is ready to copy-paste.
 
 4. **Profile First** — Run `war.lts` with 30K asteroids, measure FPS baseline. Then implement Priority 1 (GPU instancing) BEFORE adding expensive visual effects.
 
