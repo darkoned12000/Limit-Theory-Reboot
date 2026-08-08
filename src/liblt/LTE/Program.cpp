@@ -14,6 +14,7 @@
 namespace  {
   bool destructed = false;
   Program* current = nullptr;
+  int exitCode = 0;
 }
 
 Program::Program() : deleted(false) {
@@ -75,6 +76,14 @@ void Program::Execute() {
 
 Program* Program_GetCurrent() {
   return current;
+}
+
+void Program_SetExitCode(int code) {
+  exitCode = code;
+}
+
+int Program_GetExitCode() {
+  return exitCode;
 }
 
 /* TODO : Fix this ugly mess. */

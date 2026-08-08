@@ -284,8 +284,75 @@ LTE_TEST(Expression_Compile_DidYouMean_Variable) {
   LTE_CHECK(foundSuggestion);
 }
 
-// ── return-in-loop regression (While honors returnSignal) ──────────────
+// ── literal-atom probe-silencing regression (ltsl-hardening §5.1) ─────
 
+LTE_TEST(Expression_Compile_LiteralAtomNoProbeNoise) {
+  // Compiling a bare literal (number/string/bool) must NOT report the
+  // spurious Variable/Reference/FunctionCall/Constructor probe-chain errors
+  // ("unknown variable '1'", ...) — the Constant factory is the only probe
+  // that can accept literals, so the earlier probes are skipped entirely.
+  char const* literals[] = {
+    "1", "3.5", "-7", "0.25", "\"hello\"", "'x'", "true", "false"
+  };
+
+  for (char const* lit : literals) {
+    StringList atom = new StringListAtom(lit);
+    CompileEnvironment env;
+    env.script = new ScriptT;
+    env.script->name = "testScript";
+
+    Expression expr = Expression_Compile(atom, env);
+    LTE_CHECK(expr);
+    LTE_CHECK(!env.hasErrors);
+  }
+}
+
+LTE_TEST(Expression_Compile_HashCommentAtomNoNoise) {
+  // A bare '#' atom is a comment marker — it must compile silently, not feed
+  // the probe chain (observed as "line 7" errors in App/ui.lts).
+  StringList atom = new StringListAtom("#");
+  CompileEnvironment env;
+  env.script = new ScriptT;
+  env.script->name = "testScript";
+
+  Expression expr = Expression_Compile(atom, env);
+  LTE_CHECK(!expr);
+  LTE_CHECK(!env.hasErrors);
+}
+
+LTE_TEST(StringList_Create_StripsCommentLines) {
+  // Comment lines whose text contains a binary operator (e.g. `# * foo`)
+  // previously leaked into the parser: RewriteBinaryOp turned `# * foo`
+  // into `(* # foo)` BEFORE the head-`#` comment check in Expression_Compile,
+  // so the comment text compiled as code and produced spurious diagnostics
+  // ("unknown variable 'geometry'", "no function named ''", ...). Strip `#`
+  // lines at parse time so any comment text is safe, and line numbers for
+  // later diagnostics still count comment lines.
+  //
+  // NOTE: we assert that NO diagnostic mentions comment content, not that
+  // env.hasErrors is false — single-line StringList_Create input double-wraps
+  // and triggers the known spurious wrapper-probe errors (see the
+  // Expression_While_ReturnInLoopBreaks comment below).
+  String const source =
+    "# * Cursor-driven focus (the HitTest/CaptureMouse family) tracks the\n"
+    "# 0.5 * size and a dot.foo reference\n"
+    "5\n";
+
+  StringList list = StringList_Create(source);
+  CompileEnvironment env;
+  env.script = new ScriptT;
+  env.script->name = "testScript";
+
+  Expression expr = Expression_Compile(list, env);
+  LTE_CHECK(expr);
+  for (size_t i = 0; i < env.errors.size(); ++i) {
+    LTE_CHECK(env.errors[i].find("Cursor") == String::npos);
+    LTE_CHECK(env.errors[i].find("geometry") == String::npos);
+    LTE_CHECK(env.errors[i].find("family") == String::npos);
+  }
+}
+
+// ── return-in-loop regression (While honors returnSignal) ──────────────
 LTE_TEST(Expression_While_ReturnInLoopBreaks) {
   // Regression guard for the ltheory-main hang: ExpressionWhile never
   // honored returnSignal, so a `return` inside a loop body (e.g. the
@@ -329,4 +396,45 @@ LTE_TEST(Expression_While_ReturnInLoopBreaks) {
 
   LTE_CHECK(runtimeEnv.returnSignal);
   LTE_CHECK_EQ(result, 42);
+}
+
+// ── function-body compile errors must surface (ltsl-hardening §5.x) ────
+// A function body compiles into its own sub-environment; before the fix,
+// Expression_Function never propagated subEnv errors, so a compile error
+// inside a body silently no-opped the offending statement while the app
+// "ran fine". Here a mixed Float/Int comparison (ambiguous: both
+// Float_Greater and Int_Greater match with one implicit conversion) must
+// produce a visible diagnostic in the OUTER environment.
+LTE_TEST(FunctionBody_CompileErrorsSurface) {
+  Vector<StringList> body;
+  Vector<StringList> gt;
+  gt.push(new StringListAtom(">"));
+  gt.push(new StringListAtom("x"));
+  gt.push(new StringListAtom("0"));
+  body.push(new StringListList(gt));
+
+  Vector<StringList> params;
+  params.push(new StringListAtom("Float"));
+  params.push(new StringListAtom("x"));
+
+  Vector<StringList> fn;
+  fn.push(new StringListAtom("function"));
+  fn.push(new StringListAtom("Bool"));
+  fn.push(new StringListAtom("F"));
+  fn.push(new StringListList(params));
+  fn.push(new StringListList(body));
+  StringList fnList = new StringListList(fn);
+
+  CompileEnvironment env;
+  env.script = new ScriptT;
+  env.script->name = "testScript";
+
+  Expression_Compile(fnList, env);
+  LTE_CHECK(env.hasErrors);
+  bool foundAmbiguous = false;
+  for (size_t i = 0; i < env.errors.size(); ++i) {
+    if (env.errors[i].find("ambiguous call to '>'") != String::npos)
+      foundAmbiguous = true;
+  }
+  LTE_CHECK(foundAmbiguous);
 }

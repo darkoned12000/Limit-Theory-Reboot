@@ -26,7 +26,9 @@ set(TEST_SRC
   TestWindowInput.cpp
   TestFunctionBind.cpp
   TestStringBindings.cpp
-  TestConversionBind.cpp)
+  TestConversionBind.cpp
+  TestLogBindings.cpp
+  TestProgramBindings.cpp)
 
 add_executable(lte_tests ${TEST_SRC})
 

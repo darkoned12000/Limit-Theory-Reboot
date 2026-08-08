@@ -10091,6 +10091,16 @@
       "source": ""
     },
     {
+      "name": "Log",
+      "signature": "void Log(String entry)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "entry", "type": "String"}
+      ],
+      "documentation": "Write a plain message to the console and log file",
+      "source": ""
+    },
+    {
       "name": "LogIterator_Advance",
       "signature": "void LogIterator_Advance(LogIterator iterator)",
       "returnType": "void",
@@ -10128,6 +10138,26 @@
         {"name": "iterator", "type": "LogIterator"}
       ],
       "documentation": "Return the total number of elements in 'iterator'",
+      "source": ""
+    },
+    {
+      "name": "Log_Error",
+      "signature": "void Log_Error(String entry)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "entry", "type": "String"}
+      ],
+      "documentation": "Write an error message to the console and log file",
+      "source": ""
+    },
+    {
+      "name": "Log_Warn",
+      "signature": "void Log_Warn(String entry)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "entry", "type": "String"}
+      ],
+      "documentation": "Write a warning message to the console and log file",
       "source": ""
     },
     {
@@ -10864,6 +10894,16 @@
       "parameters": [
       ],
       "documentation": "None",
+      "source": ""
+    },
+    {
+      "name": "Mouse_SetPos",
+      "signature": "void Mouse_SetPos(Vec2 pos)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "pos", "type": "Vec2"}
+      ],
+      "documentation": "Set the cursor position relative to the window; used by the UI self-test harness for deterministic focus-mouse tests",
       "source": ""
     },
     {
@@ -13950,6 +13990,16 @@
       "parameters": [
       ],
       "documentation": "Request that the running application exit (clean shutdown)",
+      "source": ""
+    },
+    {
+      "name": "Program_Exit",
+      "signature": "void Program_Exit(Int32 code)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "code", "type": "Int32"}
+      ],
+      "documentation": "Request clean shutdown with the given exit code (used by the self-test harness to gate on failures)",
       "source": ""
     },
     {

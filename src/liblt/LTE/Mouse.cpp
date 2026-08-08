@@ -180,6 +180,11 @@ static Function const Mouse_GetY_Registration = Function_Bind(
       sf::Vector2i(gMouse.x, gMouse.y),
       *(sf::RenderWindow*)Window_Get()->GetImplData());
   }
+static Function const Mouse_SetPos_Registration = Function_Bind(
+  "Mouse_SetPos",
+  "Set the cursor position relative to the window; used by the UI self-test harness for deterministic focus-mouse tests",
+  &Mouse_SetPos,
+  "pos");
 
   void Mouse_SetPressed(MouseButton button, bool pressed) {
     gMouse.down[button] = pressed;
