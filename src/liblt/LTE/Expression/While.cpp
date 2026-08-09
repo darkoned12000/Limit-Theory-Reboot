@@ -39,6 +39,7 @@ namespace {
 
     void Evaluate(void* returnValue, Environment& env) const override {
       bool pred;
+      bool prevBreak = env.breakSignal;
       while (true) {
         predicate->Evaluate(&pred, env);
         if (env.returnSignal)
@@ -57,9 +58,16 @@ namespace {
              body is skipped by the block once the signal is set). */
           if (env.returnSignal)
             break;
+          /* A `break` in the body sets breakSignal; exit the innermost loop
+             and clear the signal so an enclosing loop is not affected. */
+          if (env.breakSignal) {
+            env.breakSignal = false;
+            break;
+          }
         } else
           break;
       }
+      env.breakSignal = prevBreak;
     }
 
     Type GetType() const override {

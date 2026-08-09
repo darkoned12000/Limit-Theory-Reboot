@@ -66,6 +66,11 @@ namespace LTE {
           return Expression_Return(Expression_Noop());
       }
 
+      /* Break out of the innermost loop. */ {
+        if (list->GetValue() == "break")
+          return Expression_Break();
+      }
+
       /* Comment line. */ {
         if (list->GetValue() == "#")
           return nullptr;
@@ -146,6 +151,8 @@ namespace LTE {
         return Expression_Address(list, env);
       if (value == "block")
         return Expression_Block(list, env, 1);
+      if (value == "break")
+        return Expression_Break();
       if (value == "call")
         return Expression_DynamicDispatch(list, env);
       if (value == "cast")

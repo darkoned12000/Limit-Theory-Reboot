@@ -160,6 +160,8 @@ namespace LTE {
 
   LT_API Expression Expression_Noop();
 
+  LT_API Expression Expression_Break();
+
   LT_API Expression Expression_Return(Expression const& expression);
 
   LT_API Expression Expression_Return(

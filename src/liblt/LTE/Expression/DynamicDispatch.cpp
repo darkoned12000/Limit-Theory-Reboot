@@ -108,8 +108,10 @@ namespace {
       }
       /* A `return` inside the dispatched body only applies to that body;
          clear the flag so the caller (which reuses this Environment) is
-         not affected. */
+         not affected. Same for `break`: a top-level `break` in the body
+         must not break an enclosing loop of the caller. */
       env.returnSignal = false;
+      env.breakSignal = false;
 
       for (size_t i = 0; i < args.size(); ++i) {
         size_t index = args.size() - i - 1;

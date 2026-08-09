@@ -69,6 +69,10 @@ namespace {
            only destruct the registers that this block actually pushed. */
         if (env.returnSignal)
           break;
+        /* Same for `break`: stop the rest of the block and let the enclosing
+           loop consume the signal. */
+        if (env.breakSignal)
+          break;
       }
 
       /* Destruct all locals that were constructed in this scope. */ {

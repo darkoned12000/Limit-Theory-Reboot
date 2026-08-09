@@ -29,13 +29,19 @@ namespace LTE {
        to the calling function. Checked by ExpressionBlock::Evaluate. */
     bool returnSignal;
 
+    /* Set by a `break` expression; signals the innermost enclosing loop
+       (`while` / `for`) to exit. Checked by ExpressionBlock::Evaluate and
+       consumed (cleared) by ExpressionWhile::Evaluate so nested loops do not
+       propagate the signal outward. */
+    bool breakSignal;
+
     /* Canonical return-value slot for the innermost enclosing function
        call. Set by ScriptFunctionT::Call (and ExpressionT::Evaluate) so a
        `return` anywhere in the body writes directly here, regardless of how
        deeply nested it is. Null for void / unknown return slots. */
     void* returnValue;
 
-    Environment() : base(0), returnSignal(false), returnValue(nullptr) {}
+    Environment() : base(0), returnSignal(false), breakSignal(false), returnValue(nullptr) {}
 
     inline void* Allocate(Type const& type) {
       return type->Allocate();

@@ -62,8 +62,11 @@ namespace {
       function->expression->Evaluate(returnValue, env);
       /* A `return` inside the body set this flag to stop the body early;
          clear it so the caller (which reuses this Environment) is not
-         affected. A `return` only ever applies to the innermost function. */
+         affected. A `return` only ever applies to the innermost function.
+         Same for `break`: a top-level `break` (outside any loop) in the
+         body must not break an enclosing loop of the caller. */
       env.returnSignal = false;
+      env.breakSignal = false;
 
       for (size_t i = 0; i < args.size(); ++i) {
         size_t index = args.size() - i - 1;

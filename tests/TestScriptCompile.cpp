@@ -399,6 +399,114 @@ LTE_TEST(Expression_While_ReturnInLoopBreaks) {
   LTE_CHECK_EQ(result, 42);
 }
 
+// ── break support (Expression_Break + While consumes breakSignal) ──────
+// Regression guard for the ltheory-unitest black screen: the walk loop
+// `while (root.GetType != "System") { if it.HasMore { root = it.Get } else
+// break }` — `break` was not a registered keyword, so the if/else body
+// failed to compile, Expression_Block silently dropped it, and the loop
+// spun forever on the same `root` (Initialize never finished, black window).
+LTE_TEST(Expression_Compile_BareBreakCompilesClean) {
+  // A bare `break` atom is recognized before the probe chain runs, so it
+  // must compile without the spurious "unknown variable" diagnostics that
+  // other unknown atoms produce.
+  StringList atom = new StringListAtom("break");
+  CompileEnvironment env;
+  env.script = new ScriptT;
+  env.script->name = "testScript";
+
+  Expression expr = Expression_Compile(atom, env);
+  LTE_CHECK(expr);
+  LTE_CHECK(!env.hasErrors);
+}
+
+LTE_TEST(Expression_While_BreakExitsLoop) {
+  // while (1) { (set a 1) break } — the break must terminate the loop after
+  // the body runs once; before Expression_Break existed, the break atom
+  // failed to compile, the block silently dropped it, and this spun forever.
+  Vector<StringList> setA;
+  setA.push(new StringListAtom("set"));
+  setA.push(new StringListAtom("a"));
+  setA.push(new StringListAtom("1"));
+  StringList setAExpr = new StringListList(setA);
+
+  Vector<StringList> elements;
+  elements.push(new StringListAtom("while"));
+  elements.push(new StringListAtom("1"));
+  elements.push(setAExpr);
+  elements.push(new StringListAtom("break"));
+  StringList list = new StringListList(elements);
+
+  CompileEnvironment env;
+  env.script = new ScriptT;
+  env.script->name = "testScript";
+  env.Allocate("a", Type_Get<int>(), false, false);
+
+  Expression expr = Expression_Compile(list, env);
+  LTE_CHECK(expr);
+
+  Type intType = Type_Get<int>();
+  void* aReg = intType->Allocate();
+  *(int*)aReg = 0;
+
+  Environment runtimeEnv;
+  runtimeEnv.registers.push(aReg);
+  expr->Evaluate(0, runtimeEnv);
+
+  /* Loop exited via break, not spin-forever. */
+  LTE_CHECK_EQ(*(int*)aReg, 1);
+  /* The signal was consumed by the loop — nothing leaks outward. */
+  LTE_CHECK(!runtimeEnv.breakSignal);
+  intType->Deallocate(aReg);
+}
+
+LTE_TEST(Expression_While_InnerBreakDoesNotLeak) {
+  // while (1) { while (1) { break } (set a 1) break } — the inner break
+  // must exit ONLY the inner loop; if it leaked, the outer body would stop
+  // after the inner loop and `a` would stay 0.
+  Vector<StringList> innerElements;
+  innerElements.push(new StringListAtom("while"));
+  innerElements.push(new StringListAtom("1"));
+  innerElements.push(new StringListAtom("break"));
+  StringList inner = new StringListList(innerElements);
+
+  Vector<StringList> setA;
+  setA.push(new StringListAtom("set"));
+  setA.push(new StringListAtom("a"));
+  setA.push(new StringListAtom("1"));
+  StringList setAExpr = new StringListList(setA);
+
+  Vector<StringList> outerElements;
+  outerElements.push(new StringListAtom("while"));
+  outerElements.push(new StringListAtom("1"));
+  outerElements.push(inner);
+  outerElements.push(setAExpr);
+  outerElements.push(new StringListAtom("break"));
+  StringList outer = new StringListList(outerElements);
+
+  CompileEnvironment env;
+  env.script = new ScriptT;
+  env.script->name = "testScript";
+  env.Allocate("a", Type_Get<int>(), false, false);
+
+  Expression expr = Expression_Compile(outer, env);
+  LTE_CHECK(expr);
+
+  Type intType = Type_Get<int>();
+  void* aReg = intType->Allocate();
+  *(int*)aReg = 0;
+
+  Environment runtimeEnv;
+  runtimeEnv.registers.push(aReg);
+  expr->Evaluate(0, runtimeEnv);
+
+  /* The inner break leaked nothing: the outer body ran its full statement
+     list (a set to 1), then the outer break terminated the outer loop. */
+  LTE_CHECK_EQ(*(int*)aReg, 1);
+  LTE_CHECK(!runtimeEnv.breakSignal);
+  intType->Deallocate(aReg);
+}
+
+
 // ── function-body compile errors must surface (ltsl-hardening §5.x) ────
 // A function body compiles into its own sub-environment; before the fix,
 // Expression_Function never propagated subEnv errors, so a compile error

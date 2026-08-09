@@ -33,13 +33,13 @@ type SettingsPanel
     var l List
     l +=
       Components:Margin (Vec2 0 4) (Vec2 0 4)
-        ToggleButton:Create (address self.fullscreen) "Fullscreen"
+        ToggleButton:Create (address fullscreen) "Fullscreen"
     l +=
       Components:Margin (Vec2 0 4) (Vec2 0 4)
-        ToggleButton:Create (address self.vsync) "VSync"
+        ToggleButton:Create (address vsync) "VSync"
     l +=
       Components:Margin (Vec2 0 4) (Vec2 0 4)
-        CreateVolumeSlider (address self.masterVolume)
+        CreateVolumeSlider (address masterVolume)
     l
 
   function Void PostUpdate (Widget self)
