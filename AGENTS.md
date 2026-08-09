@@ -142,6 +142,7 @@ python3 configure.py test       # runs all unit tests (lte_tests target)
 | **KDTree**   | vendored (`src/liblt/ThirdParty/KDTree.cpp/.h`) | Spatial queries                    | Used by `LTE/Mesh.cpp`. |
 | **TriTriOverlap** | vendored (`src/liblt/ThirdParty/TriTriOverlap.cpp`) | Triangle-triangle intersection     | Used by `LTE/CollisionMesh.cpp`. |
 | **UTF8-CPP** | vendored (`include/UTF8`), **v3.2.x** (2022-era: has `cpp11.h`/`cpp17.h`/`cpp20.h`) | UTF-8 string handling              | Upgraded from the 2006 release on 2026-07-28 (commit `c1367ef`); `std::iterator` inheritance removed. Only consumer: `UniString.cpp` (`utf8::unchecked::next`). Latest upstream is v4.1.1 (2026) — only upgrade again if new features are needed. |
+| **nlohmann/json** | 3.11.3, vendored single header (`include/json/json.hpp`) | JSON serialization (save slots, data-driven config) | Added 2026-08-08. Consumed exception-free: engine builds with `-fno-exceptions`, so `SaveGameJSON.cpp` defines `JSON_THROW_USER` → `LTE_ASSERT_FAILURE` (crash log) and all reads use the non-throwing API (`json::parse(..., false)` + `contains()`/`value()`). `include/` is already on the include path — no CMake change needed. Not installed via apt. |
 | **OpenAL**   | system (`libopenal-dev`)           | SFML audio backend                 | Transitive dep of SFML Audio (not used directly). |
 | **Vorbis/FLAC/Ogg** | system                      | SFML audio decoding                | Transitive deps of SFML Audio (not used directly). |
 
@@ -160,7 +161,6 @@ python3 configure.py test       # runs all unit tests (lte_tests target)
 
 | Library      | State                    | Why |
 |--------------|--------------------------|-----|
-| **nlohmann/json** | not implemented yet | Data-driven UI/config (§6.1, §10.3). Single-header; LTSL already hits the missing-parse wall in `Config_Get` (`String_Split` 2-arg unbound). |
 | **Dear ImGui** | not implemented yet | Live DevTool tweaking (§8.3 Pass C, §10.9 Phase 3). Immediate-mode UI for the F2 DevPanel. |
 | **stb_image / libpng** | not implemented yet | Texture format coverage (only if needed — check current loaders first). |
 
@@ -872,6 +872,32 @@ documented — not an engine bug)
       Headless-safe: the writer is exercised directly; the handler's `exit()`
       path is verified manually by a forced SIGSEGV (exit code 139).
       Test count: **413 checks, 0 failures**.
+
+### A.10 JSON Save-Slot Layer (ROADMAP 2.1 groundwork)
+
+- [x] **nlohmann/json vendored** — `include/json/json.hpp` (3.11.3, single
+      header). `include/` already on the include path, so no CMake change.
+      Consumed exception-free despite `-fno-exceptions`: `SaveGameJSON.cpp`
+      defines `JSON_THROW_USER` → `LTE_ASSERT_FAILURE` (crash log via
+      CrashHandler) + `JSON_TRY_USER`/`JSON_CATCH_USER` as no-ops, and all
+      reads use the non-throwing API (`json::parse(str, nullptr, false)` →
+      `is_discarded()`, then `contains()`/`value()`). A bad save degrades to
+      "no save exists" instead of crashing.
+- [x] **Multi-slot JSON saves** — `src/liblt/Game/SaveGameJSON.{h,cpp}`: each
+      slot is `cache/saves/<slot>.json` with a versioned schema
+      (`saveVersion: 2`) + `dateCreated` + full `SaveGameData`. `SaveGameData`
+      gained a `dateCreated` field. Slot name sanitized (no path separators).
+      Writes go through `Location_File` (auto-creates parent dirs).
+- [x] **LTSL bindings** — `SaveGame_Create` (quicksave), `SaveGame_Load`
+      (quicksave, else newest by dateCreated), plus new `SaveGame_LoadSlot`
+      (named slot) and `SaveGame_ListSlots` (returns `Vector<SaveSlotInfo>`:
+      slotName/dateCreated/playerName/universeSeed — the save-browser widget
+      data). API-DB baseline refreshed (2 added, 0 removed); alias-order gate
+      passes (509 OK, 1 known exception).
+- [x] **Unit tests** — `tests/TestSaveGameJSON.cpp` (7 tests) covering JSON
+      round-trip, invalid-JSON rejection, missing-field fallback, write/read,
+      slot listing, missing-slot failure, and quicksave round-trip.
+      Test count: **440 checks, 0 failures**.
 
 ---
 

@@ -37,15 +37,23 @@ there, not here.
 Ordered by impact ÷ effort, respecting dependencies. **Nothing here requires
 a big rewrite** — the engine core is healthy (§9 of AGENTS.md).
 
-### 2.1 Save/Load game state — **P0, first** (`todo`)
+### 2.1 Save/Load game state — **P0, first** (`in-progress`)
 - **Effort:** 1–2 weeks. **Sources:** `ENGINE-STABILITY-AND-MODDING.md` Part 1
   (Phase 1, CRITICAL); `SAVE-LOAD-AND-INVENTORY.md` Part 1/3; PRD Phase 1 P1.
 - **Why first:** the only item flagged CRITICAL by two independent roadmaps,
   and the reflection/`Serializer` infrastructure already exists — this is
-  mostly wiring `SaveGame.cpp` + 2 LTSL bindings + menu buttons.
+  mostly wiring `SaveGame.cpp` + LTSL bindings + menu buttons.
 - **Scope:** serialize player, universe, economy → disk; `SaveGame_Create` /
   `SaveGame_Load` LTSL bindings; Save/Load entries in the main menu;
   round-trip test (save → quit → load → verify state).
+- **Progress (2026-08-08):** save format moved to multi-slot JSON
+  (`cache/saves/<slot>.json`, `SaveGameJSON.{h,cpp}`) with versioned schema +
+  `dateCreated` metadata for a save-browser widget. Bindings: `SaveGame_Create`
+  (quicksave), `SaveGame_Load` (latest), plus new `SaveGame_LoadSlot` /
+  `SaveGame_ListSlots` (slot browser data). Exception-free nlohmann/json
+  vendored (`include/json/json.hpp`). Covered by `TestSaveGameJSON.cpp`
+  (7 tests). Remaining: load-wiring into an app, GameMenu entries, and the
+  save-browser widget.
 
 ### 2.2 Crash logging polish — **P0, quick** (`done`)
 - **Effort:** ~2 days. **Source:** `ENGINE-STABILITY-AND-MODDING.md` Part 1.
@@ -62,8 +70,9 @@ a big rewrite** — the engine core is healthy (§9 of AGENTS.md).
 - **Effort:** 3–4 weeks. **Source:** `ENGINE-STABILITY-AND-MODDING.md` Part 3
   + Part 7 Phase 2.
 - **Why now:** unlocks ship/weapon/planet tuning without recompiles, and is
-  the foundation for the modding system (§3.3). Needs `nlohmann/json`
-  vendored into `include/` (not currently present).
+  the foundation for the modding system (§3.3). nlohmann/json now vendored
+  (`include/json/json.hpp`, exception-free — see AGENTS §4.1), unblocking this
+  work.
 - **Scope:** `ShipDatabase` / `WeaponDatabase` / `PlanetDatabase` loaders +
   LTSL bindings; `ships.json` / `weapons.json` / `planet_biomes.json`.
 
@@ -119,7 +128,7 @@ a big rewrite** — the engine core is healthy (§9 of AGENTS.md).
 | JSON content databases (ship/weapon/planet) | P1 | 3–4 wk | todo | Stability P2 |
 | ModManager (scan `mods/`, parse `mod.json`, load JSON/scripts/shaders) | P1 | 3–4 wk | todo | Stability P4 |
 | Mod hooks (`onGameStart`, `onSectorGenerate`) | P1 | — | todo | Stability P4 |
-| JSON save-file schemas + versioned migration | P1 | — | todo | SAVE-LOAD Pt2/3 |
+| JSON save-file schemas + versioned migration | P1 | — | in-progress | SAVE-LOAD Pt2/3 |
 | Mod manager UI | P2 | — | todo | Stability P4 |
 
 ### 3.4 Universe generation & gameplay (Pass A→C)
@@ -235,7 +244,7 @@ holds the original creation plan.
 
 After any engine/C++/GLSL change:
 - `python3 configure.py build`
-- `python3 configure.py test` (unit tests: expect **413 checks, 0 failures**)
+- `python3 configure.py test` (unit tests: expect **440 checks, 0 failures**)
 - LSP (if LTSL/API changed): `node script/ltsl-lsp/test-rpc.js` and
   `node script/ltsl-lsp/out/smoke.js` (expect **8 diagnostics**)
 

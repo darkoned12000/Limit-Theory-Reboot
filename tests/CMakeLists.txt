@@ -22,6 +22,7 @@ set(TEST_SRC
   TestSFML.cpp
   TestSound.cpp
   TestSerializer.cpp
+  TestSaveGameJSON.cpp
   TestTexture2D.cpp
   TestWindowInput.cpp
   TestFunctionBind.cpp
