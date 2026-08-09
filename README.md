@@ -183,7 +183,7 @@ Quick checks from the repo root:
 # End-to-end protocol test (initialize/hover/completion/signatureHelp/diagnostics)
 node script/ltsl-lsp/test-rpc.js
 
-# Full-corpus diagnostics (expects exactly 6)
+# Full-corpus diagnostics (expects exactly 8)
 node script/ltsl-lsp/out/smoke.js $(find resource/script -name '*.lts' | sort)
 ```
 

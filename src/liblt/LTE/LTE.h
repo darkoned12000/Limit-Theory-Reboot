@@ -89,7 +89,6 @@
 #include "StackFrame.h"
 #include "StringList.h"
 #include "StringTree.h"
-#include "Text.h"
 #include "Texture2D.h"
 #include "Texture3D.h"
 #include "Thread.h"

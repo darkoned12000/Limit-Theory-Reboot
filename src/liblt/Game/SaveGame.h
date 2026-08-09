@@ -18,6 +18,7 @@ const int kSaveGameVersion = 1;
  * value types (no raw pointers), so a single Process pass round-trips them. */
 AutoClass(SaveGameData,
   int, version,
+  String, dateCreated,
   String, playerName,
   Quantity, playerCredits,
   ItemID, shipHull,

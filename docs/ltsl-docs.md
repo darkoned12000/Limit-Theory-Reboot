@@ -1215,3 +1215,27 @@ the caller. (This is how early-exit works without exceptions — the engine is
 | Drawing reference | `Widget/Text.lts`, `Widget/Icon.lts`, `Icons.lts`, `Fonts.lts` |
 | Cursors / mouse input | `App/launcher.lts` §14, `Mouse.cpp`, `Cursor.cpp`, `Widget/Button.lts` (`CaptureFocus`) |
 | Render pipeline / clear | `App/war.lts` (passes), `src/liblt/UI/Interface.cpp`, `RenderPass*.cpp` |
+
+---
+
+## 16. Old Limit Theory Code resurrected
+
+In the code base there is a './src/old/' folder and I wanted to find out was it useful, can I interact with it. Still need to research the area and try to get some of the code running, but I was able to get 'ltheory-app.cpp' running. And I still need to analyze this but this is very promising and might tell me how to create a universe that are populated with many sectors, planets, npcs, stations. The existing apps do not show you how to do this or demonstrate this. And I will try to take this knowledge and build an app to mimic this functionality and most importantly get it documented at least a little.
+
+**NOTE**: I am not sure if I will keep this in the code, I may extract all the knowledge from what is in these folders and then remove them. This 'old' code is not called anywhere and I had to get it added to build it.
+
+``` python
+# Run all of these from the project root
+
+# This is probably one of the early demo universes Josh used in his demos
+# It has wormholes, several stations, planet, effects, npc ships
+# Still need to figure out how to any features in the demo (like docking, traveling the wormholes)
+
+# This demo takes about 20-30s to load
+LD_LIBRARY_PATH=bin:extbin/linux64 ./bin/ltheory_app
+
+# This is a audio demo, it launches have to figure out how to use/hear output
+# Possible usage: keys 1-7/Q-U/A-J/Z-M play notes, S writes data.wav; 
+# or ./bin/audio_demo 45 renders one note headless to data.wav
+LD_LIBRARY_PATH=bin:extbin/linux64 ./bin/audio_demo
+```

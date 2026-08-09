@@ -136,7 +136,7 @@ int main(int argc, char const* argv[]) {
   }
 
   Launcher(argv[1]).Execute();
-  return 0;
+  return Program_GetExitCode();
 }
 
 #if 0

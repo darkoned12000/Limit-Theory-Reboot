@@ -435,7 +435,7 @@ Josh designed this as a **game engine, not a library**:
    // GOOD (C++ style):
    int* p = static_cast<int*>(ptr);
    ```
-   **Status:** Partially done via `clang-tidy` (see assessment.md §8c.2).
+   **Status:** Partially done via `clang-tidy` (see AGENTS.md §A.6).
 
 2. **Raw `new`/`delete` → RAII wrappers:**
    ```cpp

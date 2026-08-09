@@ -15,6 +15,8 @@ struct SettingsEntry {
 
   virtual void GetValue(void* buffer) = 0;
 
+  virtual void SetValue(void const* value) {}
+
   FIELDS {}
 };
 

@@ -1,0 +1,178 @@
+# Copyright (C) 2025  darkoned12000
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Part of the ltheory-old-test modernization effort (Revamp Work).
+# See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
+#
+# UI self-test harness. Run explicitly: python3 configure.py run selftest
+#
+# Builds a minimal widget tree, drives the cursor deterministically with
+# Mouse_SetPos, and asserts layout + focus state after ui.Update. Prints
+# PASS/FAIL via the Log binding and exits with code 0 (all pass) or 1
+# (any failure) so CI can gate on stdout/exit code without a human eye.
+#
+# Regression targets:
+#   * Absolute geometry (PostPosition) is respected after ui.Update.
+#   * Cursor-driven focus (the HitTest/CaptureMouse family) tracks the
+#     real cursor and does NOT latch when the cursor is outside the region
+#     (the class of bug that previously broke movement/fire/map/ESC).
+#   * Parent widgets OR-merge child focus flags (via HasFocus*Recursive).
+#   * Script CreateChildren fires once and Rebuild refires it.
+#
+# LTSL idiom notes (engine quirks to NOT trip over):
+#   * Mixed Float/Int comparisons (`x > 0`) are AMBIGUOUS (both Float_Greater
+#     and Int_Greater match with one implicit conversion) — always write the
+#     float literal (`x > 0.0`).
+#   * There is no `==` operator for Float or Vec2 (only Int/Bool/String), so
+#     float/Vec2 equality must be done with component range checks.
+
+type HitTest
+  function Void PostPosition (Widget self)
+    self.pos = (Vec2 200.0 100.0)
+    self.size = (Vec2 300.0 200.0)
+
+  function Void PostUpdate (Widget self)
+    var c Cursor_Get
+    self.focusMouse = (self.pos <= c && c <= self.pos + self.size)
+
+type ForceFocus
+  function Void PostUpdate (Widget self)
+    self.focusKey = true
+    self.focusMouse = true
+
+type SelftestScreen
+  function List CreateChildren (Widget self)
+    var l List
+    l += (Widget)
+    l += (Widget)
+    l
+
+type App
+  Interface ui
+  Widget root Widget
+  Widget probe Widget
+  Widget force Widget
+  Widget screen Widget
+
+  function Void Initialize ()
+    ui = (Interface_Create "UI")
+    root = (Widget)
+    probe = (Custom Widget HitTest)
+    force = (Custom Widget ForceFocus)
+    screen = (Custom Widget SelftestScreen)
+    root.AddChild probe
+    root.AddChild force
+    root.AddChild screen
+    ui.Add root
+
+  function Void Update ()
+    static frame 0
+    static checks 0
+    static failures 0
+    frame = frame + 1
+
+    switch
+      frame == 1
+        Mouse_SetPos (Vec2 250.0 150.0)
+        ui.Update
+
+        checks = checks + 1
+        switch
+          root.size.x > 0.0 && root.size.y > 0.0
+            Log "layout: root sized after ui.Update: PASS"
+          otherwise
+            Log "layout: root sized after ui.Update: FAIL"
+            failures = failures + 1
+
+        checks = checks + 1
+        switch
+          probe.pos.x > 199.5 && probe.pos.x < 200.5 &&
+          probe.pos.y > 99.5 && probe.pos.y < 100.5
+            Log "layout: probe absolute geometry: PASS"
+          otherwise
+            Log "layout: probe absolute geometry: FAIL"
+            failures = failures + 1
+
+        checks = checks + 1
+        switch
+          force.focusKey
+            Log "focus: ForceFocus key capture: PASS"
+          otherwise
+            Log "focus: ForceFocus key capture: FAIL"
+            failures = failures + 1
+
+        checks = checks + 1
+        switch
+          probe.focusMouse
+            Log "focus: HitTest mouse capture (inside region): PASS"
+          otherwise
+            Log "focus: HitTest mouse capture (inside region): FAIL"
+            failures = failures + 1
+
+        checks = checks + 1
+        switch
+          root.HasFocusMouseRecursive && root.HasFocusKeyRecursive
+            Log "focus: parent merges child focus flags: PASS"
+          otherwise
+            Log "focus: parent merges child focus flags: FAIL"
+            failures = failures + 1
+
+        checks = checks + 1
+        switch
+          screen.GetChildren.Size == 2
+            Log "children: CreateChildren creates 2: PASS"
+          otherwise
+            Log "children: CreateChildren creates 2: FAIL"
+            failures = failures + 1
+
+      frame == 2
+        Mouse_SetPos (Vec2 50 50)
+        ui.Update
+
+        checks = checks + 1
+        switch
+          probe.focusMouse.!
+            Log "focus: HitTest no capture (outside region): PASS"
+          otherwise
+            Log "focus: HitTest no capture (outside region): FAIL"
+            failures = failures + 1
+
+        checks = checks + 1
+        switch
+          force.focusKey
+            Log "focus: ForceFocus key persists: PASS"
+          otherwise
+            Log "focus: ForceFocus key persists: FAIL"
+            failures = failures + 1
+
+        checks = checks + 1
+        switch
+          screen.GetChildren.Size == 2
+            Log "children: not recreated per frame: PASS"
+          otherwise
+            Log "children: not recreated per frame: FAIL"
+            failures = failures + 1
+
+      frame == 3
+        screen.Rebuild
+        ui.Update
+
+        checks = checks + 1
+        switch
+          screen.GetChildren.Size == 2
+            Log "children: rebuilt after explicit Rebuild: PASS"
+          otherwise
+            Log "children: rebuilt after explicit Rebuild: FAIL"
+            failures = failures + 1
+
+        Log ("selftest: " + checks + " checks, " + failures + " failures")
+        switch
+          failures == 0
+            Log "selftest: ALL PASS"
+            (Program_Exit 0)
+          otherwise
+            Log "selftest: FAILURES DETECTED"
+            (Program_Exit 1)
+
+function App Main ()
+  var self App
+  self

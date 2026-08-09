@@ -17,3 +17,15 @@ static Function const Program_Delete_Registration = Function_Bind(
     p->Delete();
   });
 static int const Program_Delete_Alias = Function_Alias("Program_Delete", "Exit");
+
+static Function const Program_Exit_Registration = Function_Bind(
+  "Program_Exit",
+  "Request clean shutdown with the given exit code (used by the self-test harness to gate on failures)",
+  [](int const& code)
+  {
+  Program_SetExitCode(code);
+  Program* p = Program_GetCurrent();
+  if (p)
+    p->Delete();
+  },
+  "code");

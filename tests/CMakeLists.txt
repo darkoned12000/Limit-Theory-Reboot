@@ -22,11 +22,15 @@ set(TEST_SRC
   TestSFML.cpp
   TestSound.cpp
   TestSerializer.cpp
+  TestSaveGameJSON.cpp
   TestTexture2D.cpp
   TestWindowInput.cpp
   TestFunctionBind.cpp
   TestStringBindings.cpp
-  TestConversionBind.cpp)
+  TestConversionBind.cpp
+  TestLogBindings.cpp
+  TestProgramBindings.cpp
+  TestCrashHandler.cpp)
 
 add_executable(lte_tests ${TEST_SRC})
 

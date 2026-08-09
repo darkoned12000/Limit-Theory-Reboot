@@ -1,3 +1,8 @@
+// Copyright (C) 2025  darkoned12000
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Part of the ltheory-old-test modernization effort (Revamp Work).
+// See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
+
 #include "../Expressions.h"
 
 #include "LTE/Environment.h"
@@ -85,6 +90,17 @@ namespace LTE {
     if (!fn->expression)
       fn->expression = Expression_Noop();
     fn->returnType = fn->expression->GetType();
+
+    /* Function bodies compile into their own sub-environment; surface any
+       errors there in the outer environment so they reach ScriptT::Reload's
+       PrintErrors. Without this, a compile error inside a method/function
+       body silently no-ops the offending statement (Expression_Block drops
+       failed expressions) and the app "works" with zero diagnostics — exactly
+       the silent-failure class ltsl-hardening.md exists to eliminate. */
+    for (size_t i = 0; i < subEnv.errors.size(); ++i)
+      env.errors.push(subEnv.errors[i]);
+    if (subEnv.hasErrors)
+      env.hasErrors = true;
 
     if (env.context.size())
       env.context.back()->functions[name] = fn;

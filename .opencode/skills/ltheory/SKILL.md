@@ -12,8 +12,8 @@ description: >-
 # SKILL.md - Limit Theory Engine & LTSL Scripting
 
 **Purpose:** Master reference for AI agents helping with Limit Theory engine development and gameplay scripting.  
-**Version:** 2.0.0 (Enhanced with real codebase patterns)  
-**Last Updated:** 2026-07-30
+**Version:** 2.1.0 (current: selftest app, error surfacing, ZED LSP, 399 checks)  
+**Last Updated:** 2026-08-08
 
 ---
 
@@ -165,9 +165,11 @@ obj.SetPos position                           # Set position (Vec3 or Position)
 obj.GetPos                                    # Get position
 obj.SetVel velocity                           # Set velocity (Vec3)
 obj.GetVel                                    # Get velocity
-obj.SetMass mass     Real Composition Pattern from Button.lts)
-```lts
+obj.SetMass mass                              # Set mass
+```
+
 # Widget composition is like building a tree (from Button.lts)
+```lts
 function Widget Create (Data onPress String text Float size)
   Components:CaptureMouse                     # Outer wrapper (captures mouse)
     Components:Padding (Vec2 6 6) 6           # Add padding around
@@ -909,10 +911,10 @@ resource/script/gameConfig.txt          # Game configuration (seed, etc.)
 - See: ENGINE-STABILITY-AND-MODDING.md Part 4
 
 **LTSL Language Server (LSP) for IntelliSense**
-- Status: Complete implementation guide with working code
+- Status: Complete and integrated for **ZED** (TypeScript server + ZED extension; engine-generated API DB feeds completions)
 - Features: Autocomplete, hover tooltips, error checking, syntax highlighting, go-to-definition
-- Implementation: TypeScript server + VS Code extension (25,000 words)
-- See: docs/LTSL-LSP-IMPLEMENTATION-GUIDE.md (includes 20-minute speedrun setup)
+- Implementation: TypeScript server + ZED extension adapter (`extensions/ltsl/`)
+- See: AGENTS.md §6.2 + docs/LTSL-LSP-IMPLEMENTATION-GUIDE.md (setup, config, verification)
 
 ---
 
@@ -1113,7 +1115,7 @@ python configure.py run ltheory-main
 
 ### Testing
 ```bash
-# Run all unit tests (148 tests)
+# Run all unit tests (399 checks)
 python configure.py test
 
 # Check for errors in specific file
@@ -1399,7 +1401,7 @@ See AUDIO-SYSTEM-GUIDE.md for 300+ sound asset catalog.
 ### Memory
 - **Refcounting:** Intrusive via `Reference<T>`
 - **Allocation:** ~585 raw `new`/`delete` (most wrapped in Reference<T>)
-- **Leaks:** None detected in 148 unit tests
+- **Leaks:** None detected in 399 unit checks
 
 ---
 
@@ -1428,7 +1430,7 @@ See AUDIO-SYSTEM-GUIDE.md for 300+ sound asset catalog.
 
 ### Unit Tests
 ```bash
-# Run all tests (148 tests)
+# Run all tests (399 checks)
 python configure.py test
 
 # Tests cover:
@@ -1437,6 +1439,23 @@ python configure.py test
 # - Type system (Reference<T> refcounting)
 # - Serialization round-trips
 # - LTSL compilation (error reporting)
+# - Script binding surface (Log/Log_Warn/Log_Error, Program_Exit, Mouse_SetPos)
+```
+
+### Selftest app (LTSL-level regression harness)
+```bash
+# 10 layout/focus assertions, compiled + run by the engine itself.
+# Exits 0 on success (also usable as a CI gate).
+python configure.py run selftest
+```
+The harness lives in `resource/script/App/selftest.lts` — add assertions there
+instead of new C++ test scaffolding when the check can be expressed in LTSL.
+
+### LSP diagnostics smoke (editing-time gate)
+```bash
+node script/ltsl-lsp/out/smoke.js $(find resource/script -name '*.lts' | sort)
+# Expect exactly 8 diagnostics: 4 structural fixtures + 4 accepted warnings.
+# See AGENTS.md §6.2 for the accepted list.
 ```
 
 ### Manual Testing
@@ -1519,6 +1538,14 @@ See LTSL-ARCHITECTURE-AND-IMPROVEMENTS.md Part 7 for full roadmap:
 ---
 
 ## 15. Revision History
+
+**v2.1.0 (2026-08-08):** DX-hardening session follow-up
+- Fixed a corrupted line in the LTSL Components section (garbled `obj.SetMass` line + broken code fence)
+- LSP section updated: ZED extension (not VS Code)
+- Test counts refreshed: 399 checks (lte_tests), selftest app added to §11
+- Added the LSP diagnostics smoke gate (8 diagnostics expected)
+
+**v2.0.0 (2026-07-30):** Enhanced with real codebase patterns (LTSL examples from war.lts/Button.lts, map guide, shader patterns)
 
 **v1.0.0 (2026-07-30):** Initial comprehensive skill creation
 - Quick reference API (LTSL object creation, math, components, widgets)

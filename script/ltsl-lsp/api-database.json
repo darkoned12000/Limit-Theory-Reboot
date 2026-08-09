@@ -1480,6 +1480,17 @@
     },
     {
       "name": "Append",
+      "signature": "void Append(Vector<SaveSlotInfo> object, SaveSlotInfo element)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "object", "type": "Vector<SaveSlotInfo>"},
+        {"name": "element", "type": "SaveSlotInfo"}
+      ],
+      "documentation": "Append 'element' to the back of the vector",
+      "source": ""
+    },
+    {
+      "name": "Append",
       "signature": "void Append(Vector<Reference<RenderPassT>> object, Reference<RenderPassT> element)",
       "returnType": "void",
       "parameters": [
@@ -3673,6 +3684,17 @@
         {"name": "iterator", "type": "ObjectChildIterator"}
       ],
       "documentation": "Return the contents of 'iterator'",
+      "source": ""
+    },
+    {
+      "name": "Get",
+      "signature": "SaveSlotInfo Get(Vector<SaveSlotInfo> object, Int32 index)",
+      "returnType": "SaveSlotInfo",
+      "parameters": [
+        {"name": "object", "type": "Vector<SaveSlotInfo>"},
+        {"name": "index", "type": "Int32"}
+      ],
+      "documentation": "Return the element at 'index' in the vector",
       "source": ""
     },
     {
@@ -10036,7 +10058,7 @@
       "returnType": "SaveGameData",
       "parameters": [
       ],
-      "documentation": "Read the saved game state from the persistent save file. Returns a SaveGameData whose 'version' is 0 when no save exists (or it is corrupt / from an incompatible version).",
+      "documentation": "Read the saved game state from the most recent save slot (quicksave first, then newest by date). Returns a SaveGameData whose 'version' is 0 when no save exists (or it is corrupt / from an incompatible version).",
       "source": ""
     },
     {
@@ -10091,6 +10113,16 @@
       "source": ""
     },
     {
+      "name": "Log",
+      "signature": "void Log(String entry)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "entry", "type": "String"}
+      ],
+      "documentation": "Write a plain message to the console and log file",
+      "source": ""
+    },
+    {
       "name": "LogIterator_Advance",
       "signature": "void LogIterator_Advance(LogIterator iterator)",
       "returnType": "void",
@@ -10128,6 +10160,26 @@
         {"name": "iterator", "type": "LogIterator"}
       ],
       "documentation": "Return the total number of elements in 'iterator'",
+      "source": ""
+    },
+    {
+      "name": "Log_Error",
+      "signature": "void Log_Error(String entry)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "entry", "type": "String"}
+      ],
+      "documentation": "Write an error message to the console and log file",
+      "source": ""
+    },
+    {
+      "name": "Log_Warn",
+      "signature": "void Log_Warn(String entry)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "entry", "type": "String"}
+      ],
+      "documentation": "Write a warning message to the console and log file",
       "source": ""
     },
     {
@@ -10864,6 +10916,16 @@
       "parameters": [
       ],
       "documentation": "None",
+      "source": ""
+    },
+    {
+      "name": "Mouse_SetPos",
+      "signature": "void Mouse_SetPos(Vec2 pos)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "pos", "type": "Vec2"}
+      ],
+      "documentation": "Set the cursor position relative to the window; used by the UI self-test harness for deterministic focus-mouse tests",
       "source": ""
     },
     {
@@ -13953,6 +14015,16 @@
       "source": ""
     },
     {
+      "name": "Program_Exit",
+      "signature": "void Program_Exit(Int32 code)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "code", "type": "Int32"}
+      ],
+      "documentation": "Request clean shutdown with the given exit code (used by the self-test harness to gate on failures)",
+      "source": ""
+    },
+    {
       "name": "Project",
       "signature": "Vec3d Camera_Project(Camera camera, Vec3d position)",
       "returnType": "Vec3d",
@@ -14967,7 +15039,7 @@
         {"name": "player", "type": "Player"},
         {"name": "root", "type": "Object"}
       ],
-      "documentation": "Write the current game state (player credits, ship position/look, and the universe seed) to the persistent save file. Returns true on success.",
+      "documentation": "Write the current game state (player credits, ship position/look, and the universe seed) to the quicksave slot. Returns true on success.",
       "source": ""
     },
     {
@@ -14978,7 +15050,16 @@
         {"name": "player", "type": "Player"},
         {"name": "root", "type": "Object"}
       ],
-      "documentation": "Write the current game state (player credits, ship position/look, and the universe seed) to the persistent save file. Returns true on success.",
+      "documentation": "Write the current game state (player credits, ship position/look, and the universe seed) to the quicksave slot. Returns true on success.",
+      "source": ""
+    },
+    {
+      "name": "SaveGame_ListSlots",
+      "signature": "Vector<SaveSlotInfo> SaveGame_ListSlots()",
+      "returnType": "Vector<SaveSlotInfo>",
+      "parameters": [
+      ],
+      "documentation": "Return metadata (slot name, date created, player name, universe seed) for every save slot, newest first.",
       "source": ""
     },
     {
@@ -14987,7 +15068,17 @@
       "returnType": "SaveGameData",
       "parameters": [
       ],
-      "documentation": "Read the saved game state from the persistent save file. Returns a SaveGameData whose 'version' is 0 when no save exists (or it is corrupt / from an incompatible version).",
+      "documentation": "Read the saved game state from the most recent save slot (quicksave first, then newest by date). Returns a SaveGameData whose 'version' is 0 when no save exists (or it is corrupt / from an incompatible version).",
+      "source": ""
+    },
+    {
+      "name": "SaveGame_LoadSlot",
+      "signature": "SaveGameData SaveGame_LoadSlot(String slotName)",
+      "returnType": "SaveGameData",
+      "parameters": [
+        {"name": "slotName", "type": "String"}
+      ],
+      "documentation": "Read the saved game state from the named save slot. Returns a SaveGameData whose 'version' is 0 when the slot does not exist (or is corrupt / from an incompatible version).",
       "source": ""
     },
     {
@@ -15167,6 +15258,18 @@
         {"name": "message", "type": "Data"}
       ],
       "documentation": "Send 'message' recursively to all parents of 'widget'",
+      "source": ""
+    },
+    {
+      "name": "Set",
+      "signature": "void Set(Vector<SaveSlotInfo> object, Int32 index, SaveSlotInfo element)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "object", "type": "Vector<SaveSlotInfo>"},
+        {"name": "index", "type": "Int32"},
+        {"name": "element", "type": "SaveSlotInfo"}
+      ],
+      "documentation": "Set the number of elements in the vector",
       "source": ""
     },
     {
@@ -16044,6 +16147,16 @@
         {"name": "output", "type": "ScannerOutput"}
       ],
       "documentation": "Return the number of frequency bands in 'output'",
+      "source": ""
+    },
+    {
+      "name": "Size",
+      "signature": "Int32 Size(Vector<SaveSlotInfo> object)",
+      "returnType": "Int32",
+      "parameters": [
+        {"name": "object", "type": "Vector<SaveSlotInfo>"}
+      ],
+      "documentation": "Return the number of elements in the vector",
       "source": ""
     },
     {
@@ -21843,6 +21956,77 @@
     },
     {
       "name": "SaveGameData",
+      "description": "",
+      "fields": [
+      ],
+      "methods": [
+      ],
+      "documentation": ""
+    },
+    {
+      "name": "SaveSlotInfo",
+      "description": "",
+      "fields": [
+      ],
+      "methods": [
+      ],
+      "documentation": ""
+    },
+    {
+      "name": "Vector<SaveSlotInfo>",
+      "description": "unknown type",
+      "fields": [
+      ],
+      "methods": [
+    {
+      "name": "Append",
+      "signature": "void Append(Vector<SaveSlotInfo> object, SaveSlotInfo element)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "object", "type": "Vector<SaveSlotInfo>"},
+        {"name": "element", "type": "SaveSlotInfo"}
+      ],
+      "documentation": "Append 'element' to the back of the vector",
+      "source": ""
+    },
+    {
+      "name": "Get",
+      "signature": "SaveSlotInfo Get(Vector<SaveSlotInfo> object, Int32 index)",
+      "returnType": "SaveSlotInfo",
+      "parameters": [
+        {"name": "object", "type": "Vector<SaveSlotInfo>"},
+        {"name": "index", "type": "Int32"}
+      ],
+      "documentation": "Return the element at 'index' in the vector",
+      "source": ""
+    },
+    {
+      "name": "Size",
+      "signature": "Int32 Size(Vector<SaveSlotInfo> object)",
+      "returnType": "Int32",
+      "parameters": [
+        {"name": "object", "type": "Vector<SaveSlotInfo>"}
+      ],
+      "documentation": "Return the number of elements in the vector",
+      "source": ""
+    },
+    {
+      "name": "Set",
+      "signature": "void Set(Vector<SaveSlotInfo> object, Int32 index, SaveSlotInfo element)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "object", "type": "Vector<SaveSlotInfo>"},
+        {"name": "index", "type": "Int32"},
+        {"name": "element", "type": "SaveSlotInfo"}
+      ],
+      "documentation": "Set the number of elements in the vector",
+      "source": ""
+    }
+      ],
+      "documentation": ""
+    },
+    {
+      "name": "unknown type",
       "description": "",
       "fields": [
       ],

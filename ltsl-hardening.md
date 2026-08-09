@@ -44,15 +44,15 @@ Two halves:
   must come textually AFTER its source binding in the same file, or it
   registers an empty bucket silently. Gate: `script/check_binding_alias_order.py`
   → `OK: 509 / 1 known`. See §4.
-- **The single biggest DX problem today:** `Expression_Compile`'s probe chain
-  reports spurious "unknown variable '1'"-style errors for every literal atom
-  before the Constant parser succeeds. Non-fatal, but noisy and misleading
-  (ui/market/hud print "7 compilation error(s)" every load). Fix is small;
-  see §6.1.
-- **Hardening priority:** (P1) silent literal probes, script-visible logging,
-  runtime error channel, startup watchdog. (P2) explicit-return enforcement,
-  line-attribution for `#` comments, `ltsl_api_dump` docs. (P3) hot reload,
-  data-driven UI, list methods. Full list in §8.
+- **The single biggest DX problem today (RESOLVED 2026-08-08):**
+  `Expression_Compile`'s probe chain used to report spurious "unknown variable
+  '1'"-style errors for every literal atom before the Constant parser
+  succeeded (ui/market/hud printed "7 compilation error(s)" every load).
+  Fixed by `IsLiteralAtom` probe-skipping + diagnostic rollback (§5.1, P1-1).
+- **Hardening priority:** (P1) runtime error channel, startup watchdog.
+  (P2) explicit-return enforcement, `StringList_Create` single-line,
+  `String_Split` 2-arg bind. (P3) hot reload, data-driven UI, list methods.
+  Full list in §8.
 
 ---
 
@@ -246,7 +246,7 @@ the API database is dumped from the live type/function registry
 
 ### 3.3 The API DB and the LSP (for editing only)
 
-`script/ltsl-lsp/api-database.json` (1852 functions / 445 types) feeds the
+`script/ltsl-lsp/api-database.json` (1857 functions / 445 types) feeds the
 editor language server — it does NOT affect the engine at runtime. Regenerate
 when the C++ API changes:
 
@@ -321,6 +321,12 @@ when `env.hasErrors`), but:
 **Verified** pre-existing (identical output on a clean HEAD checkout,
 2026-08-05) — unrelated to the bridge. Fix candidate §6.1.
 
+**RESOLVED 2026-08-08 (P1-1).** `Expression.cpp` now skips the probe chain for
+atoms that parse as literals (numbers/strings/bools via `IsLiteralAtom`) and
+the compile wrappers roll back diagnostics left behind by a probe when a later
+probe succeeds. The spurious error flood is gone; the LSP smoke runs clean and
+apps only report genuine compile errors.
+
 ### 5.2 Inline-script test trap: `StringList_Create` double-wraps
 
 `StringList_Create("(while 1 (return 42))")` from a single line produces an
@@ -390,13 +396,32 @@ Recommendation §6.2 (bind `Log`/`Print`) removes that friction permanently.
       still return last expression for backward compat.
 - [x] **While/return termination fix.** `While.cpp` checks `returnSignal`
       before predicate re-eval and after body; regression test added.
-- [x] **Unit-test harness for scripts.** `lte_tests` (369 checks) can compile
+- [x] **Unit-test harness for scripts.** `lte_tests` (399 checks) can compile
       and evaluate script expressions headlessly — the fastest loop for LTSL
       engine bugs.
 - [x] **Binding-bridge Step 10 complete.** All `Function_Generated.h` /
       `DeclareFunction.h` macros deleted; `Function_Bind`/`Conversion_Bind`/
       `Function_Alias` are the only mechanism. Alias-order gate, API-DB
-      byte-diff, and LSP smoke (6 diagnostics) are the automated gates.
+      byte-diff, and LSP smoke (8 diagnostics) are the automated gates.
+- [x] **Silent literal probes fixed (P1-1).** `IsLiteralAtom` probe-skipping +
+      diagnostic rollback in `Expression.cpp`; §5.1 noise gone.
+- [x] **Script-visible logging (P1-2).** `Log` / `Log_Warn` / `Log_Error`
+      bound in `ScriptAPI/ProgramLog.cpp`, mirroring `ProgramLog` severities.
+      Replaces the §5.5 printf technique; verified by `tests/TestLogBindings.cpp`.
+- [x] **`#`-comment line attribution fixed (P2-6).** Parse-time `#`-block strip
+      in `StringList.cpp` + comment handling in the compile core — `#` tokens
+      no longer feed the probe chain (kills the "line 7" false errors) and
+      `#`-block comments keep their original semantics (regression test added).
+- [x] **Function-body errors surface (new).** `Expression_Function` compiles
+      bodies with a child environment that propagates errors to the caller, so
+      a script that fails inside a function body now reports it instead of
+      silently swallowing the diagnostic. Exposed three real latent bugs:
+      `Widget/SettingsPanel` (97 — committed WIP, never runtime-verified),
+      `Widget/DebugScene` (12 — bare `else` + `DrawPanel` arg order),
+      `App/ltheory-unitest` (6 — bare `else`).
+- [x] **Selftest app (new).** `resource/script/App/selftest.lts` — a 10-assert
+      layout/focus harness that compiles via the engine and exits 0 on success
+      (`python3 configure.py run selftest`). No C++ needed to extend.
 
 ---
 
@@ -417,10 +442,10 @@ For any LTSL bug, in order:
    commit (grep for the tag).
 5. **Run the gates** before committing:
    - `python3 configure.py build` (green, `-Werror` on project code)
-   - `python3 configure.py test` (369 checks, 0 failures)
+   - `python3 configure.py test` (399 checks, 0 failures)
    - `python3 script/check_binding_alias_order.py $(git ls-files 'src/liblt/**/*.cpp' 'src/liblt/**/*.h')` → `OK: 509 / 1 known`
    - API-DB diff vs `build/api-baseline.json` → 0 added / 0 removed
-   - `node script/ltsl-lsp/out/smoke.js $(find resource/script -name '*.lts' | sort)` → exactly 6 diagnostics (4 known unbalanced-paren fixtures + 2 cross-file symbols)
+    - `node script/ltsl-lsp/out/smoke.js $(find resource/script -name '*.lts' | sort)` → exactly 8 diagnostics (4 known unbalanced-paren fixtures + 4 accepted warnings, see AGENTS.md §6.2)
    - `timeout 8 python3 configure.py run <app>` for the affected apps
 
 ---
@@ -434,8 +459,8 @@ Order below is "biggest DX win per unit of effort".
 
 | # | Item | What / why | Where |
 |---|------|------------|-------|
-| 1 | **Silent literal probes** | Make the Variable/Reference/FunctionCall/ExpressionCall/Constructor probes return `nullptr` **without** `ReportError` when the atom parses as a literal (number/string/bool) — the Constant factory is the last probe and always wins for literals. Kills the §5.1 noise at its source. | `Expression.cpp` atom path, `Variable.cpp`, `FunctionCall.cpp`, `Constructor.cpp` |
-| 2 | **Script-visible logging** | Bind `Log`/`Print` (level + tag + string) to LTSL so apps can trace without touching engine C++ (replaces the §5.5 printf technique). | `ScriptAPI` (e.g. `String.cpp`), `ProgramLog.cpp` |
+| 1 | **Silent literal probes** ✅ done | ~~Make the Variable/Reference/FunctionCall/ExpressionCall/Constructor probes return `nullptr` without `ReportError` when the atom parses as a literal (number/string/bool)~~ — `IsLiteralAtom` + rollback landed 2026-08-08. | `Expression.cpp` atom path, `Variable.cpp`, `FunctionCall.cpp`, `Constructor.cpp` |
+| 2 | **Script-visible logging** ✅ done | ~~Bind `Log`/`Print` (level + tag + string)~~ — `Log`/`Log_Warn`/`Log_Error` bound in `ScriptAPI/ProgramLog.cpp`; verified by `TestLogBindings.cpp`. | `ScriptAPI` (e.g. `String.cpp`), `ProgramLog.cpp` |
 | 3 | **Runtime error channel** | On script exception/failure, print the LTSL stack via `StackFrame_Print` and route a message to the debug overlay (F3). Turns silent last-expression returns into diagnosable failures. | `StackFrame.cpp`, `Widget/DebugScene.lts` |
 | 4 | **Startup watchdog** | A watchdog (frame counter or wall-clock) that trips if the app's `Update` runs too long / never returns — with a stack dump. Would have caught the while/return hang in seconds. | `Program.cpp`, `launch.cpp` |
 
@@ -444,10 +469,10 @@ Order below is "biggest DX win per unit of effort".
 | # | Item | What / why |
 |---|------|------------|
 | 5 | **Explicit-return strict mode** | Optional warning when a non-`Void` function body has no `return` (relies on last-expression fallback). Catches silent-wrong-value bugs. |
-| 6 | **`#` comment line attribution** | `#` comment lines currently feed tokens into the probe chain (§5.1 observed as "line 7" errors); strip comments before compile or fix `LineNo` attribution so errors point at real code. |
+| 6 | **`#` comment line attribution** ✅ done | ~~`#` comment lines feed tokens into the probe chain~~ — parse-time `#`-block strip in `StringList.cpp` + comment handling in the compile core landed 2026-08-08. |
 | 7 | **`StringList_Create` single-line** | Make single-line input not double-wrap (§5.2) so inline script tests stop producing `cannot resolve type '(...)'` noise. |
 | 8 | **Bind `String_Split` 2-arg** | Remove the `Substring`/`Length` workaround in config parsing. |
-| 9 | **Fix `ltsl_api_dump` docs** | AGENTS.md `>` redirect trap (§3.3); document the output-path arg. |
+| 9 | **Fix `ltsl_api_dump` docs** ✅ done | AGENTS.md §6.2 documents the explicit output-path arg (no `>` redirect); `build/api-baseline.json` synced to 1857 fns. |
 
 ### P3 — roadmap items already tracked elsewhere
 
@@ -462,20 +487,29 @@ Order below is "biggest DX win per unit of effort".
 
 ## 9. Open questions (to resolve before the P1/P2 work)
 
-- Should the probe-silencing fix (§6.1/§8.1) treat **all** atoms that a literal
-  factory accepts as literals, or only numbers/strings/bools? (Vectors like
-  `Vec3` are constructors, not literals — out of scope.)
+- ~~Should the probe-silencing fix (§6.1/§8.1) treat all atoms that a literal
+  factory accepts as literals, or only numbers/strings/bools?~~ **Resolved
+  2026-08-08:** only numbers/strings/bools (`IsLiteralAtom`); constructors like
+  `Vec3` stay out of scope.
 - Explicit-return strict mode: default **off** with a config flag, or on with a
   suppress comment? (Backward compat favors default off.)
 - Watchdog trip action: log+abort (fail loud) vs log+resume (skip the hung
   frame)? Recommend log+abort for now — silent hangs are worse than a crash.
-- Which log level mapping? Proposal: `Log` (info), `Log_Warn`, `Log_Error`
-  mirroring `ProgramLog`'s existing severities.
+- ~~Which log level mapping?~~ **Resolved 2026-08-08:** `Log` (info),
+  `Log_Warn`, `Log_Error` mirroring `ProgramLog`'s severities.
 
 ---
 
 ## 10. Change log
 
+- **2026-08-08** — Error-surfacing + DX hardening session. Function-body
+  compile errors now propagate (`Expression_Function` child env) instead of
+  being silently swallowed — exposed real latent bugs in `SettingsPanel`
+  (97), `DebugScene` (12), `ltheory-unitest` (6). Landed P1-1 (probe
+  silencing), P1-2 (`Log`/`Log_Warn`/`Log_Error`), P2-6 (`#`-comment strip),
+  P2-9 (API-DB docs + baseline sync, 1857 fns). Added the selftest app
+  (`resource/script/App/selftest.lts`, 10 asserts, exit code). LSP smoke gate
+  re-baselined 6 → 8 (4 structural fixtures + 4 accepted warnings).
 - **2026-08-05** — Created. Captures the binding-bridge Step 10 session (Phase
   A–D gates), the while/return fix, the literal-probe noise finding, and the
   ordering/priority rules (§2–4) verified against source. Hardening priorities

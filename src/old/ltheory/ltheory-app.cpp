@@ -39,7 +39,7 @@
 #include "UI/Interface.h"
 #include "UI/Widgets.h"
 
-const uint kUniverseSeed = 98080;
+const uint kUniverseSeed = 1098080;
 const Quantity kShipValue = 10000;
 const float kSimulationFrequency = 30;
 

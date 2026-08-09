@@ -162,6 +162,21 @@ foreach(TARGET ${TARGETS})
   target_compile_options(${TARGET} PRIVATE -Werror)
 endforeach(TARGET)
 
+# === Old-code revival demos (src/old/) — investigation targets, droppable ===
+# Revived from Josh Parnell's original standalone executables. Kept as small,
+# runnable demos of functionality the scripted apps don't exercise; see
+# docs/old-code-investigation.md. Build: bin/ltheory_app, bin/audio_demo.
+foreach(DEMO ltheory_app audio_demo)
+  if(DEMO STREQUAL "ltheory_app")
+    add_executable(ltheory_app ${PROJECT_SOURCE_DIR}/src/old/ltheory/ltheory-app.cpp)
+  else()
+    add_executable(audio_demo ${PROJECT_SOURCE_DIR}/src/old/demos/audio-demo.cpp)
+  endif()
+  target_link_libraries(${DEMO} ${LINK_LIBRARIES} lt)
+  configure_output_dir(${DEMO})
+  target_compile_options(${DEMO} PRIVATE -Werror)
+endforeach(DEMO)
+
 # Set target properties
 if(WINDOWS)
 
@@ -207,6 +222,10 @@ else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-tautological-compare")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-copy")
+
+  # Export symbols to the dynamic symbol table so backtrace() in the crash
+  # handler can resolve function names (see CrashHandler.cpp / ROADMAP 2.2).
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
 
   # Stop on first error for faster iteration
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wfatal-errors")

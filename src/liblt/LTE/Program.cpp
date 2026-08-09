@@ -1,11 +1,11 @@
 #include "Program.h"
 
+#include "CrashHandler.h"
 #include "Joystick.h"
 #include "GL.h"
 #include "Keyboard.h"
 #include "Module.h"
 #include "Mouse.h"
-#include "OS.h"
 #include "StackFrame.h"
 #include "Window.h"
 
@@ -14,11 +14,12 @@
 namespace  {
   bool destructed = false;
   Program* current = nullptr;
+  int exitCode = 0;
 }
 
 Program::Program() : deleted(false) {
   srand((uint)time(0));
-  OS_ConfigureSignalHandlers();
+  CrashHandler_Install();
 }
 
 Program::~Program() {
@@ -75,6 +76,14 @@ void Program::Execute() {
 
 Program* Program_GetCurrent() {
   return current;
+}
+
+void Program_SetExitCode(int code) {
+  exitCode = code;
+}
+
+int Program_GetExitCode() {
+  return exitCode;
 }
 
 /* TODO : Fix this ugly mess. */
