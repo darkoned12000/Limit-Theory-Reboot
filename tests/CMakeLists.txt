@@ -28,7 +28,8 @@ set(TEST_SRC
   TestStringBindings.cpp
   TestConversionBind.cpp
   TestLogBindings.cpp
-  TestProgramBindings.cpp)
+  TestProgramBindings.cpp
+  TestCrashHandler.cpp)
 
 add_executable(lte_tests ${TEST_SRC})
 

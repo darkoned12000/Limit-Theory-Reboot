@@ -6,8 +6,6 @@
 
 LT_API bool OS_ChangeDir(String const& dir);
 
-LT_API void OS_ConfigureSignalHandlers();
-
 LT_API bool OS_CreateDir(String const& path);
 
 LT_API void OS_CreatePath(String const& path);

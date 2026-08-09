@@ -1,10 +1,8 @@
 #include "OS.h"
 #include "Profiler.h"
 #include "ProgramLog.h"
-#include "StackFrame.h"
 #include "String.h"
 
-#include <csignal>
 #include <cstring>
 #include <iostream>
 
@@ -33,37 +31,11 @@
 
 #endif
 
-void IntHandler(int value) {
-  StackFrame_Print();
-  exit(0);
-}
-
-void SegHandler(int value) {
-  error("Access Violation");
-  StackFrame_Print();
-  exit(0);
-}
-
-#ifdef LIBLT_WINDOWS
-  LONG _stdcall Win32SegHandler(EXCEPTION_POINTERS* pExcept) {
-    SegHandler(0);
-    return 0;
-  }
-#endif
-
 bool OS_ChangeDir(const String& path) {
 #ifdef LIBLT_WINDOWS
   return SetCurrentDirectoryA(path) != 0;
 #else
   return chdir(path) == 0;
-#endif
-}
-
-void OS_ConfigureSignalHandlers() {
-#ifndef LIBLT_WINDOWS
-  signal(SIGABRT, IntHandler);
-  signal(SIGINT, IntHandler);
-  signal(SIGSEGV, SegHandler);
 #endif
 }
 

@@ -851,6 +851,28 @@ documented — not an engine bug)
       number formatting, and `Expression_Compile` error output for `if`/`while`/
       `set`/`cast`/`var`/`return` arg count, unknown variable, and suggestion.
 
+### A.9 Crash Logging Polish (ROADMAP 2.2)
+
+- [x] **Dedicated crash handler** — `src/liblt/LTE/CrashHandler.{h,cpp}` replaces
+      the old `SegHandler`/`IntHandler` + `OS_ConfigureSignalHandlers` trap
+      (removed from `OS.cpp`/`OS.h`). `CrashHandler_Install()` (wired into
+      `Program::Program`) installs `SIGABRT`/`SIGSEGV`/`SIGFPE`/`SIGILL`
+      handlers (Windows: ABRT/SEGV). SIGINT keeps the old graceful-exit path.
+- [x] **Crash log to disk** — on a fatal signal the handler writes
+      `cache/crash_YYYY-MM-DD_HH-MM-SS.log` with signal name/number, timestamp,
+      build mode, engine frame annotations (`StackFrame_Get`), and a native
+      `backtrace()` call stack (Linux; `backtrace_symbols`), surfaces a
+      user-friendly message via `OS_MessageBox`, and exits non-zero
+      (`128+signal` — was `exit(0)`).
+- [x] **`-rdynamic` on Linux** — exported symbols so `backtrace()` resolves
+      function names instead of raw addresses.
+- [x] **Unit tests** — `tests/TestCrashHandler.cpp` (12 checks) verifying the
+      report writer creates a file with expected header fields, appends a
+      second report, and the log path is dated in the user-data dir.
+      Headless-safe: the writer is exercised directly; the handler's `exit()`
+      path is verified manually by a forced SIGSEGV (exit code 139).
+      Test count: **413 checks, 0 failures**.
+
 ---
 
 ## Index of Cross-references

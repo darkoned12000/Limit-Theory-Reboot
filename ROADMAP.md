@@ -47,11 +47,16 @@ a big rewrite** — the engine core is healthy (§9 of AGENTS.md).
   `SaveGame_Load` LTSL bindings; Save/Load entries in the main menu;
   round-trip test (save → quit → load → verify state).
 
-### 2.2 Crash logging polish — **P0, quick** (`in-progress`)
+### 2.2 Crash logging polish — **P0, quick** (`done`)
 - **Effort:** ~2 days. **Source:** `ENGINE-STABILITY-AND-MODDING.md` Part 1.
-- Current state: a `signal(SIGSEGV, SegHandler)` trap exists in
-  `src/liblt/LTE/OS.cpp:66`. Extend it to write a stack trace + crash log to
-  disk and surface a user-friendly message. Low risk, high debugging value.
+- Delivered 2026-08-08: new `src/liblt/LTE/CrashHandler.{h,cpp}` replaces the old
+  bare `SIGSEGV → exit(0)` trap. Installs `SIGABRT`/`SIGSEGV`/`SIGFPE`/`SIGILL`
+  handlers (Windows keeps ABRT/SEGV), writes a dated crash log
+  (`cache/crash_YYYY-MM-DD_HH-MM-SS.log`) with signal, timestamp, build mode,
+  engine frame annotations, and a native `backtrace()` call stack, surfaces a
+  user-friendly message, and exits non-zero (`128+signal`). `-rdynamic` added on
+  Linux so backtrace resolves symbol names. Covered by `TestCrashHandler.cpp`
+  (12 checks).
 
 ### 2.3 Data-driven JSON layer — **P1** (`todo`)
 - **Effort:** 3–4 weeks. **Source:** `ENGINE-STABILITY-AND-MODDING.md` Part 3
@@ -78,7 +83,7 @@ a big rewrite** — the engine core is healthy (§9 of AGENTS.md).
 | Item | Priority | Effort | Status | Source |
 |------|----------|--------|--------|--------|
 | Save/Load game state | P0 | 1–2 wk | todo | Stability P1, Save P1, PRD P1 |
-| Crash logging + stack traces | P0 | 2 d | in-progress | Stability P1 |
+| Crash logging + stack traces | P0 | 2 d | done | Stability P1 |
 | Asset hot-reload watcher | P1 | 1–2 wk | todo | Stability P2 |
 | Memory profiling (alloc tracking / valgrind) | P1 | 2 d | todo | Stability P1 |
 | InputManager + key rebinding (JSON-driven) | P1 | 2–3 wk | todo | Stability P3 |
@@ -230,7 +235,7 @@ holds the original creation plan.
 
 After any engine/C++/GLSL change:
 - `python3 configure.py build`
-- `python3 configure.py test` (unit tests: expect **399 checks, 0 failures**)
+- `python3 configure.py test` (unit tests: expect **413 checks, 0 failures**)
 - LSP (if LTSL/API changed): `node script/ltsl-lsp/test-rpc.js` and
   `node script/ltsl-lsp/out/smoke.js` (expect **8 diagnostics**)
 

@@ -1,11 +1,11 @@
 #include "Program.h"
 
+#include "CrashHandler.h"
 #include "Joystick.h"
 #include "GL.h"
 #include "Keyboard.h"
 #include "Module.h"
 #include "Mouse.h"
-#include "OS.h"
 #include "StackFrame.h"
 #include "Window.h"
 
@@ -19,7 +19,7 @@ namespace  {
 
 Program::Program() : deleted(false) {
   srand((uint)time(0));
-  OS_ConfigureSignalHandlers();
+  CrashHandler_Install();
 }
 
 Program::~Program() {
