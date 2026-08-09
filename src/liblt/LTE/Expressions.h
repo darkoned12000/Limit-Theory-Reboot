@@ -40,6 +40,12 @@ namespace LTE {
   LT_API Expression Expression_Block(
     StringList const& list,
     CompileEnvironment& env,
+    uint startIndex,
+    uint endIndex);
+
+  LT_API Expression Expression_Block(
+    StringList const& list,
+    CompileEnvironment& env,
     uint startIndex);
 
   LT_API Expression Expression_Cast(
@@ -138,6 +144,11 @@ namespace LTE {
   LT_API Expression Expression_If(
     Expression const& predicate,
     Expression const& statement);
+
+  LT_API Expression Expression_If(
+    Expression const& predicate,
+    Expression const& statement,
+    Expression const& elseStatement);
 
   LT_API Expression Expression_If(
     StringList const& list,

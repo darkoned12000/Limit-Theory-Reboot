@@ -108,12 +108,13 @@ namespace LTE {
   Expression Expression_Block(
     StringList const& list,
     CompileEnvironment& env,
-    uint startIndex)
+    uint startIndex,
+    uint endIndex)
   {
     Vector<Expression> expressions;
     Vector<String> localNames;
 
-    for (size_t i = startIndex; i < list->GetSize(); ++i) {
+    for (size_t i = startIndex; i < endIndex && i < list->GetSize(); ++i) {
       Expression e = Expression_Compile(list->Get(i), env, &localNames);
       if (e)
         expressions.push(e);
@@ -136,5 +137,13 @@ namespace LTE {
       return expressions[0];
     else
       return Expression_Block(expressions, locals);
+  }
+
+  Expression Expression_Block(
+    StringList const& list,
+    CompileEnvironment& env,
+    uint startIndex)
+  {
+    return Expression_Block(list, env, startIndex, list->GetSize());
   }
 }

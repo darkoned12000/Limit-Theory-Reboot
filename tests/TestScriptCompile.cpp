@@ -12,6 +12,7 @@
 #include "LTE/Environment.h"
 #include "LTE/Expression.h"
 #include "LTE/Expressions.h"
+#include "LTE/LTSL.h"
 #include "LTE/Script.h"
 #include "LTE/StringList.h"
 
@@ -438,3 +439,185 @@ LTE_TEST(FunctionBody_CompileErrorsSurface) {
   }
   LTE_CHECK(foundAmbiguous);
 }
+
+// ── if/else support (RewriteElse pass + ExpressionIf else branch) ──────
+
+namespace {
+  StringList MakeSet(String const& name, int value) {
+    Vector<StringList> elements;
+    elements.push(new StringListAtom("set"));
+    elements.push(new StringListAtom(name));
+    elements.push(new StringListAtom(Stringize() | value));
+    return new StringListList(elements);
+  }
+
+  StringList MakeIfElse(
+    StringList const& predicate,
+    StringList const& thenExpr,
+    StringList const& elseExpr)
+  {
+    Vector<StringList> elements;
+    elements.push(new StringListAtom("if"));
+    elements.push(predicate);
+    elements.push(thenExpr);
+    elements.push(new StringListAtom("else"));
+    elements.push(elseExpr);
+    return new StringListList(elements);
+  }
+
+  StringList MakeSetIfElse(String const& cond, int thenVal, int elseVal) {
+    return MakeIfElse(
+      new StringListAtom(cond),
+      MakeSet("a", thenVal),
+      MakeSet("a", elseVal));
+  }
+
+  /* Compile an if/else expression against a fresh environment with
+     `cond`/`cond2` (bool) and `a` (int) registered, evaluate it with the
+     given branch values, and return the value `a` holds afterwards. */
+  int EvalIfElse(StringList const& ifList, bool cond, bool cond2) {
+    CompileEnvironment env;
+    env.script = new ScriptT;
+    env.script->name = "testScript";
+    env.Allocate("cond", Type_Get<bool>(), false, false);
+    env.Allocate("cond2", Type_Get<bool>(), false, false);
+    env.Allocate("a", Type_Get<int>(), false, false);
+
+    Expression expr = Expression_Compile(ifList, env);
+    LTE_CHECK(expr);
+
+    Type boolType = Type_Get<bool>();
+    Type intType = Type_Get<int>();
+    void* condReg = boolType->Allocate();
+    void* cond2Reg = boolType->Allocate();
+    void* aReg = intType->Allocate();
+    *(bool*)condReg = cond;
+    *(bool*)cond2Reg = cond2;
+    *(int*)aReg = 0;
+
+    Environment runtimeEnv;
+    runtimeEnv.registers.push(condReg);
+    runtimeEnv.registers.push(cond2Reg);
+    runtimeEnv.registers.push(aReg);
+    expr->Evaluate(0, runtimeEnv);
+
+    int result = *(int*)aReg;
+    boolType->Deallocate(condReg);
+    boolType->Deallocate(cond2Reg);
+    intType->Deallocate(aReg);
+    return result;
+  }
+}
+
+LTE_TEST(Expression_If_ElseSelectsTrueBranch) {
+  LTE_CHECK_EQ(EvalIfElse(MakeSetIfElse("cond", 1, 2), true, false), 1);
+}
+
+LTE_TEST(Expression_If_ElseSelectsFalseBranch) {
+  LTE_CHECK_EQ(EvalIfElse(MakeSetIfElse("cond", 1, 2), false, false), 2);
+}
+
+LTE_TEST(Expression_If_WithoutElseLeavesValueUntouched) {
+  Vector<StringList> elements;
+  elements.push(new StringListAtom("if"));
+  elements.push(new StringListAtom("cond"));
+  elements.push(MakeSet("a", 1));
+  StringList ifList = new StringListList(elements);
+
+  LTE_CHECK_EQ(EvalIfElse(ifList, true, false), 1);
+  LTE_CHECK_EQ(EvalIfElse(ifList, false, false), 0);
+}
+
+LTE_TEST(Expression_If_ElseIfChainSelectsCorrectBranch) {
+  Vector<StringList> elements;
+  elements.push(new StringListAtom("if"));
+  elements.push(new StringListAtom("cond"));
+  elements.push(MakeSet("a", 1));
+  elements.push(new StringListAtom("else"));
+  elements.push(new StringListAtom("if"));
+  elements.push(new StringListAtom("cond2"));
+  elements.push(MakeSet("a", 2));
+  elements.push(new StringListAtom("else"));
+  elements.push(MakeSet("a", 3));
+  StringList ifList = new StringListList(elements);
+
+  LTE_CHECK_EQ(EvalIfElse(ifList, true, false), 1);
+  LTE_CHECK_EQ(EvalIfElse(ifList, false, true), 2);
+  LTE_CHECK_EQ(EvalIfElse(ifList, false, false), 3);
+}
+
+LTE_TEST(RewriteElse_MergesSiblingIfElse) {
+  String const source =
+    "if cond\n"
+    "  (set a 1)\n"
+    "else\n"
+    "  (set a 2)\n";
+
+  StringList list = StringList_Create(source);
+  list = LTSL_ApplyRewrites(list);
+
+  /* The block collapses to a single (if cond (set a 1) else (set a 2)). */
+  LTE_CHECK_EQ(list->GetSize(), size_t(1));
+  StringList first = list->Get(0);
+  LTE_CHECK(!first->IsAtom());
+  LTE_CHECK_EQ(first->GetSize(), size_t(5));
+  LTE_CHECK_EQ(first->Get(0)->GetValue(), String("if"));
+  LTE_CHECK_EQ(first->Get(3)->GetValue(), String("else"));
+
+  /* And it must compile and evaluate correctly through the real pipeline. */
+  LTE_CHECK_EQ(EvalIfElse(first, true, false), 1);
+  LTE_CHECK_EQ(EvalIfElse(first, false, false), 2);
+}
+
+LTE_TEST(RewriteElse_CollapsesElseIfChain) {
+  String const source =
+    "if cond\n"
+    "  (set a 1)\n"
+    "else if cond2\n"
+    "  (set a 2)\n"
+    "else\n"
+    "  (set a 3)\n";
+
+  StringList list = StringList_Create(source);
+  list = LTSL_ApplyRewrites(list);
+
+  /* One (if cond (set a 1) else if cond2 (set a 2) else (set a 3)) list,
+     with the `else` markers preserved for each branch. */
+  LTE_CHECK_EQ(list->GetSize(), size_t(1));
+  StringList first = list->Get(0);
+  LTE_CHECK(!first->IsAtom());
+  LTE_CHECK_EQ(first->GetSize(), size_t(9));
+  LTE_CHECK_EQ(first->Get(0)->GetValue(), String("if"));
+  LTE_CHECK_EQ(first->Get(3)->GetValue(), String("else"));
+  LTE_CHECK_EQ(first->Get(4)->GetValue(), String("if"));
+  LTE_CHECK_EQ(first->Get(7)->GetValue(), String("else"));
+
+  /* Full pipeline evaluation of each chain branch. */
+  LTE_CHECK_EQ(EvalIfElse(first, true, false), 1);
+  LTE_CHECK_EQ(EvalIfElse(first, false, true), 2);
+  LTE_CHECK_EQ(EvalIfElse(first, false, false), 3);
+}
+
+LTE_TEST(RewriteElse_LeavesIfWithoutElseUntouched) {
+  String const source =
+    "if cond\n"
+    "  (set a 1)\n"
+    "else\n"
+    "else if cond2\n"
+    "  (set a 2)\n";
+
+  StringList list = StringList_Create(source);
+  list = LTSL_ApplyRewrites(list);
+
+  /* A lone `else` with no body is a stray atom (not a list), so nothing is
+     merged — the block keeps its three original elements. */
+  LTE_CHECK_EQ(list->GetSize(), size_t(3));
+  LTE_CHECK(!list->Get(0)->IsAtom());
+  LTE_CHECK_EQ(list->Get(0)->GetSize(), size_t(3));
+  LTE_CHECK_EQ(list->Get(0)->Get(0)->GetValue(), String("if"));
+  LTE_CHECK(list->Get(1)->IsAtom());
+  LTE_CHECK_EQ(list->Get(1)->GetValue(), String("else"));
+  LTE_CHECK(!list->Get(2)->IsAtom());
+  LTE_CHECK_EQ(list->Get(2)->Get(0)->GetValue(), String("else"));
+}
+

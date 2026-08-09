@@ -43,6 +43,39 @@ namespace {
     }
   }
 
+  /* `else` is not a head keyword in Expression_Compile, so the parser's
+     sibling `(if ...)` / `(else ...)` lists would otherwise compile the
+     `else` branch as a bogus function call. Merge each `(else ...)` list
+     into the `(if ...)` list that precedes it, yielding a single flat
+     `(if pred body... else stmt...)` list that Expression_If consumes.
+     Repeated-until-fixed scans also collapse `else if` chains. */
+  void RewriteElse(StringList& list) {
+    StringListList* l = (StringListList*)list.t;
+    for (int i = 0; i < (int)l->elements.size(); ++i) {
+      if (i + 1 >= (int)l->elements.size())
+        break;
+
+      StringList cur = l->elements[i];
+      StringList next = l->elements[i + 1];
+      if (cur->IsAtom() || next->IsAtom())
+        continue;
+      if (cur->GetSize() == 0 || cur->Get(0)->GetValue() != "if")
+        continue;
+      if (next->GetSize() == 0 || next->Get(0)->GetValue() != "else")
+        continue;
+
+      StringListList* cl = (StringListList*)cur.t;
+      StringListList* nl = (StringListList*)next.t;
+      /* Append every `(else ...)` element — its head `else` atom first, so
+         an `(else if b ...)` chain keeps its `else` marker in the merged
+         `(if ...)` list. */
+      for (size_t j = 0; j < nl->elements.size(); ++j)
+        cl->elements.push(nl->elements[j]);
+      l->elements.eraseIndex(i + 1);
+      i--;
+    }
+  }
+
   void RewriteAtom(StringList& list) {
     RewriteDot(list);
   }
@@ -61,6 +94,8 @@ namespace {
 
     for (uint i = 0; i < sizeof(precedence) / sizeof(*precedence); ++i)
       RewriteBinaryOp(list, precedence[i]);
+
+    RewriteElse(list);
   }
 
   void Rewrite(StringList& list) {

@@ -10,7 +10,9 @@ namespace {
   AutoClassDerived(ExpressionIf, ExpressionT,
     Expression, predicate,
     Expression, statement,
-    Type, statementType)
+    Type, statementType,
+    Expression, elseStatement,
+    Type, elseStatementType)
     DERIVED_TYPE_EX(ExpressionIf)
     POOLED_TYPE
 
@@ -26,20 +28,29 @@ namespace {
         context.push("  " + localContext[i]);
       context.push("}");
 
+      if (elseStatement) {
+        localContext.clear();
+        elseStatement->Emit(localContext);
+        context.push("else {");
+        for (size_t i = 0; i < localContext.size(); ++i)
+          context.push("  " + localContext[i]);
+        context.push("}");
+      }
+
       return "";
     }
 
     void Evaluate(void* returnValue, Environment& env) const override {
       bool pred;
       predicate->Evaluate(&pred, env);
-      if (pred) {
-        if (statementType->allocate) {
-          void* lv = env.Allocate(statementType);
-          statement->Evaluate(lv, env);
-          env.Free(statementType, lv);
-        } else {
-          statement->Evaluate(0, env);
-        }
+      Expression const& branch = pred ? statement : elseStatement;
+      Type const& branchType = pred ? statementType : elseStatementType;
+      if (branchType && branchType->allocate) {
+        void* lv = env.Allocate(branchType);
+        branch->Evaluate(lv, env);
+        env.Free(branchType, lv);
+      } else {
+        branch->Evaluate(0, env);
       }
     }
 
@@ -48,9 +59,38 @@ namespace {
     }
 
     bool IsConstant(CompileEnvironment& env) const override {
-      return predicate->IsConstant(env) && statement->IsConstant(env);
+      if (!predicate->IsConstant(env) || !statement->IsConstant(env))
+        return false;
+      return !elseStatement || elseStatement->IsConstant(env);
     }
   };
+
+  /* Compile a flat slice of `list` (elements [start, end)) as an `else`
+     branch body. A leading `if` atom means the branch is itself an if/else
+     chain (e.g. `else if b ... else ...`), which RewriteElse left flat
+     inside the parent `if` list; wrap the whole slice back into a single
+     `(if ...)` list so Expression_Compile re-enters Expression_If and the
+     chain collapses recursively. Any other shape compiles as a plain block. */
+  Expression CompileElseRegion(
+    StringList const& list,
+    CompileEnvironment& env,
+    size_t start,
+    size_t end)
+  {
+    if (start >= end)
+      return Expression_Noop();
+
+    StringList first = list->Get(start);
+    if (first->IsAtom() && first->GetValue() == "if") {
+      Vector<StringList> elements;
+      for (size_t i = start; i < end; ++i)
+        elements.push(list->Get(i));
+      StringList nested = new StringListList(elements);
+      return Expression_Compile(nested, env);
+    }
+
+    return Expression_Block(list, env, (uint)start, (uint)end);
+  }
 }
 
 namespace LTE {
@@ -58,7 +98,18 @@ namespace LTE {
     Expression const& predicate,
     Expression const& statement)
   {
-    return new ExpressionIf(predicate, statement, statement->GetType());
+    return Expression_If(predicate, statement, Expression_Noop());
+  }
+
+  Expression Expression_If(
+    Expression const& predicate,
+    Expression const& statement,
+    Expression const& elseStatement)
+  {
+    return new ExpressionIf(
+      predicate, statement, statement->GetType(),
+      elseStatement,
+      elseStatement ? elseStatement->GetType() : nullptr);
   }
 
   Expression Expression_If(StringList const& list, CompileEnvironment& env) {
@@ -79,12 +130,32 @@ namespace LTE {
       return nullptr;
     }
 
-    Expression statement = Expression_Block(list, env, 2);
+    /* Locate the optional `else` atom inserted by the RewriteElse pass when
+       an `(else ...)` sibling followed this `(if ...)` list. */
+    size_t elseIndex = list->GetSize();
+    for (size_t i = 2; i < list->GetSize(); ++i) {
+      StringList e = list->Get(i);
+      if (e->IsAtom() && e->GetValue() == "else") {
+        elseIndex = i;
+        break;
+      }
+    }
+
+    Expression statement = Expression_Block(list, env, 2, (uint)elseIndex);
     if (!statement) {
       env.ReportError(list, "'if' -- body block failed to compile");
       return nullptr;
     }
 
-    return Expression_If(predicate, statement);
+    Expression elseStatement = Expression_Noop();
+    if (elseIndex + 1 < list->GetSize()) {
+      elseStatement = CompileElseRegion(list, env, elseIndex + 1, list->GetSize());
+      if (!elseStatement) {
+        env.ReportError(list, "'if' -- else block failed to compile");
+        return nullptr;
+      }
+    }
+
+    return Expression_If(predicate, statement, elseStatement);
   }
 }
