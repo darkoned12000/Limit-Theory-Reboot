@@ -27,6 +27,10 @@ AutoComponent(Account)
     Account.credits -= count;
     return true;
   }
+
+  void SetCredits(Quantity count) override {
+    Account.credits = count;
+  }
 };
 
 #endif

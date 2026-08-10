@@ -13370,6 +13370,17 @@
       "source": ""
     },
     {
+      "name": "Object_SetCredits",
+      "signature": "void Object_SetCredits(Object object, Int64 count)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "object", "type": "Object"},
+        {"name": "count", "type": "Int64"}
+      ],
+      "documentation": "Set 'object's bank account to exactly 'count' credits",
+      "source": ""
+    },
+    {
       "name": "Object_SetHealth",
       "signature": "void Object_SetHealth(Object object, Int32 health)",
       "returnType": "void",
@@ -15424,6 +15435,17 @@
         {"name": "value", "type": "Color"}
       ],
       "documentation": "Set the Color of 'item' to 'value'",
+      "source": ""
+    },
+    {
+      "name": "SetCredits",
+      "signature": "void Object_SetCredits(Object object, Int64 count)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "object", "type": "Object"},
+        {"name": "count", "type": "Int64"}
+      ],
+      "documentation": "Set 'object's bank account to exactly 'count' credits",
       "source": ""
     },
     {

@@ -396,7 +396,7 @@ Recommendation §6.2 (bind `Log`/`Print`) removes that friction permanently.
       still return last expression for backward compat.
 - [x] **While/return termination fix.** `While.cpp` checks `returnSignal`
       before predicate re-eval and after body; regression test added.
-- [x] **Unit-test harness for scripts.** `lte_tests` (399 checks) can compile
+- [x] **Unit-test harness for scripts.** `lte_tests` (492 checks) can compile
       and evaluate script expressions headlessly — the fastest loop for LTSL
       engine bugs.
 - [x] **Binding-bridge Step 10 complete.** All `Function_Generated.h` /
@@ -442,7 +442,7 @@ For any LTSL bug, in order:
    commit (grep for the tag).
 5. **Run the gates** before committing:
    - `python3 configure.py build` (green, `-Werror` on project code)
-   - `python3 configure.py test` (399 checks, 0 failures)
+   - `python3 configure.py test` (492 checks, 0 failures)
    - `python3 script/check_binding_alias_order.py $(git ls-files 'src/liblt/**/*.cpp' 'src/liblt/**/*.h')` → `OK: 509 / 1 known`
    - API-DB diff vs `build/api-baseline.json` → 0 added / 0 removed
     - `node script/ltsl-lsp/out/smoke.js $(find resource/script -name '*.lts' | sort)` → exactly 8 diagnostics (4 known unbalanced-paren fixtures + 4 accepted warnings, see AGENTS.md §6.2)

@@ -8,6 +8,7 @@ layout(location=14) FRAG_IN float opacity;
 
 uniform vec2 size;
 
+// Raise the value in '0.5 * opacity' to make dust more noticable
 void main() {
   vec2 uvp = uv;
   float y = 0.5 * uv.y + 0.5;
@@ -16,5 +17,5 @@ void main() {
   d *= 0.1;
   vec3 c = vec3(1.0) * d;
   c *= 1.0 - exp(-length(position) / 100.0);
-  RETURN(vec4(c, 0.5 * opacity));
+  RETURN(vec4(c, 0.8 * opacity));
 }

@@ -1,0 +1,89 @@
+# Copyright (C) 2025  darkoned12000
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Part of the ltheory-old-test modernization effort (Revamp Work).
+# See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
+
+# On-screen status toast. Multi-line; created via Widget/Toast:Create and
+# added to an interface. Each line is a label/value pair drawn two-tone:
+# labels ("Date:", "Credits:", ...) in labelColor, values in valueColor.
+# Styling is driven by gameConfig.txt keys:
+#   toastLifetime          seconds before the toast dismisses itself
+#   toastBgColorR/G/B      background color (each channel 0..1)
+#   toastBgAlpha           overall panel opacity
+#   toastFill              interior fill strength (0 = see-through, 1 = solid)
+#   toastBorderColorR/G/B  left accent-strip / border color
+#   toastBevel             panel edge bevel amount
+#   toastTextColorR/G/B    title text color
+#   toastLabelColorR/G/B   line label color
+#   toastValueColorR/G/B   line value color
+#   toastNoteColorR/G/B    warning note color (bottom of toast)
+#   toastTitleFontSize     title font size (Float)
+#   toastFontSize          label/value line font size
+#   toastNoteFontSize      warning note font size
+
+type ToastStyle
+  Float lifetime
+  Vec3 bgColor
+  Float bgAlpha
+  Float fill
+  Vec3 borderColor
+  Float bevel
+  Vec3 textColor
+  Vec3 labelColor
+  Vec3 valueColor
+  Vec3 noteColor
+  Float titleFontSize
+  Float fontSize
+  Float noteFontSize
+
+type Toast
+  String title
+  (Array String) labels
+  (Array String) values
+  String note
+  Float age
+  ToastStyle style
+
+  function Void PostDraw (Widget self)
+    DrawPanel (Vec2 20 120) (Vec2 560 260) style.bgColor style.fill style.bgAlpha style.bevel
+    DrawPanel (Vec2 20 120) (Vec2 6 260) style.borderColor 0.6 0.9 0.5
+    DrawText Fonts:Medium title (Vec2 40 138) style.titleFontSize style.textColor 1 false
+    var y 176.0
+    var step (style.fontSize * 1.3)
+    for i 0 i < labels.Size i.++
+      ref lb (labels.Get i)
+      ref va (values.Get i)
+      DrawText Fonts:Default lb (Vec2 40 y) style.fontSize style.labelColor 1 false
+      var sz (GetTextSize Fonts:Default lb style.fontSize)
+      var vx (44.0 + sz.x)
+      DrawText Fonts:Default va (Vec2 vx y) style.fontSize style.valueColor 1 false
+      y = y + step
+    if note.Length > 0
+      DrawText Fonts:Default note (Vec2 40 (y + 12.0)) style.noteFontSize style.noteColor 1 false
+
+  function Void PostUpdate (Widget self)
+    age = age + FrameTimer_Get
+    if (age >= style.lifetime)
+      self.Delete
+
+function ToastStyle LoadStyle ()
+  ToastStyle
+    (ToFloat (Config:Get "toastLifetime"))
+    (Vec3 (ToFloat (Config:Get "toastBgColorR")) (ToFloat (Config:Get "toastBgColorG")) (ToFloat (Config:Get "toastBgColorB")))
+    (ToFloat (Config:Get "toastBgAlpha"))
+    (ToFloat (Config:Get "toastFill"))
+    (Vec3 (ToFloat (Config:Get "toastBorderColorR")) (ToFloat (Config:Get "toastBorderColorG")) (ToFloat (Config:Get "toastBorderColorB")))
+    (ToFloat (Config:Get "toastBevel"))
+    (Vec3 (ToFloat (Config:Get "toastTextColorR")) (ToFloat (Config:Get "toastTextColorG")) (ToFloat (Config:Get "toastTextColorB")))
+    (Vec3 (ToFloat (Config:Get "toastLabelColorR")) (ToFloat (Config:Get "toastLabelColorG")) (ToFloat (Config:Get "toastLabelColorB")))
+    (Vec3 (ToFloat (Config:Get "toastValueColorR")) (ToFloat (Config:Get "toastValueColorG")) (ToFloat (Config:Get "toastValueColorB")))
+    (Vec3 (ToFloat (Config:Get "toastNoteColorR")) (ToFloat (Config:Get "toastNoteColorG")) (ToFloat (Config:Get "toastNoteColorB")))
+    (ToFloat (Config:Get "toastTitleFontSize"))
+    (ToFloat (Config:Get "toastFontSize"))
+    (ToFloat (Config:Get "toastNoteFontSize"))
+
+function Widget Create (String title (Array String) labels (Array String) values String note)
+  var style (LoadStyle)
+  Components:Expand
+    Custom Widget
+      Toast title labels values note 0.0 style

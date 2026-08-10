@@ -346,12 +346,14 @@ User: *happy* "Yes, let's do it!"
 - Cargo/inventory system (Component/Cargo.cpp)
 - Mining system (Action/Mine.cpp)
 - Serialization infrastructure (Serializer.cpp)
-- Gamepad support (HUD.cpp lines 227-281)
+- Multi-slot JSON saves (SaveGameJSON.{h,cpp}) + Gamepad support (HUD.cpp lines 227-281)
 
 ### ⚠️ NEEDS WIRING (Systems exist but not exposed)
 - Inventory UI (no 'I' hotkey to open)
 - Mining hotkey (no 'M' key to mine)
-- Save/load UI (serialization works, no menu buttons)
+- Save browser + main-menu save entry (F6/F7 quick save/load + launch auto-load
+  already wired in `ltheory-main` with toasts; slot browser data ready via
+  `SaveGame_ListSlots`/`SaveGame_LoadSlot`)
 
 ### ❌ NOT RECOMMENDED
 - Vulkan migration (6 months work, 0% player benefit)
@@ -383,7 +385,7 @@ python configure.py run ltheory-main  # Main universe app
 
 ### Test
 ```bash
-python configure.py test     # Run all unit tests (399 checks)
+python configure.py test     # Run all unit tests (492 checks)
 ```
 
 ---
@@ -421,7 +423,10 @@ if (ship.AddItem ironOre 50) {
 A: Yes, but not wired to player yet. See SAVE-LOAD-AND-INVENTORY.md Part 5 for implementation.
 
 **Q: How do I save the game?**
-A: Serialization exists, needs JSON wrapper. See SAVE-LOAD-AND-INVENTORY.md Part 2-3.
+A: JSON save layer wired in `ltheory-main`: F6 quicksave, F7 quickload, launch
+auto-loads last save, with toast feedback. The engine only reads/writes files;
+the app applies state itself (SetName/SetCredits/SetPos/SetLook). Main-menu
+save entry + slot browser not built yet.
 
 ---
 

@@ -132,6 +132,10 @@ struct ObjectT : public RefCounted {
     return false;
   }
 
+  virtual void SetCredits(Quantity count) {
+    NOT_IMPLEMENTED
+  }
+
   /* Asset. */
   LT_API virtual Player const& GetOwner() const;
 

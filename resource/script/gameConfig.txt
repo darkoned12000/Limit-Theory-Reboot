@@ -12,7 +12,38 @@
 #                If missing/invalid, ltheory-main falls back to 18.0.
 # playerCredits: starting credits given to the human player.
 # shipHull     : hull/item value passed to Item_ShipType (ship class/strength).
-seed:6679999
+seed:1066799990
 loadTime:22.5
 playerCredits:10000
 shipHull:20000
+# Toast popup styling (F6/F7 save/load notifications). Colors are per-channel
+# 0..1; bgColor is a dark navy, borderColor the accent strip on the left.
+toastLifetime:5
+toastBgColorR:0.02
+toastBgColorG:0.06
+toastBgColorB:0.10
+toastBgAlpha:0.92
+toastFill:0.65
+toastBorderColorR:0.2
+toastBorderColorG:0.7
+toastBorderColorB:1.0
+toastBevel:1
+toastTextColorR:1.0
+toastTextColorG:1.0
+toastTextColorB:1.0
+# Label/value two-tone: labels ("Date:", "Credits:", ...) draw in labelColor,
+# the data values draw in valueColor.
+toastLabelColorR:0.55
+toastLabelColorG:0.60
+toastLabelColorB:0.65
+toastValueColorR:0.50
+toastValueColorG:0.80
+toastValueColorB:1.0
+# Warning note at the bottom of the quick save/load toasts (yellow for readability).
+toastNoteColorR:1.0
+toastNoteColorG:0.85
+toastNoteColorB:0.2
+# Toast font sizes (title / label-value lines / warning note).
+toastTitleFontSize:21
+toastFontSize:16
+toastNoteFontSize:15

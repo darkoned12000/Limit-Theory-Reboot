@@ -12,8 +12,8 @@ description: >-
 # SKILL.md - Limit Theory Engine & LTSL Scripting
 
 **Purpose:** Master reference for AI agents helping with Limit Theory engine development and gameplay scripting.  
-**Version:** 2.1.0 (current: selftest app, error surfacing, ZED LSP, 399 checks)  
-**Last Updated:** 2026-08-08
+**Version:** 2.2.0 (current: quick save/load + toasts, Config.lts extraction, 492 checks)  
+**Last Updated:** 2026-08-10
 
 ---
 
@@ -764,7 +764,7 @@ type App
 
   function Void Update () {
     var elapsed (Time_GetReal - loadStartTime)
-    var LOAD_TIME (ToFloat (Config_Get "loadTime"))
+    var LOAD_TIME (ToFloat (Config:Get "loadTime"))   # shared loader: Config.lts
     
     if elapsed < LOAD_TIME
       # Still loading, show screen
@@ -899,10 +899,14 @@ resource/script/gameConfig.txt          # Game configuration (seed, etc.)
 - Missing: Not wired to player input (no 'M' key, no targeting)
 - See: SAVE-LOAD-AND-INVENTORY.md Part 5
 
-**Serialization** (`LTE/Serializer.cpp`)
-- Status: Reflection-based binary serialization works
-- Missing: JSON wrapper + save/load UI
-- See: SAVE-LOAD-AND-INVENTORY.md Part 2-3
+**Save/Load (JSON)** (`Game/SaveGameJSON.{h,cpp}` + `Game/SaveGame.cpp`)
+- Status: Multi-slot JSON saves (`cache/saves/<slot>.json`, versioned schema +
+  `dateCreated`), bindings `SaveGame_Create` (quicksave), `SaveGame_Load`
+  (latest), `SaveGame_LoadSlot`, `SaveGame_ListSlots`. Covered by
+  `TestSaveGameJSON.cpp` (7 tests).
+- Wired into `ltheory-main` (2026-08-10): F6 quicksave / F7 quickload /
+  launch auto-load, each with a two-tone config-driven toast.
+- Missing: GameMenu "SAVE GAME" entry + save-browser widget (data already ready).
 
 **Gamepad Support** (`Game/Widget/HUD.cpp`)
 - Status: VERIFIED WORKING (lines 227-281)
@@ -930,10 +934,13 @@ resource/script/gameConfig.txt          # Game configuration (seed, etc.)
 - Solution: Add 'M' hotkey + targeting system to HUD.lts
 - Code provided in: SAVE-LOAD-AND-INVENTORY.md Part 5
 
-**Save/Load UI**
-- Problem: Serialization works but no menu buttons
-- Solution: Add SaveGame.cpp with JSON wrapper
-- Code provided in: SAVE-LOAD-AND-INVENTORY.md Part 2-3
+**Save/Load UI (menu)**
+- Status: Quick save/load wired (F6/F7 + launch auto-load, `Widget/Toast.lts`
+  feedback) in `ltheory-main`.
+- Remaining: main-menu "SAVE GAME" entry + save-browser widget + slot-naming
+  dialog. `SaveGame_ListSlots`/`SaveGame_LoadSlot` provide the browser data.
+- Trap: toast label/value text must be parallel `(Array String)` arrays — a
+  cross-file `ToastLine` struct adds 8 analyzer warnings.
 
 **Loot Drops**
 - Problem: NPCs don't drop cargo on death
@@ -1115,7 +1122,7 @@ python configure.py run ltheory-main
 
 ### Testing
 ```bash
-# Run all unit tests (399 checks)
+# Run all unit tests (492 checks)
 python configure.py test
 
 # Check for errors in specific file
@@ -1227,15 +1234,18 @@ for it (ship.GetCargo) it.HasMore it.Advance {
 ---
 
 ### Q: How do I save the game?
-**A:** Serialization infrastructure exists, needs JSON wrapper.
+**A:** Use the JSON save layer. In `ltheory-main`: **F6** quicksave, **F7**
+quickload, and launch auto-loads the last save (after the loading screen).
 
 **Current status:**
-- ✅ Binary serialization works (Serializer.cpp)
-- ✅ Reflection system auto-serializes types
-- ❌ No JSON save format
-- ❌ No save/load UI buttons
+- ✅ Multi-slot JSON saves (`SaveGameJSON.{h,cpp}`), exception-free nlohmann/json
+- ✅ `SaveGame_Create`/`SaveGame_Load`/`SaveGame_LoadSlot`/`SaveGame_ListSlots` bindings
+- ✅ Wired in `ltheory-main` with F6/F7 + launch auto-load + toast feedback
+- ❌ No main-menu save entry / save-browser widget yet
 
-**To implement:** See SAVE-LOAD-AND-INVENTORY.md Part 2-3 for complete guide.
+**Applying a load:** the engine only reads the file; the app applies state
+itself (`player.SetName`, `player.SetCredits`, `ship.SetPos`, `ship.SetLook`).
+`d.version == 0` means "no save" — drive the NO SAVE FOUND toast off that.
 
 ---
 
@@ -1430,7 +1440,7 @@ See AUDIO-SYSTEM-GUIDE.md for 300+ sound asset catalog.
 
 ### Unit Tests
 ```bash
-# Run all tests (399 checks)
+# Run all tests (492 checks)
 python configure.py test
 
 # Tests cover:
@@ -1507,7 +1517,8 @@ All 170 shaders compile correctly under GLSL 4.60 core.
 - **No list methods** (no `.Filter()`, `.Map()`, `.Reduce()`)
 - **No string interpolation** (planned: `$"Hello {name}"`)
 - **No foreach loop** (must use iterator pattern)
-- **No save/load UI** (infrastructure exists, needs menu)
+- **No save browser** (F6/F7 quick save/load + launch auto-load work; main-menu
+  save entry + slot browser remain)
 
 ### Planned Improvements (Documented)
 See LTSL-ARCHITECTURE-AND-IMPROVEMENTS.md Part 7 for full roadmap:
@@ -1538,6 +1549,15 @@ See LTSL-ARCHITECTURE-AND-IMPROVEMENTS.md Part 7 for full roadmap:
 ---
 
 ## 15. Revision History
+
+**v2.2.0 (2026-08-10):** save/load + toast wiring session
+- Save/Load entries updated: JSON save layer (A.10) + F6/F7 quicksave/quickload
+  + launch auto-load wired into `ltheory-main`, two-tone config-driven toast
+  (`Widget/Toast.lts`), `Config_Get` → `Config:Get` (Config.lts), added
+  `Object_SetCredits` binding
+- Test counts refreshed: 492 checks (lte_tests)
+- Loading-screen pattern updated to `Config:Get`; "How do I save the game?" Q&A
+  rewritten
 
 **v2.1.0 (2026-08-08):** DX-hardening session follow-up
 - Fixed a corrupted line in the LTSL Components section (garbled `obj.SetMass` line + broken code fence)

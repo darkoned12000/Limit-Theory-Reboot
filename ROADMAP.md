@@ -54,6 +54,12 @@ a big rewrite** — the engine core is healthy (§9 of AGENTS.md).
   vendored (`include/json/json.hpp`). Covered by `TestSaveGameJSON.cpp`
   (7 tests). Remaining: load-wiring into an app, GameMenu entries, and the
   save-browser widget.
+- **Progress (2026-08-10):** load-wiring done — F6 quicksave / F7 quickload /
+  launch auto-load in `ltheory-main`, each applying state and surfacing a
+  two-tone config-driven toast (`Widget/Toast.lts`). `Config_Get` extracted to
+  `Config.lts`; `Object_SetCredits` binding added for load application.
+  Remaining: GameMenu "SAVE GAME" entry, save-browser widget + slot-naming
+  dialog (`SaveGame_ListSlots`/`SaveGame_LoadSlot` data already available).
 
 ### 2.2 Crash logging polish — **P0, quick** (`done`)
 - **Effort:** ~2 days. **Source:** `ENGINE-STABILITY-AND-MODDING.md` Part 1.
@@ -244,7 +250,7 @@ holds the original creation plan.
 
 After any engine/C++/GLSL change:
 - `python3 configure.py build`
-- `python3 configure.py test` (unit tests: expect **440 checks, 0 failures**)
+- `python3 configure.py test` (unit tests: expect **492 checks, 0 failures**)
 - LSP (if LTSL/API changed): `node script/ltsl-lsp/test-rpc.js` and
   `node script/ltsl-lsp/out/smoke.js` (expect **8 diagnostics**)
 

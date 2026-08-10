@@ -1,0 +1,23 @@
+# Copyright (C) 2025  darkoned12000
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Part of the ltheory-old-test modernization effort (Revamp Work).
+# See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
+
+# Shared loader for resource/script/gameConfig.txt (key:value, '#' comments,
+# no spaces around ':'). Re-parses the file per call -- cache the result when
+# performance matters. Callable from any script as Config:Get.
+
+function String Get (String key)
+  var text (File_Read "resource/script/gameConfig.txt")
+  var lines (SplitLines text)
+  var klen (Length key)
+  for i 0 i < lines.Size i.++
+    var line (lines.Get i)
+    if (Substring line 0 1) != "#"
+      if (Contains line key)
+        if (Contains line ":")
+          var llen (Length line)
+          var vstart (klen + 1)
+          var vlen (llen - vstart)
+          return (Substring line vstart vlen)
+  ""

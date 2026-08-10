@@ -284,7 +284,7 @@ are known/accepted: `SelectItem` (`Widget/Market/MidPanel.lts:108`, script
 type defined in another file), `WidgetSettings` (`Widget/Settings.lts:13`, a
 C++ engine value), `break` (`App/ltheory-unitest.lts:201`, the WIP unitest app
 uses a `break` statement, which is not valid LTSL), and `RenderPass_Bloom`
-(`App/ltheory-main.lts:217`, a comma-paren call the analyzer counts as one
+(`App/ltheory-main.lts`, a comma-paren call the analyzer counts as one
 arg but the engine's tolerant tokenizer compiles as two — valid at runtime).
 
 Any count above 8 = analyzer regression; investigate before committing.
@@ -334,7 +334,8 @@ apps. All files listed here are **Revamp Work** (GPL-3.0).
     `Interface ui` → `PostFilter "post/dither.jsl"`.
   - **Scripted planet bounce:** scans `root.GetInteriorObjects` for
     `o.GetType == "Planet"` and clamps player to `planetRadius * 1.1`.
-  - Hotkeys: **F2** = `Widget/DevPanel`, **F3** = `Widget/DebugScene`.
+  - Hotkeys: **F2** = `Widget/DevPanel`, **F3** = `Widget/DebugScene`,
+    **F6** = quicksave, **F7** = quickload (launch also auto-loads last save).
 
 - **`resource/script/Object/SystemPopulate.lts`** — populator:
   - `function Object Init (Object self)`; **returns** the planet.
@@ -350,13 +351,19 @@ apps. All files listed here are **Revamp Work** (GPL-3.0).
   colors planet gold, reports nearest-asteroid distance. Toggle: F3.
 
 - **`resource/script/gameConfig.txt`** — shared config (`key:value`, `#` comments).
-  Keys: `seed`, `loadTime`, `playerCredits`, `shipHull`.
+  Keys: `seed`, `loadTime`, `playerCredits`, `shipHull` — plus `toast*` styling
+  keys (title/label/value/note colors, font sizes, lifetime, note text) driving
+  the save/load toast (`Widget/Toast.lts`).
 
 > **LTSL quirks (revamp-work changes noted):**
 > - `return` keyword **now works** (added as Revamp Work). Functions still
 >   return their last expression for backward compat. See docs/ltsl-docs.md.
 > - `switch -- case ... did not compile` lines now always report a warning.
 >   Previously silenced behind `env.detail` (removed in Revamp Work).
+> - **Save/load toasts:** F6 quicksave / F7 quickload / launch auto-load all
+>   surface a `Toast:Create title labels values note` panel. Labels/values must
+>   be parallel `(Array String)` arrays; a cross-file struct adds 8 analyzer
+>   warnings.
 
 > **PlanetType.cpp (Revamp Work):** `atmoDensity` now `0..2` (was frozen at
 > `1.0`), `atmoTint` is a seeded hue (was always white), color palette widened
@@ -897,7 +904,38 @@ documented — not an engine bug)
 - [x] **Unit tests** — `tests/TestSaveGameJSON.cpp` (7 tests) covering JSON
       round-trip, invalid-JSON rejection, missing-field fallback, write/read,
       slot listing, missing-slot failure, and quicksave round-trip.
-      Test count: **440 checks, 0 failures**.
+      Test count: **440 checks, 0 failures** (since grown to 492).
+
+---
+
+### A.11 Quick Save/Load + Toast UI (ltheory-main) — 2026-08-10
+
+- [x] **Save/load wired into the app.** F6 = quicksave (`SaveGame_Create`),
+      F7 = quickload (`SaveGame_Load`), and the app **auto-loads the last save
+      on launch** after the loading screen (no auto-save). Load applies state
+      itself: `player.SetName d.playerName`, `player.SetCredits
+      d.playerCredits`, `ship.SetPos d.playerPos`, `ship.SetLook d.playerLook`.
+      `version == 0` means "no save" (or corrupt) — drives the NO SAVE FOUND
+      toast, not the success path.
+- [x] **Toast widget** — `Widget/Toast.lts`. `Toast:Create title labels values
+      note` renders a multi-line, two-tone panel (label rows in one color,
+      value rows in another, optional warning note in yellow). Fully
+      config-driven via `gameConfig.txt` `toast*` keys (colors, font sizes
+      20/14/13, lifetime, note text). Trap: use **parallel `(Array String)`
+      labels/values arrays** — a cross-file `ToastLine` struct introduces 8
+      analyzer warnings.
+- [x] **`Config_Get` extracted** from `App/ltheory-main.lts` into
+      `resource/script/Config.lts` (`Config:Get`) — shared loader, same
+      behavior. Zero function changes; engine implicit load makes it resolve.
+- [x] **`Object_SetCredits` binding** added to the Account component
+      (`src/liblt/Component/Account.cpp`), reflected in
+      `script/ltsl-lsp/api-database.json` — needed to apply playerCredits on load.
+- [x] **Verification** — smoke corpus exactly 8 diagnostics (4 structural + 4
+      warnings, the known fixtures); toast rendering verified live by user
+      (headless captures miss the panel timing; do not rely on them).
+- **Not done:** GameMenu "SAVE GAME" entry (button left dead, id 0), save-browser
+      widget + slot-naming dialog. Engine data already ready
+      (`SaveGame_ListSlots`/`SaveGame_LoadSlot`).
 
 ---
 

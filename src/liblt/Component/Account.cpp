@@ -1,3 +1,8 @@
+// Copyright (C) 2025  darkoned12000
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Part of the ltheory-old-test modernization effort (Revamp Work).
+// See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
+
 #include "Account.h"
 #include "Game/Object.h"
 #include "LTE/Function.h"
@@ -32,3 +37,13 @@ static Function const Object_RemoveCredits_Registration = Function_Bind(
   },
   "object", "count");
 static int const Object_RemoveCredits_Alias = Function_Alias("Object_RemoveCredits", "RemoveCredits");
+
+static Function const Object_SetCredits_Registration = Function_Bind(
+  "Object_SetCredits",
+  "Set 'object's bank account to exactly 'count' credits",
+  [](Object const& object, Quantity const& count)
+  {
+  object->SetCredits(count);
+  },
+  "object", "count");
+static int const Object_SetCredits_Alias = Function_Alias("Object_SetCredits", "SetCredits");

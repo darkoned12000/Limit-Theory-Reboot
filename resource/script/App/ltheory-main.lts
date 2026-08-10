@@ -6,20 +6,7 @@
 # ---------------------------------------------------------------------------
 # Shared config loader
 # ---------------------------------------------------------------------------
-function String Config_Get (String key)
-  var text (File_Read "resource/script/gameConfig.txt")
-  var lines (SplitLines text)
-  var klen (Length key)
-  for i 0 i < lines.Size i.++
-    var line (lines.Get i)
-    if (Substring line 0 1) != "#"
-      if (Contains line key)
-        if (Contains line ":")
-          var llen (Length line)
-          var vstart (klen + 1)
-          var vlen (llen - vstart)
-          return (Substring line vstart vlen)
-  ""
+# Config_Get lives in resource/script/Config.lts; call it as Config:Get.
 
 type Node
   Float energy
@@ -85,7 +72,7 @@ type LoadingScreen
     var c1 (Vec3 0.1 0.5 1.0)
     var c2 (Vec3 0.5 0.7 1.0)
 
-    var LOAD_TIME (ToFloat (Config_Get "loadTime"))
+    var LOAD_TIME (ToFloat (Config:Get "loadTime"))
     if (LOAD_TIME < 0.5)
       LOAD_TIME = 18.0
     time += FrameTimer_Get
@@ -149,9 +136,9 @@ type App
     loadingUi = (Interface_Create "Loading")
     loadingUi.Add (Custom Widget LoadingScreen)
 
-    var universeSeed (ToInt (Config_Get "seed"))
-    var playerCredits (ToInt (Config_Get "playerCredits"))
-    var shipHull (ToInt (Config_Get "shipHull"))
+    var universeSeed (ToInt (Config:Get "seed"))
+    var playerCredits (ToInt (Config:Get "playerCredits"))
+    var shipHull (ToInt (Config:Get "shipHull"))
 
     root = (Object_System (Vec3 15.012) universeSeed)
     var planet (Object/SystemPopulate:Init root)
@@ -196,11 +183,63 @@ type App
     loadingPasses.Append (RenderPass_Interface loadingUi)
     gameView.Add (Widget_Rendered loadingPasses)
 
+  function Void ShowToast (String title (Array String) labels (Array String) values String note)
+    var toast (Widget/Toast:Create title labels values note)
+    ui.Add toast
+
+  function (Array String) BuildToastLabels (SaveGameData d)
+    var out (Array String)
+    out += "Date: "
+    out += "Player Name: "
+    out += "Position: "
+    out += "Credits: "
+    out += "Inventory: "
+    out += "Seed: "
+    out
+
+  function (Array String) BuildToastValues (SaveGameData d)
+    var out (Array String)
+    out += d.dateCreated
+    out += d.playerName
+    out += ("" + d.playerPos.x + ", " + d.playerPos.y + ", " + d.playerPos.z)
+    out += ("" + d.playerCredits)
+    out += "(to be linked)"
+    out += ("" + d.universeSeed)
+    out
+
+  function Void QuickSave ()
+    var ok (SaveGame_Create player root)
+    if ok
+      var d (SaveGame_Load)
+      this.ShowToast "GAME SAVED" (this.BuildToastLabels d) (this.BuildToastValues d) "Note: Quick save overwrites your last save game -- be careful."
+    else
+      var labels (Array String)
+      labels += ""
+      var values (Array String)
+      values += "Could not write save file"
+      this.ShowToast "SAVE FAILED" labels values ""
+
+  function Void QuickLoad ()
+    var d (SaveGame_Load)
+    if d.version == 0
+      var labels (Array String)
+      labels += ""
+      var values (Array String)
+      values += "No save found -- press F6 to save first"
+      this.ShowToast "NO SAVE FOUND" labels values ""
+    else
+      player.SetName d.playerName
+      player.SetCredits d.playerCredits
+      var ship player.GetPiloting
+      ship.SetPos d.playerPos
+      ship.SetLook d.playerLook
+      this.ShowToast "GAME LOADED" (this.BuildToastLabels d) (this.BuildToastValues d) "Note: Quick load loads your last save game -- unsaved progress will be lost."
+
   function Void Update ()
     static started false
     static loadingElapsed 0.0
 
-    var LOAD_TIME (ToFloat (Config_Get "loadTime"))
+    var LOAD_TIME (ToFloat (Config:Get "loadTime"))
     if (LOAD_TIME < 0.5)
       LOAD_TIME = 18.0
 
@@ -220,6 +259,7 @@ type App
         gameView.Clear
         gameView.Add (Widget_Rendered passes)
         started = true
+        this.QuickLoad
       return
 
     var dt (Min 0.1 FrameTimer_Get)
@@ -266,6 +306,13 @@ type App
     var container player.GetPiloting.GetContainer
     if Key_H.Down dt *= 20.0
     container.Update dt
+
+    # F6 save / F7 load
+    if Key_F6.Pressed
+      this.QuickSave
+
+    if Key_F7.Pressed
+      this.QuickLoad
 
     ui.Update
     gameView.Update

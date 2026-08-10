@@ -11,8 +11,8 @@
 #include "LTE/Pool.h"
 #include "LTE/FunctionBind.h"
 
-const uint kFleckCount = 1024;
-const float kDistance = 1024;
+const uint kFleckCount = 2048; // streak density (org value = 1024)
+const float kDistance = 1024;  // distance between streaks (org value = 1024)
 
 using DustFlecksBaseT = ObjectWrapper
   < ObjectWrapperTail<ObjectType_Effect>
