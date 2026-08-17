@@ -170,6 +170,7 @@ static String PickBiome(RNG& rg) {
     return "terran";
 
   int idx = (int)(rg->GetInt() % (unsigned)biomeNames.size());
+  printf("  → biome: %s\n", biomeNames[idx].c_str());
   return biomeNames[idx];
 }
 
@@ -295,6 +296,7 @@ Item Item_PlanetType(uint const& seed) { AUTO_FRAME;
 
   self->hasRings = rg->GetFloat() < ringProb;
 
+  printf("Item_PlanetType(seed=%u) biome=%s\n", seed, biomeName.c_str());
   self->renderable = Generate(*self);
   return self;
 }
