@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "defaults": {
+    "scale": 100000,
+    "dockCapacity": -1,
+    "atmoDensityRange": [0.0, 2.0],
+    "atmoTintSaturationRange": [0.5, 1.0],
+    "cloudLevelRange": [-0.2, 0.15],
+    "ringProbability": 0.6,
+    "wavelengthBase": [0.66, 0.53, 0.4],
+    "wavelengthJitter": [-0.1, 0.1],
+    "desaturationRange": [0.4, 1.0],
+    "oceanLevelPower": 1.5
+  },
+  "biomes": {
+    "desert": {
+      "name": "Desert",
+      "surfaceTint": [0.8, 0.6, 0.3],
+      "atmoDensityRange": [0.0, 0.5],
+      "oceanLevel": 0.0,
+      "cloudLevel": -0.1,
+      "cloudWindSpeed": 0.0,
+      "hasRings": false,
+      "rotationSpeed": 0.0001,
+      "description": "Arid, barren world with minimal atmosphere"
+    },
+    "terran": {
+      "name": "Terran",
+      "surfaceTint": [0.3, 0.6, 0.2],
+      "atmoDensityRange": [0.5, 1.5],
+      "oceanLevel": 0.3,
+      "cloudLevel": 0.1,
+      "cloudWindSpeed": 0.0005,
+      "hasRings": false,
+      "rotationSpeed": 0.0002,
+      "description": "Earth-like world with oceans and vegetation"
+    },
+    "ice": {
+      "name": "Ice",
+      "surfaceTint": [0.7, 0.8, 0.9],
+      "atmoDensityRange": [0.2, 0.8],
+      "oceanLevel": 0.0,
+      "cloudLevel": 0.0,
+      "cloudWindSpeed": 0.0003,
+      "hasRings": true,
+      "rotationSpeed": 0.00015,
+      "description": "Frozen world with thick ice crust"
+    },
+    "lava": {
+      "name": "Lava",
+      "surfaceTint": [0.9, 0.2, 0.1],
+      "atmoDensityRange": [1.0, 2.0],
+      "oceanLevel": 0.0,
+      "cloudLevel": -0.2,
+      "cloudWindSpeed": 0.001,
+      "hasRings": false,
+      "rotationSpeed": 0.0003,
+      "description": "Volcanic world with molten surface"
+    },
+    "gas_giant": {
+      "name": "Gas Giant",
+      "surfaceTint": [0.6, 0.5, 0.4],
+      "atmoDensityRange": [1.5, 2.0],
+      "oceanLevel": 0.0,
+      "cloudLevel": 0.15,
+      "cloudWindSpeed": 0.002,
+      "hasRings": true,
+      "rotationSpeed": 0.0005,
+      "description": "Massive gas giant with prominent ring system"
+    }
+  },
+  "moons": {
+    "enabled": true,
+    "countRange": [0, 3],
+    "orbitalRadiusRange": [150000, 500000],
+    "sizeRange": [500, 5000],
+    "moonScaleFormula": "Pow(mass / 1000, 0.5)"
+  }
+}
