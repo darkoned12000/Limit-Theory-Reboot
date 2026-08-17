@@ -539,6 +539,14 @@ correctness/tooling passes, NOT a ground-up rewrite.
 - [ ] **Delete dead EasyGL wrappers** — `GL_Begin`/`GL_End`/`GL_Vertex`/etc.
       in `src/liblt/LTE/GL.h`. Unused after 120→330 migration. Do NOT mark as
       Revamp Work (original code).
+- [ ] **Fix save game storage path** — `OS_GetUserDataPath()` in
+      `src/liblt/LTE/OS.cpp:95` returns `./cache/`, which gets deleted by
+      `configure.py clean`. Saves go to `./cache/saves/` and vanish on clean.
+      Fix: return platform-appropriate user data directory
+      (`~/.local/share/<game>/` on Linux, `%APPDATA%\<game>\` on Windows,
+      `~/Library/Application Support/<game>/` on macOS). All save/load code in
+      `SaveGameJSON.cpp` already uses `OS_GetUserDataPath()`, so only the
+      function implementation needs to change.
 
 ### 10.4 Content / LTSL
 - [ ] **Document LTSL stdlib surface** — Catalog script-accessible functions.
