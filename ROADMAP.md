@@ -37,47 +37,20 @@ there, not here.
 Ordered by impact ÷ effort, respecting dependencies. **Nothing here requires
 a big rewrite** — the engine core is healthy (§9 of AGENTS.md).
 
-### 2.1 Save/Load game state — **P0, first** (`in-progress`)
+### 2.1 Save/Load game state — **P0** (`done`)
 - **Effort:** 1–2 weeks. **Sources:** `ENGINE-STABILITY-AND-MODDING.md` Part 1
   (Phase 1, CRITICAL); `SAVE-LOAD-AND-INVENTORY.md` Part 1/3; PRD Phase 1 P1.
-- **Why first:** the only item flagged CRITICAL by two independent roadmaps,
-  and the reflection/`Serializer` infrastructure already exists — this is
-  mostly wiring `SaveGame.cpp` + LTSL bindings + menu buttons.
-- **Scope:** serialize player, universe, economy → disk; `SaveGame_Create` /
-  `SaveGame_Load` LTSL bindings; Save/Load entries in the main menu;
-  round-trip test (save → quit → load → verify state).
-- **Progress (2026-08-08):** save format moved to multi-slot JSON
-  (`cache/saves/<slot>.json`, `SaveGameJSON.{h,cpp}`) with versioned schema +
-  `dateCreated` metadata for a save-browser widget. Bindings: `SaveGame_Create`
-  (quicksave), `SaveGame_Load` (latest), plus new `SaveGame_LoadSlot` /
-  `SaveGame_ListSlots` (slot browser data). Exception-free nlohmann/json
-  vendored (`include/json/json.hpp`). Covered by `TestSaveGameJSON.cpp`
-  (7 tests). Remaining: load-wiring into an app, GameMenu entries, and the
-  save-browser widget.
-- **Progress (2026-08-10):** load-wiring done — F6 quicksave / F7 quickload /
-  launch auto-load in `ltheory-main`, each applying state and surfacing a
-  two-tone config-driven toast (`Widget/Toast.lts`). `Config_Get` extracted to
-  `Config.lts`; `Object_SetCredits` binding added for load application.
-  Remaining: GameMenu "SAVE GAME" entry, save-browser widget + slot-naming
-  dialog (`SaveGame_ListSlots`/`SaveGame_LoadSlot` data already available).
-- **Progress (2026-08-10, Phase 1 done):** full save/load manager UI shipped.
-  `SaveGameData` gained `saveName`/`saveDescription`; JSON schema bumped 2→3;
-  25-slot cap enforced in `SaveGame_Write` (new slot at cap fails, overwrites
-  always allowed). New
-  bindings `SaveGame_SaveSlot(player, root, slotName, saveName, saveDescription)`
-  / `SaveGame_Delete` / `SaveGame_Exists` / `SaveGame_Count`. Esc GameMenu's
-  dead SAVE GAME / LOAD GAME buttons now open `Widget/SaveGameManager.lts`
-  (scrollable slot list, select-to-overwrite with editable name/description,
-  Create New Save, Delete, slot-count header) and `Widget/LoadGameManager.lts`
-  (select + Load applying the same state as QuickLoad, Delete). Engine tests
-  extended to 13 (metadata round-trip, v2 fallback, delete, cap); suite is
-  556 checks / 0 failures. API-DB refreshed (4 added, 0 removed). **Phase 2:**
-  a Main Menu state machine *inside* `ltheory-main` (New Game / Load Game /
-  Settings / Help / About on a screenshot backdrop, version #, player-name +
-  seed prompt) — no `Program_LaunchApp` API exists, so the menu must be an
-  in-app state (`"MENU" → "NEW_GAME" → "LOADING" → "PLAY"`) reusing
-  `LoadingScreen`, `Texture/SplashScreen.lts`, `Config:Get`, and the settings/
-  save/load managers.
+- Delivered across multiple commits on `user-save-load` (merged to `main`
+  2026-08-17): multi-slot JSON saves (`cache/saves/<slot>.json`), versioned
+  schema (v3), 25-slot cap, quicksave/quickload (F6/F7), auto-load on launch,
+  config-driven toast UI, full save/load manager UI behind Esc→GameMenu
+  (select-to-overwrite, Create New Save, Delete, slot-count header, system
+  name + coordinates displayed). Engine tests: 13 tests, 622 checks, 0 failures.
+  Known flaws deferred: (1) save storage path uses `./cache/` which gets
+  wiped by `configure.py clean`, (2) no Main Menu state machine yet (Phase 2).
+  **Phase 2** (deferred): in-app Main Menu (`"MENU" → "NEW_GAME" → "LOADING"
+  → "PLAY"`) reusing `LoadingScreen`, `Texture/SplashScreen.lts`, `Config:Get`,
+  and the settings/save/load managers.
 
 ### 2.2 Crash logging polish — **P0, quick** (`done`)
 - **Effort:** ~2 days. **Source:** `ENGINE-STABILITY-AND-MODDING.md` Part 1.
@@ -99,6 +72,10 @@ a big rewrite** — the engine core is healthy (§9 of AGENTS.md).
   work.
 - **Scope:** `ShipDatabase` / `WeaponDatabase` / `PlanetDatabase` loaders +
   LTSL bindings; `ships.json` / `weapons.json` / `planet_biomes.json`.
+- **Design:** see `docs/JSON-DATA-LAYER-DESIGN.md` for full plan (schema,
+  architecture, phased delivery, risks, LTSL implications, scope).
+- **Progress:** (2026-08-17) design document complete; implementation not
+  started.
 
 ### 2.4 Asset hot-reload — **P1** (`todo`)
 - **Effort:** 1–2 weeks. **Source:** `ENGINE-STABILITY-AND-MODDING.md`
@@ -268,7 +245,7 @@ holds the original creation plan.
 
 After any engine/C++/GLSL change:
 - `python3 configure.py build`
-- `python3 configure.py test` (unit tests: expect **492 checks, 0 failures**)
+- `python3 configure.py test` (unit tests: expect **622 checks, 0 failures**)
 - LSP (if LTSL/API changed): `node script/ltsl-lsp/test-rpc.js` and
   `node script/ltsl-lsp/out/smoke.js` (expect **8 diagnostics**)
 
