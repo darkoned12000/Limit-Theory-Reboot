@@ -130,6 +130,7 @@ namespace LTE {
     j["saveName"]        = data.saveName.c_str();
     j["saveDescription"] = data.saveDescription.c_str();
     j["playerName"]      = data.playerName.c_str();
+    j["systemName"]      = data.systemName.c_str();
     j["playerCredits"]   = data.playerCredits;
     j["shipHull"]        = data.shipHull;
     j["playerPos"]       = VectorToJSON(data.playerPos);
@@ -149,6 +150,7 @@ namespace LTE {
     d.saveName       = String(j.value("saveName", "").c_str());
     d.saveDescription = String(j.value("saveDescription", "").c_str());
     d.playerName     = String(j.value("playerName", "").c_str());
+    d.systemName     = String(j.value("systemName", "").c_str());
     d.playerCredits  = j.value("playerCredits", (long long)0);
     d.shipHull       = j.value("shipHull", (long long)0);
     if (j.contains("playerPos") && j["playerPos"].is_object())
@@ -245,6 +247,7 @@ namespace LTE {
       info.saveName = d.saveName;
       info.saveDescription = d.saveDescription;
       info.playerName = d.playerName;
+      info.systemName = d.systemName;
       info.playerCredits = d.playerCredits;
       info.playerPos = d.playerPos;
       info.universeSeed = d.universeSeed;

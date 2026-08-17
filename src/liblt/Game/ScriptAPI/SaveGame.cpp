@@ -23,6 +23,7 @@ namespace LTE {
     SaveGameData d;
     d.version = kSaveJSONVersion;
     d.playerName = player->GetName();
+    d.systemName = root->GetName();
     d.playerCredits = player->GetCredits();
     d.universeSeed = root->GetSeed();
 

@@ -32,6 +32,7 @@ AutoClass(SaveSlotInfo,
   String, saveName,
   String, saveDescription,
   String, playerName,
+  String, systemName,
   Quantity, playerCredits,
   V3D, playerPos,
   uint, universeSeed)

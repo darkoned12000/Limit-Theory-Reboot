@@ -72,7 +72,7 @@ type SaveList
       var info (slots.Get i)
       var title (? (info.saveName.Length > 0 info.saveName) (otherwise info.slotName))
       var subtitle (? (info.saveDescription.Length > 0 info.saveDescription) (otherwise info.dateCreated))
-      var location "Loc: " + info.playerPos.x + ", " + info.playerPos.y + ", " + info.playerPos.z
+      var location "System: " + info.systemName + " | Loc: " + info.playerPos.x + ", " + info.playerPos.y + ", " + info.playerPos.z
       l += (CreateRow info.slotName title subtitle location (info.slotName == (deref pSelected)))
     if slots.Size == 0
       l +=
