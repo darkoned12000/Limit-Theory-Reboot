@@ -191,6 +191,7 @@ type App
     var out (Array String)
     out += "Date: "
     out += "Player Name: "
+    out += "System: "
     out += "Position: "
     out += "Credits: "
     out += "Inventory: "
@@ -201,6 +202,7 @@ type App
     var out (Array String)
     out += d.dateCreated
     out += d.playerName
+    out += d.systemName
     out += ("" + d.playerPos.x + ", " + d.playerPos.y + ", " + d.playerPos.z)
     out += ("" + d.playerCredits)
     out += "(to be linked)"
