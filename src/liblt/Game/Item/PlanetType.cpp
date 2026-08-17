@@ -227,6 +227,7 @@ Item Item_PlanetType(uint const& seed) { AUTO_FRAME;
   V3 wavelengthBase(0.66f, 0.53f, 0.4f);
   V3 wavelengthJitter(-0.1f, 0.1f, 0.1f);
   V3 surfaceTint(0.5f);
+  float blendStrength = 0.4f;  /* default: 40% noise */
 
   /* Override defaults from JSON biome data. */
   if (haveDb) {
@@ -256,6 +257,10 @@ Item Item_PlanetType(uint const& seed) { AUTO_FRAME;
       json const* tintVal = JGet(biome, "surfaceTint");
       surfaceTint = ReadV3(tintVal);
 
+      json const* blendVal = JGet(biome, "blendStrength");
+      if (blendVal && blendVal->is_number())
+        blendStrength = blendVal->get<float>();
+
       json const* oceanVal = JGet(biome, "oceanLevel");
       (void)oceanVal;  /* TODO: wire into oceanLevel shader param */
     }
@@ -272,6 +277,9 @@ Item Item_PlanetType(uint const& seed) { AUTO_FRAME;
       wavelengthBase = ReadV3(wlBase);
       json const* wlJitter = JGet(defaults, "wavelengthJitter");
       wavelengthJitter = ReadV3(wlJitter);
+      json const* blendDef = JGet(defaults, "blendStrength");
+      if (blendDef && blendDef->is_number())
+        blendStrength = blendDef->get<float>();
     }
   }
 
@@ -283,9 +291,13 @@ Item Item_PlanetType(uint const& seed) { AUTO_FRAME;
     rg->GetFloat(atmoSatMin, atmoSatMax));
   self->cloudLevel = rg->GetFloat(cloudLevelMin, cloudLevelMax);
 
-  /* Blend biome surface tint with seed-driven variation. */
+  /* Blend biome surface tint with seed-driven variation.
+   * blendStrength controls how much random noise mixes in:
+   *   0.0 = pure tint (exact JSON color)
+   *   0.4 = moderate blending (default)
+   *   1.0 = pure noise (tint ignored) */
   float desat = rg->GetFloat(desatMin, desatMax);
-  float blend = rg->GetFloat(0.2f, 0.6f);
+  float blend = blendStrength;
   V3 blended = surfaceTint * (1.0f - blend) + rg->GetV3(0, 1.0f) * blend;
   self->color1 = Desaturate(blended, desat);
   self->color2 = Desaturate(rg->GetV3(0, 1.0f), desat);

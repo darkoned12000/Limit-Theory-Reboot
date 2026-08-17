@@ -12,6 +12,7 @@
       "ringProbability": "0.0-1.0 — Global fallback ring probability if biome doesn't specify hasRings. 0.6 = 60% of planets have rings.",
       "wavelengthBase": "[R, G, B] — Controls atmospheric scattering color. Lower values = more scattering (redder horizon). The engine divides 1/wavelength^4, so small changes have big visual effect. [0.66, 0.53, 0.4] = Earth-like blue sky.",
       "wavelengthJitter": "Single value — Random ± variation applied to each wavelength component. 0.1 = each RGB channel varies by ±0.1. Higher = more color variety between planets of the same biome.",
+      "blendStrength": "0.0-1.0 — How much random noise mixes with surfaceTint. 0.0 = pure tint (exact JSON color), 0.4 = moderate blending (default), 1.0 = pure noise (tint ignored). Lower this to get closer to your exact RGB color.",
       "desaturationRange": "[min, max] — How washed out the surface colors are. 0.0 = fully saturated (vivid colors), 1.0 = fully grey. 0.4-1.0 gives natural-looking variety.",
       "atmoTintSaturationRange": "[min, max] — How saturated the atmosphere glow color is. 0.5 = somewhat grey atmosphere, 1.0 = vivid colored atmosphere.",
       "rotationSpeed": "float — How fast the planet spins (radians per frame). 0.0001 = slow, 0.0005 = fast gas giant. Currently informational only (shader wiring pending).",
@@ -38,6 +39,7 @@
     "wavelengthBase": [0.66, 0.53, 0.4],
     "wavelengthJitter": [-0.1, 0.1],
     "desaturationRange": [0.4, 1.0],
+    "blendStrength": 0.4,
     "oceanLevelPower": 1.5
   },
   "biomes": {
@@ -87,7 +89,8 @@
     },
     "gas_giant": {
       "name": "Gas Giant",
-      "surfaceTint": [0.6, 0.5, 0.4],
+      "surfaceTint": [0.569, 0.404, 0.247],
+      "blendStrength": 0.0,
       "atmoDensityRange": [1.5, 2.0],
       "oceanLevel": 0.0,
       "cloudLevel": 0.15,
