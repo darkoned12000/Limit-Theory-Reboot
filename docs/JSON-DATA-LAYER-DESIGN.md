@@ -3,11 +3,11 @@
 // Part of the ltheory-old-test modernization effort (Revamp Work).
 // See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
 
-# JSON Data Layer Design — ROADMAP 2.3
+# JSON Data Layer Design — ROADMAP 2.3 + 2.3b
 
 Comprehensive plan for making the engine data-driven via JSON configuration
 files. This document covers scope, architecture, schemas, phased delivery,
-risks, and LTSL implications.
+risks, LTSL implications, and engine visual enhancements (2.3b).
 
 ---
 
@@ -16,7 +16,7 @@ risks, and LTSL implications.
 ### Current Problem
 
 All game balance, type definitions, and tuning parameters are hardcoded in
-C++:
+C++ or baked into GLSL shaders:
 
 - **WeaponType.cpp** — 10 multiplier tables (damage, fire rate, spread, etc.)
   indexed by `WeaponClass` enum, plus hardcoded color formulas, magazine
@@ -28,25 +28,38 @@ C++:
 - **StationType.cpp** — hardcoded dock capacity (100), name "Station".
 - **Constants.h** — all balance formulas (`Constant_ValueToMass`,
   `Constant_AmmoDamageMult`, etc.) as inline functions.
-- **GLSL shaders** — scattering coefficients, fog density, gamma, ocean
-  color all baked into `.jsl` files.
+- **GLSL shaders** — nebula constants (`kDepth=4.0`, `kEmission=3.0`,
+  `kSamples=256`), scattering coefficients (`kRayleigh`, `kMie`), ocean
+  color, fog density, gamma — all baked into `.jsl` files.
+- **Star** — invisible (light source only), no surface shader, position/
+  size/brightness hardcoded, lens flare exists but unwired.
+- **Planets** — static surface (no rotation), static clouds (no animation),
+  no moons, no biome categorization.
+- **NPC AI** — tasks are imperative ("do X"), no configurable behavior
+  parameters, no tuning knobs for aggression/mining/trading behavior.
 - **gameConfig.txt** — flat `key:value` text, 23 keys, no hierarchy.
 
-**Impact:** Every balance change, new weapon class, or planet biome
-variation requires a C++ recompile. Iteration is slow. Modding is
-impossible without source access.
+**Impact:** Every balance change, new weapon class, planet biome variation,
+visual tuning, or NPC behavior tweak requires a C++ or GLSL recompile.
+Iteration is slow. Modding is impossible without source access.
 
 ### What a JSON Layer Unlocks
 
 1. **Instant iteration** — designers tweak JSON, reload, see changes.
    No recompile cycle.
 2. **Modding foundation** — modders drop JSON files into `mods/` to add
-   ships, weapons, biomes without touching C++.
-3. **Content diversity** — easy to create dozens of ship/weapon variants
-   by tweaking numbers, not rewriting code.
-4. **Separation of concerns** — game logic in C++, content data in JSON.
-   Each evolves independently.
-5. **Testing** — JSON schemas are self-documenting; validation catches
+   ships, weapons, biomes, tweak visuals, tune NPC behavior without
+   touching C++.
+3. **Content diversity** — easy to create dozens of ship/weapon/planet
+   variants by tweaking numbers, not rewriting code.
+4. **Visual authoring** — artists control nebula density, scattering
+   haze, dust colors, post-processing strengths, star appearance —
+   all via JSON, not by hunting through shader source.
+5. **NPC tuning** — gameplay designers adjust aggression, mining rates,
+   trade thresholds, fleet composition without recompiling.
+6. **Separation of concerns** — game logic in C++, content data in JSON,
+   visual parameters in JSON. Each evolves independently.
+7. **Testing** — JSON schemas are self-documenting; validation catches
    errors at load time instead of runtime.
 
 ---
@@ -59,6 +72,8 @@ impossible without source access.
 ┌─────────────────────────────────────────────────┐
 │  LTSL Scripts (ltheory-main, SystemPopulate)    │
 │  call Database_Get "ships" "fighter"             │
+│  call Database_Get "graphics" "nebula.depth"     │
+│  call Database_Get "npc" "mining.aggression"     │
 └──────────────────────┬──────────────────────────┘
                        │ LTSL binding
 ┌──────────────────────▼──────────────────────────┐
@@ -66,11 +81,12 @@ impossible without source access.
 │  - Parse JSON on load                            │
 │  - Populate in-memory lookup tables              │
 │  - Expose to LTSL via Function_Bind              │
+│  - Pass values to shader uniforms / C++ params   │
 └──────────────────────┬──────────────────────────┘
                        │ nlohmann/json (already vendored)
 ┌──────────────────────▼──────────────────────────┐
 │  JSON Files (resource/gamedata/*.json)           │
-│  - ships.json, weapons.json, planets.json, ...   │
+│  - ships.json, weapons.json, graphics.json, ...  │
 │  - Loaded at app startup or on hot-reload        │
 └─────────────────────────────────────────────────┘
 ```
@@ -122,13 +138,16 @@ The database layer exposes 4 functions to LTSL scripts:
 | `Database_Keys` | `Array String Database_Keys(String db)` | List all keys in a database |
 
 **`Database_Get` returns a JSON value** — this requires a new LTSL
-`JsonValue` type (see §5 for LTSL improvements needed). Scripts access
+`JsonValue` type (see §6 for LTSL improvements needed). Scripts access
 fields via dot notation:
 
 ```
 var ship (Database_Get "ships" "fighter")
 var hullHP ship.hull.hp      # nested access
 var thrusters ship.thrusters  # array access
+
+var nebula (Database_Get "graphics" "nebula")
+var depth nebula.depth        # shader constant
 ```
 
 ### 2.4 Hot-Reload (deferred to 2.4)
@@ -147,13 +166,14 @@ resource/gamedata/
   config.json          ← replaces gameConfig.txt (hierarchical)
   ships.json           ← ship type definitions
   weapons.json         ← weapon type definitions + balance tables
-  planets.json         ← planet biome definitions + generation params
+  planets.json         ← planet biome definitions + generation params + moons
   stations.json        ← station type definitions
   economy.json         ← commodity definitions + market parameters
   factions.json        ← faction definitions + relationships
   universe.json        ← region structure, connectivity, asteroid density
-  graphics.json        ← rendering settings (fog, scattering, bloom, etc.)
+  graphics.json        ← ALL rendering settings (see §3.6)
   audio.json           ← sound definitions, music tracks, volume defaults
+  npc.json             ← NPC behavior parameters (see §3.9)
 ```
 
 ---
@@ -299,7 +319,9 @@ values in the generation function.
       "atmoDensityRange": [0.0, 0.5],
       "oceanLevel": 0.0,
       "cloudLevel": -0.1,
+      "cloudWindSpeed": 0.0,
       "hasRings": false,
+      "rotationSpeed": 0.0001,
       "description": "Arid, barren world with minimal atmosphere"
     },
     "terran": {
@@ -308,7 +330,9 @@ values in the generation function.
       "atmoDensityRange": [0.5, 1.5],
       "oceanLevel": 0.3,
       "cloudLevel": 0.1,
+      "cloudWindSpeed": 0.0005,
       "hasRings": false,
+      "rotationSpeed": 0.0002,
       "description": "Earth-like world with oceans and vegetation"
     },
     "ice": {
@@ -317,7 +341,9 @@ values in the generation function.
       "atmoDensityRange": [0.2, 0.8],
       "oceanLevel": 0.0,
       "cloudLevel": 0.0,
+      "cloudWindSpeed": 0.0003,
       "hasRings": true,
+      "rotationSpeed": 0.00015,
       "description": "Frozen world with thick ice crust"
     },
     "lava": {
@@ -326,7 +352,9 @@ values in the generation function.
       "atmoDensityRange": [1.0, 2.0],
       "oceanLevel": 0.0,
       "cloudLevel": -0.2,
+      "cloudWindSpeed": 0.001,
       "hasRings": false,
+      "rotationSpeed": 0.0003,
       "description": "Volcanic world with molten surface"
     },
     "gas_giant": {
@@ -335,15 +363,25 @@ values in the generation function.
       "atmoDensityRange": [1.5, 2.0],
       "oceanLevel": 0.0,
       "cloudLevel": 0.15,
+      "cloudWindSpeed": 0.002,
       "hasRings": true,
+      "rotationSpeed": 0.0005,
       "description": "Massive gas giant with prominent ring system"
     }
+  },
+  "moons": {
+    "enabled": true,
+    "countRange": [0, 3],
+    "orbitalRadiusRange": [150000, 500000],
+    "sizeRange": [500, 5000],
+    "moonScaleFormula": "Pow(mass / 1000, 0.5)"
   }
 }
 ```
 
 **Replaces:** hardcoded ranges in `PlanetType.cpp` lines 140–158 + adds
-biome categorization (currently absent — all planets are "desert").
+biome categorization (currently absent — all planets are "desert") + adds
+moon generation parameters + cloud drift speed + planet rotation speed.
 
 ### 3.4 stations.json
 
@@ -375,7 +413,7 @@ biome categorization (currently absent — all planets are "desert").
 
 **Replaces:** hardcoded `dockCapacity = 100` in `StationType.cpp`.
 
-### 3.5 economy.json (deferred — scope item)
+### 3.5 economy.json
 
 ```json
 {
@@ -383,57 +421,161 @@ biome categorization (currently absent — all planets are "desert").
   "commodities": {
     "ore": { "name": "Ore", "basePrice": 10, "stackSize": 100 },
     "fuel": { "name": "Fuel Cells", "basePrice": 25, "stackSize": 50 },
-    "components": { "name": "Components", "basePrice": 100, "stackSize": 20 }
+    "components": { "name": "Components", "basePrice": 100, "stackSize": 20 },
+    "rare_minerals": { "name": "Rare Minerals", "basePrice": 500, "stackSize": 10 },
+    "food": { "name": "Food", "basePrice": 15, "stackSize": 80 },
+    "technology": { "name": "Technology", "basePrice": 200, "stackSize": 30 }
   },
   "market": {
     "markupRange": [0.8, 1.5],
     "demandDecayRate": 0.01,
-    "supplyReplenishRate": 0.005
+    "supplyReplenishRate": 0.005,
+    "initialCredits": 100000
+  },
+  "trade": {
+    "minProfitThreshold": 0.05,
+    "maxCargoShipsPerRoute": 3,
+    "routeRebalanceInterval": 60
   }
 }
 ```
 
-**Replaces:** `Item_Commodity` stub (currently `NOT_IMPLEMENTED`).
+**Replaces:** `Item_Commodity` stub (currently `NOT_IMPLEMENTED`) +
+hardcoded economy parameters in `Component_Economy`.
 
-### 3.6 graphics.json (deferred — scope item)
+### 3.6 graphics.json (expanded — shader-level controls)
+
+This is the most expanded schema. Every hardcoded shader constant is
+exposed as a tunable JSON parameter.
 
 ```json
 {
   "version": 1,
+
   "rendering": {
     "farPlane": 1000000,
     "nearPlane": 0.05,
     "gamma": 2.2,
-    "vsync": false
+    "vsync": false,
+    "maxColorAttachments": 4,
+    "framebufferCacheSize": 128
   },
-  "fog": {
-    "density": 0.0,
-    "color": [0.0, 0.0, 0.0]
+
+  "nebula": {
+    "depth": 4.0,
+    "emission": 3.0,
+    "samples": 256,
+    "colorMixRatio": 0.5,
+    "centralGlowFalloff": 512,
+    "emissionFalloff": 5.0,
+    "fractalIterations": 24
   },
+
   "scattering": {
     "densityMult": 50.0,
     "scale": 0.025,
     "planetRadius": 50000,
-    "rayleigh": [0.005, 0.009, 0.004],
-    "mie": [0.002, 0.002, 0.002]
+    "outerRadiusMult": 1.025,
+    "depth": 0.125,
+    "samples": 8,
+    "rayleigh": [0.0025, 0.0045, 0.0020],
+    "rayleighStrength": 0.4,
+    "mie": [0.002, 0.002, 0.002],
+    "mieG": 0.75
   },
+
+  "dustfleck": {
+    "opacityMult": 0.8,
+    "distanceFade": 100.0,
+    "defaultColor": [1.0, 1.0, 1.0],
+    "shapeFalloff": 16.0
+  },
+
+  "dustcloud": {
+    "maxClouds": 4,
+    "defaultFogDensity": 0.0
+  },
+
+  "ocean": {
+    "color": [0.03, 0.05, 0.10],
+    "specularIntensity": 1.0
+  },
+
+  "star": {
+    "renderDisk": true,
+    "diskRadius": 3000000,
+    "brightnessMult": 10.0,
+    "position": [0, 60000000, 0],
+    "lensFlareEnabled": true,
+    "lensFlareOpacity": 0.8,
+    "defaultColor": [1.0, 0.9, 0.8]
+  },
+
+  "fog": {
+    "density": 0.0,
+    "color": [0.0, 0.0, 0.0]
+  },
+
   "bloom": {
     "enabled": false,
     "threshold": 1.0,
     "strength": 0.5
   },
+
   "ssao": {
     "enabled": false,
     "radius": 0.5,
-    "intensity": 1.0
+    "intensity": 1.0,
+    "kernelSize": 16
+  },
+
+  "vignette": {
+    "hardness": 1.0,
+    "opacity": 0.5
+  },
+
+  "motionBlur": {
+    "enabled": false,
+    "strength": 0.8
+  },
+
+  "chromaticAberration": {
+    "enabled": false,
+    "strength": 0.001
+  },
+
+  "filmGrain": {
+    "enabled": false,
+    "intensity": 0.05
+  },
+
+  "colorGrading": {
+    "enabled": true,
+    "warmHighlights": true
+  },
+
+  "lodFade": {
+    "enabled": true
   }
 }
 ```
 
-**Replaces:** hardcoded constants in GLSL shaders (`global.jsl`,
-`lighting.jsl`, `scattering.jsl`, `planet.jsl`).
+**Replaces:** hardcoded constants across 15+ GLSL shader files:
+- `nebula.jsl` → `kDepth`, `kEmission`, `kSamples`, fractal iterations
+- `scattering.jsl` → `kAtmoDensityMult`, `kAtmoScale`, `kPlanetRadius`,
+  `kOuterRadius`, `kDepth`, `kRcpSamples`, `kRayleigh`, `kMie`, `g`
+- `dustfleck.jsl` → opacity multiplier, distance fade, color
+- `dustclouds.jsl` → max cloud count, fog density
+- `planet.jsl` → ocean color, specular intensity
+- `global.jsl` → `farPlane`, `nearPlane`, `kGamma`
+- `post/vignette.jsl` → hardness, opacity
+- `post/motionblur.jsl` → strength
+- `post/aberration.jsl` → strength
+- `post/grain.jsl` → intensity
+- `post/colorbalance.jsl` → warm highlights
+- Star rendering (new — §3.10)
 
-### 3.7 audio.json (deferred — scope item)
+### 3.7 audio.json
 
 ```json
 {
@@ -444,14 +586,34 @@ biome categorization (currently absent — all planets are "desert").
     "docking": { "tracks": ["music/dock1.ogg"], "volume": 0.03 }
   },
   "sfx": {
-    "weaponFire": { "beam": "sfx/beam_fire.ogg", "missile": "sfx/missile_fire.ogg" },
-    "explosion": { "small": "sfx/explode_small.ogg", "large": "sfx/explode_large.ogg" },
-    "ui": { "click": "sfx/ui_click.ogg", "hover": "sfx/ui_hover.ogg" }
+    "weaponFire": {
+      "beam": "sfx/beam_fire.ogg",
+      "missile": "sfx/missile_fire.ogg",
+      "pulse": "sfx/pulse_fire.ogg",
+      "rail": "sfx/rail_fire.ogg"
+    },
+    "explosion": {
+      "small": "sfx/explode_small.ogg",
+      "large": "sfx/explode_large.ogg"
+    },
+    "ui": {
+      "click": "sfx/ui_click.ogg",
+      "hover": "sfx/ui_hover.ogg"
+    },
+    "ambient": {
+      "system": "sfx/system_ambient.ogg",
+      "station": "sfx/station_ambient.ogg"
+    }
+  },
+  "pooling": {
+    "maxSimultaneous": 10,
+    "weaponFireBuffer": 10
   }
 }
 ```
 
-**Replaces:** hardcoded sound paths in `WeaponType.cpp` lines 192–199.
+**Replaces:** hardcoded sound paths in `WeaponType.cpp` lines 192–199 +
+volume levels scattered in `AUDIO-SYSTEM-GUIDE.md`.
 
 ### 3.8 config.json (replaces gameConfig.txt)
 
@@ -496,11 +658,186 @@ biome categorization (currently absent — all planets are "desert").
 **Replaces:** `gameConfig.txt` flat key-value format. Hierarchical,
 typed, supports nested objects and arrays.
 
+### 3.9 npc.json (NPC AI behavior tuning)
+
+Derived from `docs/npc-ai-integration.md` — exposes the engine's existing
+task system and economy allocator as tunable parameters.
+
+```json
+{
+  "version": 1,
+
+  "spawning": {
+    "initialShips": 12,
+    "minShips": 5,
+    "maxShips": 50,
+    "spawnRate": 0.01,
+    "despawnDistance": 500000
+  },
+
+  "mining": {
+    "enabled": true,
+    "shipsPerZone": [2, 4],
+    "miningRange": 5000,
+    "extractRate": 1.0,
+    "dockThreshold": 0.8,
+    "sellThreshold": 0.5
+  },
+
+  "trading": {
+    "enabled": true,
+    "shipsPerRoute": [1, 3],
+    "minProfitThreshold": 0.05,
+    "maxCargoLoad": 100,
+    "routeRebalanceInterval": 60
+  },
+
+  "piracy": {
+    "enabled": true,
+    "shipsPerZone": [2, 5],
+    "aggroRange": 10000,
+    "disengageHullPct": 0.3,
+    "ignorePlayerOwned": true,
+    "targetCargoPreference": 0.7
+  },
+
+  "patrol": {
+    "enabled": true,
+    "shipsPerStation": [2, 3],
+    "patrolRadius": 20000,
+    "aggroRange": 15000
+  },
+
+  "economy": {
+    "allocatorEnabled": true,
+    "profitRebalanceInterval": 30,
+    "spawnThreshold": 0.1,
+    "retireThreshold": -0.05,
+    "maxFleetSize": 20
+  },
+
+  "combat": {
+    "fleeHullPct": 0.25,
+    "engageRange": 8000,
+    "pursuitMaxDistance": 50000,
+    "retreatDelay": 2.0
+  },
+
+  "behavior": {
+    "reEvaluateInterval": 3.0,
+    "threatAssessmentRange": 20000,
+    "dockRepairHullPct": 0.3,
+    "fullCargoSeekMarket": true
+  }
+}
+```
+
+**Replaces:** hardcoded task parameters in `Component_Economy` +
+hardcoded spawning counts in `SystemPopulate.lts` + no existing NPC
+behavior tuning. Derived from `docs/npc-ai-integration.md` Phase 1–3
+task wiring.
+
+### 3.10 Star customization (2.3b — engine change)
+
+The star is currently invisible (light source only). The `star` section
+in `graphics.json` (§3.6) configures:
+
+| Parameter | Current Hardcoded | JSON Key | Purpose |
+|-----------|------------------|----------|---------|
+| Render disk | none | `star.renderDisk` | Show star as visible glowing sphere |
+| Radius | 3000000 | `star.diskRadius` | Visual size of the star disk |
+| Brightness | 10× color | `star.brightnessMult` | Emissive intensity |
+| Position | `Spherical(60M, 1.25kπ², 0)` | `star.position` | Override star position |
+| Lens flare | unwired | `star.lensFlareEnabled` | Wire existing `lensflare.jsl` |
+| Lens flare opacity | hardcoded | `star.lensFlareOpacity` | Flare intensity |
+| Default color | seeded blue-white | `star.defaultColor` | Override if no seed color |
+
+**Engine changes required (2.3b):**
+1. New `Renderable_StarDisk` — procedural glowing sphere shader using
+   existing `solidcolor.jsl` + emissive + bloom. Rendered as a separate
+   pass after the skybox.
+2. Wire `lensflare.jsl` to the star position (shader exists, just not
+   connected).
+3. Read `star.*` from `graphics.json` at system creation time.
+
+### 3.11 Planet rotation (2.3b — shader change)
+
+Currently: planet surface is static — no `time` uniform in the planet
+shader path.
+
+**Change:** add `uniform float time` to `gen/planet.jsl` and `planet.jsl`.
+The planet cubemap is generated once at creation time, but the lookup
+direction can be rotated by `time * rotationSpeed` around the Y axis:
+
+```glsl
+// In planet.jsl, before cubemap lookup:
+float rotAngle = time * rotationSpeed;  // from planets.json biome
+vec3 rotatedDir = vec3(
+  dir.x * cos(rotAngle) - dir.z * sin(rotAngle),
+  dir.y,
+  dir.x * sin(rotAngle) + dir.z * cos(rotAngle)
+);
+vec4 surf = texture(planetMap, rotatedDir);
+```
+
+The `rotationSpeed` comes from `planets.json` per biome (see §3.3).
+Cloud layer rotates at `cloudWindSpeed` — same technique, different
+speed.
+
+**Engine changes:** pass `time` uniform to planet renderables in
+`PlanetType.cpp`. The uniform is already available globally
+(`DrawState_Link` provides `time` to all shaders that declare it).
+
+### 3.12 Cloud animation (2.3b — shader change)
+
+Currently: clouds are baked into the planet cubemap's B channel and
+sampled with a static threshold. No drift.
+
+**Change:** offset the cloud UV lookup by `time * cloudWindSpeed`:
+
+```glsl
+// In planet.jsl, cloud sampling:
+vec3 cloudDir = rotatedDir + vec3(time * cloudWindSpeed * 0.001, 0.0, 0.0);
+float cloud = texture(planetMap, cloudDir).b;
+```
+
+This creates visible cloud drift across the planet surface. The
+`cloudWindSpeed` per biome comes from `planets.json` (§3.3). Gas giants
+get fast winds (0.002), terran worlds get moderate (0.0005), deserts
+get none (0.0).
+
+### 3.13 Moons (2.3b — new object type)
+
+Currently: no moon system exists.
+
+**New `Object_Moon`:**
+- Small body orbiting a planet at configurable radius
+- Uses simplified planet shader (surface cubemap, no atmosphere)
+- Orbital mechanics: simple circular orbit at `orbitalRadius` with
+  seeded angular velocity
+- Moon count, orbital radius range, size range from `planets.json`
+  (§3.3 `moons` section)
+
+**Engine changes:**
+1. New `Object_Moon.{h,cpp}` — `AutoClassDerived(Moon, MoonBaseT, ...)`
+   with `Component_Drawable`, `Component_Orientation`, `Component_Mass`
+2. `MoonGenerator` function — called from `SystemPopulate.lts` after
+   planet creation, spawns 0–3 moons per planet
+3. Moon shader: simplified `planet.jsl` (surface only, no atmosphere
+   scattering)
+4. Orbital update in `System.cpp` — advance moon angle by `dt * speed`
+
+**Risk:** new object type + orbital mechanics. Moderate complexity.
+Defer to late 2.3b if planet rotation and cloud animation deliver
+sufficient visual improvement first.
+
 ---
 
 ## 4. Phased Implementation
 
-### Phase 1: Core Infrastructure (Week 1)
+### 2.3 Phases (JSON layer)
+
+#### Phase 1: Core Infrastructure (Week 1)
 
 **Goal:** DatabaseManager + JsonDatabase + LTSL bindings working.
 
@@ -508,7 +845,7 @@ typed, supports nested objects and arrays.
 2. **`JsonDatabase.{h,cpp}`** — load, index, lookup
 3. **LTSL bindings** — `Database_Load`, `Database_Get`, `Database_Has`,
    `Database_Keys`
-4. **`JsonValue` type** — new LTSL type wrapping `nlohmann::json` (see §5)
+4. **`JsonValue` type** — new LTSL type wrapping `nlohmann::json` (see §6)
 5. **Unit tests** — `TestJsonDatabase.cpp` (load, lookup, missing key,
    version check, malformed JSON)
 6. **Wire into `Launcher::Launch()`** — load all databases at startup
@@ -516,7 +853,7 @@ typed, supports nested objects and arrays.
 **Deliverable:** `Database_Load "ships" "gamedata/ships.json"` works from
 LTSL; `Database_Get "ships" "fighter"` returns a value.
 
-### Phase 2: Content Databases (Week 2–3)
+#### Phase 2: Content Databases (Week 2–3)
 
 **Goal:** Ship/weapon/planet/station data moved to JSON.
 
@@ -534,21 +871,22 @@ LTSL; `Database_Get "ships" "fighter"` returns a value.
 **Deliverable:** Changing a value in `weapons.json` changes weapon behavior
 without recompile.
 
-### Phase 3: Scope Extensions (Week 3–4)
+#### Phase 3: Graphics & NPC (Week 3–4)
 
-**Goal:** Economy, graphics, audio configs wired.
+**Goal:** Deep graphics tuning + NPC behavior parameters wired.
 
-1. **`economy.json`** — commodity definitions, market parameters
-2. **`graphics.json`** — rendering settings (fog, scattering, bloom, SSAO)
-3. **`audio.json`** — sound definitions, music tracks, volume defaults
-4. **`universe.json`** — region structure, connectivity, asteroid density
-5. **`factions.json`** — faction definitions, relationships, colors
-6. **Wire graphics settings** — pass JSON values to shader uniforms at init
-7. **Wire audio settings** — load sound definitions from JSON
+1. **`graphics.json`** — expand to shader-level constants (§3.6)
+2. **Wire graphics settings** — pass JSON values to shader uniforms at
+   init via `DrawState_Link` or per-renderable uniform sets
+3. **`npc.json`** — NPC behavior parameters (§3.9)
+4. **Wire NPC settings** — pass values to `Component_Economy` and task
+   spawning in `SystemPopulate.lts`
+5. **`economy.json`** — commodity definitions, market parameters (§3.5)
+6. **`audio.json`** — sound definitions, music tracks (§3.7)
 
-**Deliverable:** All major game parameters configurable via JSON.
+**Deliverable:** All visual and behavioral parameters tunable via JSON.
 
-### Phase 4: Polish & Validation (Week 4)
+#### Phase 4: Polish & Validation (Week 4)
 
 **Goal:** Robust error handling, documentation, testing.
 
@@ -558,11 +896,74 @@ without recompile.
 4. **Full test suite** — all databases round-trip, all apps verified
 5. **API-DB refresh** — regenerate after new bindings
 
+### 2.3b Phases (engine visual enhancements)
+
+#### Phase A: Star Rendering (Week 5)
+
+**Goal:** Star visible as glowing disk + lens flare.
+
+1. **`Renderable_StarDisk`** — procedural glowing sphere shader
+2. **Wire lens flare** — connect existing `lensflare.jsl` to star position
+3. **Read `star.*` from `graphics.json`** — color, size, brightness
+4. **Unit test** — star renders, lens flare visible
+
+#### Phase B: Planet Rotation + Cloud Animation (Week 5–6)
+
+**Goal:** Planets rotate, clouds drift.
+
+1. **Add `rotationSpeed`/`cloudWindSpeed` to planet renderables** —
+   read from `planets.json` biome data
+2. **Modify `planet.jsl`** — add `time` uniform, rotate lookup direction,
+   offset cloud UV
+3. **Modify `PlanetType.cpp`** — pass `time` and `rotationSpeed` to
+   shader uniforms
+4. **Verify** — planets visibly rotate, clouds drift at different speeds
+   per biome
+
+#### Phase C: Moons (Week 6–7, deferred if time tight)
+
+**Goal:** Small orbiting bodies around planets.
+
+1. **New `Object_Moon`** — simplified planet object type
+2. **`MoonGenerator`** — spawn 0–3 moons per planet from `planets.json`
+3. **Moon shader** — simplified surface cubemap (no atmosphere)
+4. **Orbital update** — advance moon position each frame
+5. **Integration test** — moons orbit planets, visible from player ship
+
 ---
 
-## 5. LTSL Language Improvements Needed
+## 5. Shader Uniform Wiring
 
-### 5.1 JsonValue Type
+The JSON layer needs to push values into shaders. Two approaches:
+
+### 5.1 Global uniforms via DrawState_Link
+
+For uniforms shared across all shaders (fog, star, scattering):
+- Add a `GraphicsConfig` struct populated from `graphics.json` at startup
+- `DrawState_Link()` already pushes `fogDensity`, `starColor`, `starPos`
+  — extend to push scattering, nebula, and other globals
+- Shaders declare the uniform; the engine fills it from config
+
+### 5.2 Per-renderable uniforms
+
+For per-planet values (rotation speed, cloud speed, biome colors):
+- `PlanetType.cpp` already sets per-planet uniforms (`atmoDensity`,
+  `cloudLevel`, `color1..4`) — extend to include `rotationSpeed`,
+  `cloudWindSpeed`
+- These are read from `planets.json` at planet creation time
+
+### 5.3 Post-processing uniforms
+
+For bloom, SSAO, vignette, etc.:
+- Post-processing chain reads config values at init
+- Some (bloom threshold, SSAO radius) are set once; others (vignette
+  hardness) can be updated per-frame if needed
+
+---
+
+## 6. LTSL Language Improvements Needed
+
+### 6.1 JsonValue Type
 
 The `Database_Get` function returns a JSON value. LTSL needs a type to
 hold this:
@@ -594,7 +995,7 @@ val.AsBool                  # extract as bool (if type==1)
 This is a **new expression node** or an extension to
 `ExpressionDynamicDispatch`. Estimated effort: 2–3 days.
 
-### 5.2 Array Iteration for JsonValue
+### 6.2 Array Iteration for JsonValue
 
 To iterate over JSON arrays in LTSL:
 
@@ -607,7 +1008,7 @@ for i 0 i < weapons.ArraySize i.++
 
 Needs `JsonValue_ArraySize` and `JsonValue_ArrayGet` bindings.
 
-### 5.3 Config Lts Replacement
+### 6.3 Config Replacement
 
 The current `Config.lts` reads flat `key:value` text. With JSON config:
 
@@ -620,28 +1021,41 @@ var credits config.playerCredits
 
 No more `Config_Get` string parsing — direct typed access.
 
+### 6.4 NPC AI Config Access
+
+NPC parameters are read once at system creation and passed to scripts:
+
+```
+var npcConfig (Database_Get "npc" "mining")
+var minerCount (npcConfig.shipsPerZone.Get 0)  # min ships per zone
+var maxMiners (npcConfig.shipsPerZone.Get 1)    # max ships per zone
+```
+
 **LTSL effort:** ~1 week total for JsonValue type + dot-dispatch + array
 support. This is the biggest LTSL improvement in this work item.
 
 ---
 
-## 6. Risks & Mitigations
+## 7. Risks & Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
 | **LTSL JsonValue complexity** — dot-dispatch on dynamic types is new terrain for the interpreter | High | Start with flat access (`Database_GetString`, `Database_GetInt`) as fallback; add dot-dispatch in Phase 1.4, test thoroughly. |
 | **Performance** — JSON parse at startup adds load time | Low | Parse once, index in memory. Hot-reload only re-parses changed files. Profile to confirm <100ms for all databases. |
+| **Shader uniform wiring** — pushing JSON values to GLSL uniforms | Medium | Use existing `DrawState_Link` pattern for globals; per-renderable uniforms already have a path in `PlanetType.cpp`. |
 | **Backward compatibility** — existing `gameConfig.txt` users | Low | Keep `Config.lts` working alongside `config.json` during transition. Deprecate after one release. |
 | **Data validation** — bad JSON crashes the engine | Medium | Validate on load with clear error messages (line number, field path). Use `json::parse(str, nullptr, false)` (non-throwing) pattern already proven in SaveGameJSON. |
 | **Merge conflicts** — multiple mods editing same JSON | Low | JSON files are per-database; mods override individual keys, not entire files. (Full mod support deferred to ModManager in §3.3.) |
 | **Schema drift** — JSON fields diverge from C++ expectations | Medium | Version each JSON file. C++ loaders check `version` field and reject incompatible schemas. Unit tests verify schema compliance. |
-| **Scope creep** — economy/graphics/audio not originally in 2.3 | Medium | Phase 3 is explicitly deferred if time runs over. Core (Phase 1–2) delivers the most value: ship/weapon/planet tuning. |
+| **Scope creep** — economy/graphics/audio/NPC expanding 2.3 | Medium | Phase 3 is explicitly deferred if time runs over. Core (Phase 1–2) delivers the most value: ship/weapon/planet tuning. NPC and graphics tuning are additive, not blocking. |
+| **Planet rotation performance** — rotating cubemap lookup per frame | Low | Single mat3 multiply per fragment. Negligible cost on modern GPUs. |
+| **Moon orbital mechanics** — new object type complexity | Medium | Defer to late 2.3b. Planet rotation + cloud animation deliver most visual impact without moon system. |
 
 ---
 
-## 7. Scope Items — What's In and What's Deferred
+## 8. Scope Items — What's In and What's Deferred
 
-### In Scope (Phase 1–2)
+### In Scope — 2.3 (JSON layer, Weeks 1–4)
 
 | System | JSON File | Value |
 |--------|-----------|-------|
@@ -650,30 +1064,36 @@ support. This is the biggest LTSL improvement in this work item.
 | Planet biomes | `planets.json` | Biome variety without shader edits |
 | Station types | `stations.json` | Station variety without C++ |
 | Game config | `config.json` | Replaces gameConfig.txt |
+| Deep graphics tuning | `graphics.json` | Shader constants (nebula, scattering, dustfleck, post-processing) |
+| NPC behavior | `npc.json` | Mining/trading/piracy/patrol parameters |
+| Economy/commodities | `economy.json` | Trade goods, market dynamics |
+| Audio config | `audio.json` | Sound definitions, music tracks |
 | Database infrastructure | C++ loaders + LTSL bindings | Foundation for all above |
 
-### Deferred to Phase 3 (if time permits)
+### In Scope — 2.3b (engine visuals, Weeks 5–7)
 
-| System | JSON File | Value |
-|--------|-----------|-------|
-| Economy/commodities | `economy.json` | Trading, market dynamics |
-| Graphics settings | `graphics.json` | Fog, scattering, bloom, SSAO tunable |
-| Audio config | `audio.json` | Sound definitions, music tracks |
-| Universe generation | `universe.json` | Region structure, asteroid density |
-| Faction definitions | `factions.json` | Faction relationships, colors |
+| System | Source | Value |
+|--------|--------|-------|
+| Star rendering | New `Renderable_StarDisk` + lens flare wiring | Star visible as glowing disk |
+| Planet rotation | `planet.jsl` shader change | Surface rotates at biome-configurable speed |
+| Cloud animation | `planet.jsl` shader change | Clouds drift at biome-configurable speed |
+| Moons | New `Object_Moon` + `MoonGenerator` | Orbiting bodies around planets |
 
-### Deferred to Future Work (ROADMAP §3.3)
+### Deferred to Future Work
 
 | System | Effort | Dependency |
 |--------|--------|------------|
-| ModManager (scan `mods/`, parse `mod.json`) | 3–4 wk | JSON layer (this item) |
+| ModManager (scan `mods/`, parse `mod.json`) | 3–4 wk | JSON layer (2.3) |
 | Mod hooks (`onGameStart`, `onSectorGenerate`) | — | ModManager |
 | Mod manager UI | — | ModManager |
-| Input rebinding (JSON-driven) | 2–3 wk | JSON layer (this item) |
+| Input rebinding (JSON-driven) | 2–3 wk | JSON layer (2.3) |
+| PBR material system | 2–3 wk | graphics.json |
+| Shadow mapping | ~2 wk | graphics.json |
+| Volumetric nebula compute | 1 wk | nebula config in graphics.json |
 
 ---
 
-## 8. What This Enables Downstream
+## 9. What This Enables Downstream
 
 Once the JSON layer exists:
 
@@ -685,8 +1105,9 @@ Once the JSON layer exists:
    reads from JSON instead of `gameConfig.txt`.
 
 3. **ROADMAP §3.4 Pass B (Biomes + Visual Knobs)** — `planets.json` defines
-   biome types with color palettes, atmosphere ranges, ring probability.
-   `PlanetType.cpp` reads biome data from JSON.
+   biome types with color palettes, atmosphere ranges, ring probability,
+   rotation speed, cloud wind speed. `PlanetType.cpp` reads biome data
+   from JSON.
 
 4. **ROADMAP §3.3 (Modding)** — modders create `mods/mymod/gamedata/ships.json`
    that merges with or overrides the base game's ship definitions.
@@ -699,9 +1120,19 @@ Once the JSON layer exists:
    and market parameters. `audio.json` defines sound mappings. Both wire
    into the gameplay systems.
 
+7. **NPC AI integration** (`docs/npc-ai-integration.md`) — `npc.json` drives
+   the Phase 1–3 AI wiring: mining rates, trading thresholds, piracy
+   aggression, patrol distances. Phase 3 dispatcher re-evaluation interval
+   is configurable. Phase 2 economy allocator gets spawn/retire thresholds.
+
+8. **Visual authoring** — artists control the entire visual pipeline
+   from one JSON file: nebula density, atmosphere haze, dust colors,
+   star brightness, cloud drift speed, planet rotation — no shader
+   hunting required.
+
 ---
 
-## 9. Testing Strategy
+## 10. Testing Strategy
 
 ### Unit Tests (`TestJsonDatabase.cpp`)
 
@@ -721,6 +1152,8 @@ Once the JSON layer exists:
 - Changing a value in `weapons.json` produces different weapon behavior
   (regression guard)
 - `config.json` replaces `gameConfig.txt` with identical behavior
+- `graphics.json` parameters affect rendering (nebula density changes
+  visible in screenshot comparison)
 
 ### Manual Verification
 
@@ -728,18 +1161,23 @@ Once the JSON layer exists:
 - `python3 configure.py test` — all tests pass
 - LSP smoke — baseline diagnostics unchanged
 - Launch `ltheory-main` — zero compilation errors, zero crashes
+- Visual check: star renders as visible disk (2.3b Phase A)
+- Visual check: planets rotate, clouds drift (2.3b Phase B)
 
 ---
 
-## 10. Summary
+## 11. Summary
 
 | Aspect | Detail |
 |--------|--------|
-| **Problem** | All game balance hardcoded in C++; no iteration without recompile |
-| **Solution** | JSON database layer with C++ loaders + LTSL bindings |
-| **Effort** | 3–4 weeks (Phase 1–2 core; Phase 3–4 extensions) |
+| **Problem** | All game balance, visuals, and NPC behavior hardcoded in C++/GLSL |
+| **Solution** | JSON database layer with C++ loaders + LTSL bindings + shader uniform wiring |
+| **Effort** | 2.3: 3–4 weeks (core + graphics/NPC); 2.3b: 2–3 weeks (star/planet/moons) |
 | **Infrastructure** | `DatabaseManager` singleton, `JsonDatabase` wrapper, `JsonValue` LTSL type |
-| **JSON files** | 7–10 files in `resource/gamedata/` (ships, weapons, planets, stations, config, economy, graphics, audio, universe, factions) |
+| **JSON files** | 10 files in `resource/gamedata/` (ships, weapons, planets, stations, config, economy, graphics, audio, universe, factions, npc) |
 | **LTSL improvements** | `JsonValue` type with dot-dispatch, array access, type introspection |
-| **Risks** | JsonValue complexity (medium), data validation (medium), scope creep (low if phased) |
-| **Enables** | Hot-reload, modding, config-driven generation, PBR tuning, economy system |
+| **Graphics coverage** | Nebula (3 constants), scattering (10 params), dustfleck (4 params), post-processing (12 params), star (6 params), ocean (2 params) |
+| **NPC coverage** | Spawning, mining, trading, piracy, patrol, economy allocator, combat, behavior timing |
+| **Engine changes (2.3b)** | Star rendering, planet rotation, cloud animation, moon system |
+| **Risks** | JsonValue complexity (medium), shader wiring (medium), scope creep (low if phased) |
+| **Enables** | Hot-reload, modding, visual authoring, NPC tuning, config-driven generation, PBR, economy |

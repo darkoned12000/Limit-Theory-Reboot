@@ -71,11 +71,38 @@ a big rewrite** — the engine core is healthy (§9 of AGENTS.md).
   (`include/json/json.hpp`, exception-free — see AGENTS §4.1), unblocking this
   work.
 - **Scope:** `ShipDatabase` / `WeaponDatabase` / `PlanetDatabase` loaders +
-  LTSL bindings; `ships.json` / `weapons.json` / `planet_biomes.json`.
+  LTSL bindings; `ships.json` / `weapons.json` / `planets.json` /
+  `stations.json` / `config.json` (replaces `gameConfig.txt`). Deep
+  graphics tuning: shader constants for nebula, scattering, dustfleck,
+  post-processing. NPC AI behavior parameters. Economy/commodity
+  definitions. Star/sun customization (color, brightness, size).
 - **Design:** see `docs/JSON-DATA-LAYER-DESIGN.md` for full plan (schema,
   architecture, phased delivery, risks, LTSL implications, scope).
 - **Progress:** (2026-08-17) design document complete; implementation not
   started.
+
+### 2.3b Engine visual enhancements — **P1** (`todo`)
+- **Effort:** 2–3 weeks. **Source:** `docs/JSON-DATA-LAYER-DESIGN.md` §3.9–3.12
+  (requires 2.3 JSON layer for star config; planet features are standalone
+  engine work).
+- **Why now:** the engine renders static planets with static clouds and no
+  moons — the star is invisible (light source only). These are the highest-
+  impact visual gaps.
+- **Scope:**
+  - **Star customization** — render the star as a visible glowing disk
+    (not just a light), expose color/size/brightness via `graphics.json`.
+    Wire existing lens flare shader to the star.
+  - **Planet rotation** — add `time` uniform to planet shader, apply
+    UV rotation at configurable speed. Data-driven via `planets.json`.
+  - **Cloud animation** — add `time` uniform to cloud pass, offset UV
+    by `time * windSpeed`. Data-driven cloud drift speed per biome.
+  - **Moons** — new `MoonGenerator` spawning small orbiting bodies with
+    simplified planet shader. Moon count, orbital radius, size ranges
+    configurable via `planets.json`.
+- **Depends on:** 2.3 (JSON layer) for star/planet config. Planet
+  rotation and cloud animation are standalone shader changes (no
+  JSON dependency). Moons are standalone C++ (new object type).
+- **Design:** see `docs/JSON-DATA-LAYER-DESIGN.md` §3.9–3.12.
 
 ### 2.4 Asset hot-reload — **P1** (`todo`)
 - **Effort:** 1–2 weeks. **Source:** `ENGINE-STABILITY-AND-MODDING.md`
@@ -127,6 +154,10 @@ a big rewrite** — the engine core is healthy (§9 of AGENTS.md).
 | Item | Priority | Effort | Status | Source |
 |------|----------|--------|--------|--------|
 | JSON content databases (ship/weapon/planet) | P1 | 3–4 wk | todo | Stability P2 |
+| Deep graphics tuning (nebula, scattering, dustfleck, post-processing) | P1 | 1 wk | todo | 2.3 JSON layer |
+| NPC AI behavior parameters (JSON-driven) | P1 | 2–3 d | todo | npc-ai-integration.md |
+| Economy/commodity definitions (JSON) | P1 | 3–4 d | todo | 2.3 JSON layer |
+| Star/sun customization (color, size, brightness) | P1 | 3–5 d | todo | 2.3b engine visuals |
 | ModManager (scan `mods/`, parse `mod.json`, load JSON/scripts/shaders) | P1 | 3–4 wk | todo | Stability P4 |
 | Mod hooks (`onGameStart`, `onSectorGenerate`) | P1 | — | todo | Stability P4 |
 | JSON save-file schemas + versioned migration | P1 | — | in-progress | SAVE-LOAD Pt2/3 |
