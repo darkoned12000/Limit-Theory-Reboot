@@ -41,6 +41,18 @@ type TextField
     if self.focusMouse && Mouse_LeftPressed
       focus = true
       t = 0.0
+      var c Cursor_Get
+      var base (self.pos.x + 12.0)
+      ref s (deref contents)
+      var best s.Length
+      var bestD 1000000.0
+      for i 0 i <= s.Length i.++
+        var w (GetTextSize Fonts:Default (Substring s 0 i) size).x
+        var d (Abs (c.x - (base + w)))
+        if d < bestD
+          bestD = d
+          best = i
+      cursor = best
     if (! self.focusMouse) && Mouse_LeftPressed
       focus = false
 

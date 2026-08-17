@@ -16,6 +16,62 @@ namespace {
 }
 
 namespace LTE {
+  ScriptFunction ScriptFunction_ParseSignature(
+    StringList const& list,
+    CompileEnvironment& env,
+    ScriptType const& methodOwner)
+  {
+    if (list->GetSize() < 4) {
+      env.ReportError(list, Stringize()
+        | "'function' expects at least 3 arguments (return-type, name, params), but got "
+        | (list->GetSize() - 1));
+      return nullptr;
+    }
+
+    ScriptFunction fn = new ScriptFunctionT;
+    fn->name = list->Get(2)->GetValue();
+
+    if (methodOwner)
+      fn->parameters.push(Parameter("this", methodOwner->type));
+
+    Type returnType = env.script->ResolveType(list->Get(1));
+    /* The declared return type is advisory, not a contract: the original
+       engine always derived returnType from the body's expression type and
+       never validated the declaration (e.g. scripts declare 'Void', which is
+       not a registered type). Resolve it when possible so forward-referenced
+       calls get a sane transient type; otherwise leave it null — the body
+       compile overwrites it either way. Do NOT error out here. */
+    fn->returnType = returnType ? returnType : Type_Get<void>();
+
+    StringList const& params = list->Get(3);
+    for (size_t i = 0; i < params->GetSize(); i += 2) {
+      StringList const& typeName = params->Get(i + 0);
+      String varName = params->Get(i + 1)->GetValue();
+      Type type = env.script->ResolveType(typeName);
+      if (!type) {
+        Vector<String> typeNames;
+        if (env.script) {
+          for (auto it = env.script->types.begin(); it != env.script->types.end(); ++it)
+            typeNames.push(it->first);
+        }
+        String suggestion = BestMatch(typeName->GetString(), typeNames);
+        if (suggestion.size() > 0)
+          env.ReportError(list, Stringize()
+            | "unknown type '" | typeName->GetString()
+            | "' in parameter list of function '" | fn->name
+            | "' (did you mean '" | suggestion | "'?)");
+        else
+          env.ReportError(list, Stringize()
+            | "unknown type '" | typeName->GetString()
+            | "' in parameter list of function '" | fn->name | "'");
+        return nullptr;
+      }
+      fn->parameters.push(Parameter(varName, type));
+    }
+
+    return fn;
+  }
+
   Expression Expression_Function(
     StringList const& list,
     CompileEnvironment& env)
@@ -28,21 +84,41 @@ namespace LTE {
     }
 
     String const& name = list->Get(2)->GetValue();
-    ScriptFunction fn = env.script->functions[name];
-    if (fn) {
-      env.ReportError(list, Stringize()
-        | "function '" | name | "' is already defined");
-      return nullptr;
+
+    /* Reuse a signature pre-registered by the type compiler when one exists
+       (Expression_Type registers every method signature up front so method
+       bodies can call methods declared LATER in the same type). The
+       placeholder object is mutated in place, so ExpressionCall nodes that
+       were resolved against it during an earlier method's compilation see
+       the body once it is compiled below. Otherwise create fresh, erroring
+       on duplicates. */
+    ScriptFunction fn;
+    if (env.context.size() && env.context.back()->functions[name]) {
+      fn = env.context.back()->functions[name];
+    } else if (env.context.size()) {
+      fn = ScriptFunction_ParseSignature(list, env, env.context.back());
+    } else {
+      fn = env.script->functions[name];
+      if (fn) {
+        env.ReportError(list, Stringize()
+          | "function '" | name | "' is already defined");
+        return nullptr;
+      }
+
+      fn = ScriptFunction_ParseSignature(list, env);
     }
+    if (!fn)
+      return nullptr;
 
     CompileEnvironment subEnv;
     subEnv.script = env.script;
     subEnv.context = env.context;
 
-    fn = new ScriptFunctionT;
-    fn->name = name;
-
-    /* Push 'this' pointer and member fields for sub environment. */
+    /* Rebuild the full parameter list: implicit 'this' (per context) first,
+       then declared parameters. For a reused placeholder this reproduces the
+       pre-registered signature exactly; for a fresh function it is the sole
+       construction. */
+    fn->parameters.clear();
     for (size_t i = 0; i < subEnv.context.size(); ++i) {
       ScriptType context = subEnv.context[i];
       uint contextRegister = subEnv.Allocate("this", context->type, false, false);

@@ -95,6 +95,9 @@ type MarketFrame
       (data.IsType "MessageGetLabel")
         self.SendDown data
 
+  function Void Destroy (Widget self)
+    Widget/Pause:Pause_State -1
+
 function Widget Create (Player player Object market)
   Components:Expand
     Components:AlignCenter

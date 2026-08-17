@@ -1,0 +1,23 @@
+function Void Main ()
+  var slots (SaveGame_ListSlots)
+  var count (SaveGame_Count)
+  for i 0 i < slots.Size i.++
+    var info (slots.Get i)
+    var title (info.saveName.Length > 0 info.saveName info.slotName)
+    var check (info.slotName == title)
+    var date info.dateCreated
+  if slots.Size == 0
+    var none "no slots"
+
+  var d (SaveGame_LoadSlot "harness_slot")
+  var nm d.saveName
+  var ds d.saveDescription
+  var pn d.playerName
+  var cr d.playerCredits
+  var sd d.universeSeed
+
+  for k 0 k < 200 k.++
+    var slots2 (SaveGame_ListSlots)
+    for i 0 i < slots2.Size i.++
+      var info (slots2.Get i)
+      var title (info.saveName.Length > 0 info.saveName info.slotName)

@@ -344,6 +344,51 @@ function Widget Create (Data onPress String text Float size)
           Button onPress text size
 ```
 
+### 6.1 Layout semantics (how sizes actually propagate)
+
+Every `Components:X child` call adds the X component to a widget and returns
+that same widget, so `Components:Expand (AlignCenter (Margin 32 32 w))` stacks
+`[Margin, Align, Expand]` **on the same widget** (in that order). Two phases:
+
+- `PrePosition` (bottom-up): each widget's `minSize` is computed; `size = minSize`.
+- `PostPosition` (top-down, components run **in reverse order**): components
+  size the widget and, for containers, set each **child's** `maxSize`:
+  - `Expand` → `self.size = Mix(self.minSize, self.maxSize, scale)` (fills maxSize).
+  - `Align` → `self.pos += (self.maxSize - self.size) * scale`.
+  - `Margin <in> <out>` → `self.maxSize -= (in+out); self.size -= (in+out); self.pos += in`.
+  - `MaxSize` → `self.maxSize = Min(self.maxSize, size); self.size = Min(self.size, size)`
+    (clamps the widget itself; it does **not** size the child — combine with
+    `Expand` inside so the child fills the clamped box).
+  - `CenterIn` (custom, `Widget/Component/CenterIn.lts`) →
+    `self.pos = parent.pos + (parent.size - self.size) * 0.5` (centers the
+    widget in its parent). It must be added **inside** the `MaxSize` wrapper:
+    `[MaxSize, CenterIn, ...]` runs `CenterIn` after `MaxSize` clamps the size,
+    so it centers the clamped box; placed outside it runs before clamping and
+    does nothing.
+  - `Stack`/`List` (C++ `WidgetStack`/`WidgetList`) → set each child's
+    `maxSize = self.size - padding`.
+  - `Backdrop` is draw-only (no `PostPosition` sizing).
+
+Because `Expand` runs **last** in a `[Margin, Align, Expand]` chain (reverse
+order), a widget fills `maxSize` *after* margins shrink it. Add `MaxSize` as
+the **outermost** wrapper so it clamps `maxSize` first, then `Expand` fills
+the clamped box, then `Align`/`Margin` position it. Only the interface root
+gets an explicit `size = windowSize`; every other widget's `maxSize` comes
+from a parent `Stack`/`List`.
+
+### 6.2 Modal windows
+
+Full-screen modals opened via `layerHUD.AddChild` (HUD.lts `MessageAddWidget`)
+are wrapped as `Expand (AlignCenter (Margin 32 32 widget))`; the managers
+(`Window:Create`) are content-hugging and unaffected by size caps. The Browser
+caps its own size to fit (1600x902, ~20% smaller than full-screen) and centers
+itself in the parent via `Components:MaxSize (Vec2 1600 902)
+(Components:CenterIn (...))` at the top of `Browser:Create`
+(`Widget/Browser.lts:86`) — the Browser has `Components:Expand` so it fills
+whatever `maxSize` it's given, and the outer `AlignCenter` never centers it
+(Expand fills `maxSize` before Align runs), hence the inner `CenterIn`.
+Note: an `AlignCenter` wrapper does NOT center expanded widgets.
+
 ---
 
 ## 7. Buttons and callbacks (`onPress` is a `Data`)

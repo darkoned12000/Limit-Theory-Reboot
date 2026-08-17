@@ -92,6 +92,18 @@ type Ribbon
           Components:MinSize size
             Widgets:TabIcon "objectinfo" "Tasks" Icons:Gear c1 c2 true true false
 
+    if object == player
+      l +=
+        Components:AlignCenter
+          Components:MinSize size
+            Widgets:TabIcon "objectinfo" "Save" Icons:Save c1 c2 true true false
+
+    if object == player
+      l +=
+        Components:AlignCenter
+          Components:MinSize size
+            Widgets:TabIcon "objectinfo" "Load" Icons:Load c1 c2 true true false
+
     l +=
       Components:GreedyX
         Components:Expand
@@ -152,6 +164,12 @@ type ContentPanel
         currentTab == "Tasks"
           opacity = 0.1
           Widget/Object/Tasks:Create player object
+        currentTab == "Save"
+          opacity = 1.0
+          Widget/SaveGameManager:CreateContent player
+        currentTab == "Load"
+          opacity = 1.0
+          Widget/LoadGameManager:CreateContent player
         otherwise
           Widget
     l += (Components:Padding 8 8 widget)
@@ -204,6 +222,9 @@ type ObjectInfo
             ListV 0
               Custom Widget
                 ObjectInfo msg.player msg.object
+
+  function Void Destroy (Widget self)
+    Widget/Pause:Pause_State -1
 
 function Widget Create (Player player Object object)
   Components:Backdrop 0.075 0.95 1 0

@@ -1,0 +1,39 @@
+type ShipUpdate
+  Sound interior Sound
+  Sound engine Sound
+
+  function Bool Update (Object self)
+    if interior.IsNull
+      interior =
+        Sound_PlayLooped
+          "ship/ambiance/interior/1.wav"
+          self
+          0
+          0.15
+          1.0
+      interior.RandomizePosition
+
+    if engine.IsNull
+      engine =
+        Sound_PlayLooped
+          "thruster/loop1.ogg"
+          self
+          0
+          0.0
+          1.0
+      engine.RandomizePosition
+
+    var outputMult (self.GetSpeed / 1000.0)
+    engine.SetVolume 0.5 * (Saturate outputMult)
+    engine.SetPitch 1.0
+    interior.SetPitch (1.0 + outputMult)
+    true
+
+function Void Main ()
+  var root (Object_System (Vec3 15.012) 12345)
+  var shipType (Item_ShipType 5000 55 1 1 1 1 1 1)
+  var ship shipType.Instantiate
+  ship.AddScript ShipUpdate
+  root.AddInterior ship
+  for i 0 i < 500 i.++
+    root.Update 0.016

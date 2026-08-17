@@ -10,12 +10,18 @@
 #include "Harness.h"
 
 #include <cstdio>
+#include <cstring>
 
-int main() {
+int main(int argc, char** argv) {
   using namespace LTE::Tests;
 
+  setvbuf(stdout, nullptr, _IONBF, 0);
+
+  char const* filter = argc > 1 ? argv[1] : nullptr;
   std::printf("Running %zu LTE core test(s)...\n", Registry::entries().size());
   for (auto const& e : Registry::entries()) {
+    if (filter && !std::strstr(e.name, filter))
+      continue;
     std::printf("  -> %s (%s)\n", e.name, e.file);
     e.fn();
   }

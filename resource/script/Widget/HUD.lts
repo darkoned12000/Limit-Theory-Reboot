@@ -73,6 +73,12 @@ type HUDGroup
   function Void PostDraw (Widget self)
     if Key_F3.Down
       Dev/FrameInfo:Draw self
+    if visible
+      var c 2.0 * Colors:Primary
+      var cursor Icon/Cursors:Pointer
+      if Key_Space.Down
+        cursor = Icon/Cursors:Cross
+      Draw cursor Cursor_Get 12 c self.alpha
 
   function Void PostUpdate (Widget self)
     if visible && Key_B.Pressed
@@ -113,23 +119,20 @@ type HUDLayer
         layerHUD.AddChild
           Components:Expand
             Components:AlignCenter
-              Components:Margin 128 128
+              Components:Margin 32 32
                 msg.widget
+        Widget/Pause:Pause_State 1
 
   function Void PostDraw (Widget self)
-    var c 2.0 * Colors:Primary
-    var cursor Icon/Cursors:Pointer
-    if Key_Space.Down
-      cursor = Icon/Cursors:Cross
     if Key_F4.Pressed
       visible = visible.!
       self.Rebuild
-    if visible
-      Draw cursor Cursor_Get 12 c self.alpha
 
   function Void PostUpdate (Widget self)
     if self.focusKey && Key_Escape.Pressed
-      self.AddChild GameMenu:Create
+      self.AddChild
+        GameMenu:Create player
+      Widget/Pause:Pause_State 1
 
 function Widget Create (Player player)
   Components:Expand

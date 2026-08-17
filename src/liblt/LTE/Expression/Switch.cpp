@@ -114,19 +114,19 @@ namespace LTE {
       } else {
         if (sub->GetSize() < 2) {
           env.ReportError(sub, "'switch' case needs at least 2 arguments (predicate, body)");
-          continue;
+          return nullptr;
         }
 
         Expression predicate = Expression_Compile(sub->Get(0), env);
         if (!predicate) {
           env.ReportError(sub, "'switch' case predicate failed to compile");
-          continue;
+          return nullptr;
         }
 
         Expression statement = Expression_Block(sub, env, 1);
         if (!statement) {
           env.ReportError(sub, "'switch' case body failed to compile");
-          continue;
+          return nullptr;
         }
 
         expressions.push(predicate);

@@ -3,10 +3,15 @@ type Button
   String text
   Float size
   Bool focus false
+  Bool enabled true
 
   function List CreateChildren (Widget self)
     var l List
-    var c (? (self.focusMouse (Vec3 0)) (otherwise (Vec3 1)))
+    var c
+      switch
+        (! enabled) (Vec3 0.8)
+        self.focusMouse (Vec3 0)
+        otherwise (Vec3 1)
 
     # CRITICAL ~ 2-passed compile..can't use text widget directly :/
     l +=
@@ -18,6 +23,7 @@ type Button
   function Void PreDraw (Widget self)
     var c
       switch
+        (! enabled) (Vec3 0.28)
         focus 2.5 * Colors:Primary
         otherwise (Vec3 0.15)
     DrawPanel self.pos self.size c 0.5 1 0
@@ -30,6 +36,9 @@ type Button
     self.focusMouse = (p1 <= c && c <= p2)
 
   function Void PostUpdate (Widget self)
+    if (! enabled)
+      return
+
     if self.focusMouse && (! focus)
       focus = true
       self.Rebuild
@@ -49,3 +58,5 @@ function Widget Create (Data onPress String text Float size)
       Stack
         Custom Widget
           Button onPress text size
+
+

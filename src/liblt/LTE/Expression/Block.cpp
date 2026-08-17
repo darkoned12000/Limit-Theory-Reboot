@@ -119,9 +119,24 @@ namespace LTE {
     Vector<String> localNames;
 
     for (size_t i = startIndex; i < endIndex && i < list->GetSize(); ++i) {
+      size_t errorStart = env.errors.size();
       Expression e = Expression_Compile(list->Get(i), env, &localNames);
-      if (e)
+      if (e) {
         expressions.push(e);
+      } else if (env.errors.size() > errorStart) {
+        /* A statement that fails to compile must not vanish silently — the
+           enclosing function would register with an empty body and the app
+           would "work" with a dead branch (e.g. a SAVE/DELETE button that
+           does nothing). Surface the failure immediately so the caller can
+           report it with context and abort the compile. */
+        env.ReportError(list->Get(i), Stringize()
+          | "statement failed to compile (look for earlier errors in this block)");
+        return nullptr;
+      }
+      /* A nullptr statement that recorded NO errors is a legitimate
+         expression-less declaration (e.g. a nested `function`, which
+         compiles as a side effect and registers the function). Do not
+         treat it as a failure. */
     }
 
     Vector<Type> locals;

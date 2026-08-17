@@ -60,6 +60,24 @@ a big rewrite** — the engine core is healthy (§9 of AGENTS.md).
   `Config.lts`; `Object_SetCredits` binding added for load application.
   Remaining: GameMenu "SAVE GAME" entry, save-browser widget + slot-naming
   dialog (`SaveGame_ListSlots`/`SaveGame_LoadSlot` data already available).
+- **Progress (2026-08-10, Phase 1 done):** full save/load manager UI shipped.
+  `SaveGameData` gained `saveName`/`saveDescription`; JSON schema bumped 2→3;
+  25-slot cap enforced in `SaveGame_Write` (new slot at cap fails, overwrites
+  always allowed). New
+  bindings `SaveGame_SaveSlot(player, root, slotName, saveName, saveDescription)`
+  / `SaveGame_Delete` / `SaveGame_Exists` / `SaveGame_Count`. Esc GameMenu's
+  dead SAVE GAME / LOAD GAME buttons now open `Widget/SaveGameManager.lts`
+  (scrollable slot list, select-to-overwrite with editable name/description,
+  Create New Save, Delete, slot-count header) and `Widget/LoadGameManager.lts`
+  (select + Load applying the same state as QuickLoad, Delete). Engine tests
+  extended to 13 (metadata round-trip, v2 fallback, delete, cap); suite is
+  556 checks / 0 failures. API-DB refreshed (4 added, 0 removed). **Phase 2:**
+  a Main Menu state machine *inside* `ltheory-main` (New Game / Load Game /
+  Settings / Help / About on a screenshot backdrop, version #, player-name +
+  seed prompt) — no `Program_LaunchApp` API exists, so the menu must be an
+  in-app state (`"MENU" → "NEW_GAME" → "LOADING" → "PLAY"`) reusing
+  `LoadingScreen`, `Texture/SplashScreen.lts`, `Config:Get`, and the settings/
+  save/load managers.
 
 ### 2.2 Crash logging polish — **P0, quick** (`done`)
 - **Effort:** ~2 days. **Source:** `ENGINE-STABILITY-AND-MODDING.md` Part 1.

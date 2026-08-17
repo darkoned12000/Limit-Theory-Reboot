@@ -6,6 +6,7 @@
 # On-screen status toast. Multi-line; created via Widget/Toast:Create and
 # added to an interface. Each line is a label/value pair drawn two-tone:
 # labels ("Date:", "Credits:", ...) in labelColor, values in valueColor.
+# The panel is sized to fit the longest line, so all text stays inside the box.
 # Styling is driven by gameConfig.txt keys:
 #   toastLifetime          seconds before the toast dismisses itself
 #   toastBgColorR/G/B      background color (each channel 0..1)
@@ -45,12 +46,29 @@ type Toast
   ToastStyle style
 
   function Void PostDraw (Widget self)
-    DrawPanel (Vec2 20 120) (Vec2 560 260) style.bgColor style.fill style.bgAlpha style.bevel
-    DrawPanel (Vec2 20 120) (Vec2 6 260) style.borderColor 0.6 0.9 0.5
+    var step (style.fontSize * 1.3)
+    var textW 0.0
+    var bodyH 0.0
+    for i 0 i < values.Size i.++
+      ref lb (labels.Get i)
+      ref va (values.Get i)
+      var sz (GetTextSize Fonts:Default va style.fontSize)
+      var vw (0.0 + sz.x)
+      textW = (Max textW vw)
+      bodyH = (bodyH + step)
+    var noteH 0.0
+    if note.Length > 0
+      var nsz (GetTextSize Fonts:Default note style.noteFontSize)
+      var nw (0.0 + nsz.x)
+      textW = (Max textW nw)
+      noteH = style.noteFontSize
+    var panelW (textW + 140.0)
+    var panelH (56.0 + bodyH + 16.0 + noteH + 16.0)
+    DrawPanel (Vec2 20 120) (Vec2 panelW panelH) style.bgColor style.fill style.bgAlpha style.bevel
+    DrawPanel (Vec2 20 120) (Vec2 6 panelH) style.borderColor 0.6 0.9 0.5
     DrawText Fonts:Medium title (Vec2 40 138) style.titleFontSize style.textColor 1 false
     var y 176.0
-    var step (style.fontSize * 1.3)
-    for i 0 i < labels.Size i.++
+    for i 0 i < values.Size i.++
       ref lb (labels.Get i)
       ref va (values.Get i)
       DrawText Fonts:Default lb (Vec2 40 y) style.fontSize style.labelColor 1 false

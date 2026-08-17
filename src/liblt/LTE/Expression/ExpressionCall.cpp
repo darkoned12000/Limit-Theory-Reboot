@@ -9,8 +9,6 @@
 #include "LTE/StringList.h"
 #include "LTE/Vector.h"
 
-#include "LTE/Debug.h"
-
 namespace {
   AutoClassDerived(ExpressionExpressionCall, ExpressionT,
     ScriptFunction, function,
@@ -154,8 +152,9 @@ namespace LTE {
         }
       }
 
-      if (!function && env.script)
+      if (!function && env.script) {
         function = env.script->GetFunction(name);
+      }
     }
 
     if (!function) {

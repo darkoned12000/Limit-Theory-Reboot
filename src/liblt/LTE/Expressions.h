@@ -133,6 +133,16 @@ namespace LTE {
     StringList const& list,
     CompileEnvironment& env);
 
+  /* Parse a `function` declaration's signature (return type, name, params)
+     into a fresh ScriptFunctionT without compiling its body. When methodOwner
+     is non-null, the implicit 'this' parameter is prepended. Used by
+     Expression_Type to pre-register type methods so a method body can call
+     a method that is declared LATER in the same type (forward references). */
+  LT_API ScriptFunction ScriptFunction_ParseSignature(
+    StringList const& list,
+    CompileEnvironment& env,
+    ScriptType const& methodOwner = nullptr);
+
   LT_API Expression Expression_FunctionCall(
     Function const& function,
     Vector<Expression> const& arguments);

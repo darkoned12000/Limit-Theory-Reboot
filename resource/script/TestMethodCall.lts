@@ -1,0 +1,61 @@
+# Copyright (C) 2025  darkoned12000
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Part of the ltheory-old-test modernization effort (Revamp Work).
+# See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
+#
+# Headless regression fixture for tests/TestMethodCall.cpp. Exercises the
+# `this.Method self` call pattern from inside a script-type method, mirroring
+# how Widget/SaveGameManager.lts dispatches SAVE/DELETE/LOAD to its action
+# methods from Receive.
+
+type TestMethodCall
+  Int n 0
+  String name ""
+
+  function Void DirectSet (Widget self)
+    n = 42
+
+  function Void DoThing (Widget self)
+    n = n + 1
+
+  function Void DoDelete (Widget self)
+    var doomed name
+    if doomed.Length == 0
+      return
+    n = 999
+
+  function Void Caller (Widget self)
+    this.DoThing self
+
+  function Void DeleteCaller (Widget self)
+    this.DoDelete self
+
+type ProbeMsgDelete
+
+type ProbeMsgSelect
+  String slotName ""
+
+type SwitchProbe
+  String slotName ""
+  String status ""
+  Int n 0
+  Bool editMode false
+
+  function Void DoDelete (Widget self)
+    n = 777
+
+  function Void DoSave (Widget self)
+    status = "saved"
+
+  function Void Receive (Widget self Data data)
+    switch
+      (data.IsType "ProbeMsgDelete")
+        @ "probe: delete branch"
+        this.DoDelete self
+      (data.IsType "ProbeMsgSelect")
+        ref msg (cast ProbeMsgSelect data)
+        editMode = true
+        slotName = msg.slotName
+        status = "selected"
+      (data.IsType "ProbeMsgSave")
+        this.DoSave self

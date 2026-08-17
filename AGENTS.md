@@ -276,18 +276,16 @@ node script/ltsl-lsp/test-rpc.js                        # full protocol check
 node script/ltsl-lsp/out/smoke.js $(find resource/script -name '*.lts' | sort)
 ```
 
-Smoke must report exactly **8 diagnostics** (4 structural problems + 4
+Smoke must report exactly **7 diagnostics** (4 structural problems + 3
 warnings). The 4 structural problems are the **known engine unbalanced-paren
 bugs — trusted fixtures, do NOT fix them**: `resource/script/App/draw.lts:57`,
-`App/draw.lts:58`, `Widget/Slider.lts:42`, `Widget/Text.lts:26`. The 4 warnings
+`App/draw.lts:58`, `Widget/Slider.lts:42`, `Widget/Text.lts:26`. The 3 warnings
 are known/accepted: `SelectItem` (`Widget/Market/MidPanel.lts:108`, script
 type defined in another file), `WidgetSettings` (`Widget/Settings.lts:13`, a
-C++ engine value), `break` (`App/ltheory-unitest.lts:201`, the WIP unitest app
-uses a `break` statement, which is not valid LTSL), and `RenderPass_Bloom`
-(`App/ltheory-main.lts`, a comma-paren call the analyzer counts as one
-arg but the engine's tolerant tokenizer compiles as two — valid at runtime).
+C++ engine value), and `break` (`App/ltheory-unitest.lts:201`, the WIP unitest
+app uses a `break` statement, which is not valid LTSL).
 
-Any count above 8 = analyzer regression; investigate before committing.
+Any count above 7 = analyzer regression; investigate before committing.
 
 ### Analyzer semantics to preserve
 
@@ -335,7 +333,10 @@ apps. All files listed here are **Revamp Work** (GPL-3.0).
   - **Scripted planet bounce:** scans `root.GetInteriorObjects` for
     `o.GetType == "Planet"` and clamps player to `planetRadius * 1.1`.
   - Hotkeys: **F2** = `Widget/DevPanel`, **F3** = `Widget/DebugScene`,
-    **F6** = quicksave, **F7** = quickload (launch also auto-loads last save).
+    **F6** = quicksave, **F7** = quickload (launch also auto-loads last save),
+    **Esc** = GameMenu (`Widget/GameMenu.lts`) with working **SAVE GAME** /
+    **LOAD GAME** / **SETTINGS** entries — the managers are
+    `Widget/SaveGameManager.lts` and `Widget/LoadGameManager.lts` (see A.12).
 
 - **`resource/script/Object/SystemPopulate.lts`** — populator:
   - `function Object Init (Object self)`; **returns** the planet.
@@ -933,9 +934,148 @@ documented — not an engine bug)
 - [x] **Verification** — smoke corpus exactly 8 diagnostics (4 structural + 4
       warnings, the known fixtures); toast rendering verified live by user
       (headless captures miss the panel timing; do not rely on them).
-- **Not done:** GameMenu "SAVE GAME" entry (button left dead, id 0), save-browser
-      widget + slot-naming dialog. Engine data already ready
-      (`SaveGame_ListSlots`/`SaveGame_LoadSlot`).
+
+### A.12 Save/Load Manager UI + GameMenu Wiring (2026-08-10)
+
+Phase 1 of the Esc-menu / Main-Menu UI work (see ROADMAP §2.1 + Phase 2
+note). Ships a real save/load manager behind the GameMenu's previously dead
+**SAVE GAME** / **LOAD GAME** buttons.
+
+- [x] **Engine metadata + schema bump.** `SaveGameData` gained `saveName` +
+      `saveDescription` (`src/liblt/Game/SaveGame.h`); `kSaveJSONVersion`
+      bumped **2 → 3** (`SaveGameJSON.h`, `version == 0` still means "no
+      save"). v2 saves load fine (new fields default empty).
+- [x] **25-slot cap + management API.** `kMaxSaveSlots = 25`; enforced in
+      `SaveGame_Write` (a *new* slot at cap fails → false; overwrites always
+      allowed). New engine fns `SaveGame_Delete` / `SaveGame_Exists`
+      / `SaveGame_Count` (`SaveGameJSON.cpp`, `<cstdio>` `std::remove`).
+- [x] **New bindings** (`src/liblt/Game/ScriptAPI/SaveGame.cpp`):
+      `SaveGame_SaveSlot(player, root, slotName, saveName, saveDescription)`
+      — builds the full snapshot via the shared `BuildSaveData` helper
+      (playerName, credits, universeSeed from `root->GetSeed()`, hull/pos/look
+      from `player->piloting`), stamps saveName/description, then writes.
+      Existing `SaveGame_Create` (quicksave) now uses `BuildSaveData` too.
+      API-DB refreshed (4 added, 0 removed).
+- [x] **`Widget/SaveGameManager.lts`** — `Window:Create "SAVE GAME"`, 960x600
+      MinSize, two columns: left = buttons column (hint, CREATE NEW SAVE,
+      DELETE, and the always-visible SAVE button; the NAME/DESCRIPTION edit
+      form appears above SAVE when a save is selected or CREATE NEW SAVE is
+      clicked, text fields match the button width via `Components:Expand`);
+      right = `ScrollFrameV`+`Dynamic` slot list (rows show
+      saveName-or-slotName + dateCreated + player location, selected row
+      highlighted). Selecting a row prefills the fields
+      (overwrite-in-place, rename/re-describe, then SAVE); CREATE NEW SAVE
+      clears to a fresh slot named from the NAME field; DELETE removes the
+      selected slot; header shows `N / 25 slots used`. Every mutation calls
+      `self.Rebuild` to re-read `SaveGame_ListSlots()`. Root for the save is
+      `player.GetPiloting.GetContainer`. At the 25-slot cap the save attempt
+      surfaces a "delete an old save to free a slot" warning.
+- [x] **`Widget/LoadGameManager.lts`** — same shell; rows add credits + player
+      location; LOAD applies the same state as F7 QuickLoad
+      (`SetName`/`SetCredits`/`SetPos`/`SetLook`) from
+      `SaveGame_LoadSlot(slotName)`, then closes via
+      `SendUp (Widget/Window:MessageClose)`; DELETE also present.
+- [x] **GameMenu wiring** — `GameMenu:Create player`, SAVE GAME / LOAD GAME /
+      SETTINGS buttons send `MessageAddWidget(<manager>)` (the existing
+      HUDLayer centered-modal path); `HUD.lts:132` passes `player` and uses the
+      multiline `self.AddChild` form (single-line `AddChild GameMenu:Create
+      player` trips the LSP analyzer's unit-counting — it counts 2 args where
+      the engine sees 1; the multiline form sets `argCountKnown=false`).
+      Dead buttons HELP / EXIT TO MAIN MENU remain for Phase 2.
+- [x] **Tests** — `tests/TestSaveGameJSON.cpp` extended to 13 tests (metadata
+      round-trip through `SaveSlotInfo`, v2 fallback, delete/missing-slot,
+      quicksave-not-deletable, 25-cap fill→refuse→overwrite→free→write, plus
+      `test_slot_*` cleanup for interrupted runs). **Suite: 556 checks /
+      0 failures.** LSP smoke = exactly 8 diagnostics (known fixtures).
+
+### A.13 Quicksaves Accumulate + Cap Warnings (2026-08-12)
+
+- [x] **Quicksaves no longer overwrite.** `SaveGame_WriteQuicksave` writes each
+      F6 save to its own timestamped slot (`quick-YYYYMMDD-HHMMSS`, uniquified
+      with `-N` on same-second collisions) instead of a single `quicksave`
+      slot. `SaveGame_Count` now counts **all** slots and `SaveGame_Delete`
+      treats quick slots like any other, so quicksaves accumulate and count
+      against the 25-slot cap (`SaveGame_ReadLatest` is now purely
+      newest-by-`dateCreated`; the old `quicksave` default slot is no longer
+      written — pre-existing files still load as ordinary slots).
+- [x] **Cap warning UX.** Saving at 25/25 fails with a clear message instead of
+      a generic error: the SaveGameManager status line and the F6
+      `SaveGame_Create` failure toast both say "all 25 save slots are full —
+      delete an old save to free a slot", and the manager header shows
+      `25 / 25 slots used` up front.
+- [x] **`SaveSlotInfo` gained `playerPos`** (`SaveGameJSON.h`) — the save/load
+      list rows now show the player location (`Loc: x, y, z`) alongside the
+      date, credits, and save name. API-DB regenerated (no function
+      add/remove).
+- [x] **Tests hardened** — save-slot tests now clean up after themselves and
+      tolerate pre-existing real saves (no more `test_slot_*` leaks blocking
+      the cap tests after an interrupted run). **Suite: 600 checks /
+      0 failures.** LSP smoke = exactly 8 diagnostics (known fixtures).
+- **Not done (Phase 2, Main Menu):** HELP / EXIT TO MAIN MENU buttons, a
+      start-of-game Main Menu (New Game / Load Game / Settings / Help / About
+      on a screenshot backdrop with version #, player-name + seed prompt).
+      No `Program_LaunchApp` script API exists, so it must be a state machine
+      inside `ltheory-main` (`"MENU" → "NEW_GAME" → "LOADING" → "PLAY"`)
+      reusing `LoadingScreen`, `Texture/SplashScreen.lts`, `Config:Get`,
+      `Int_Random`/`RNG_MTG`, and the save/load/settings managers.
+
+### A.14 Save/Load Manager Bug Fixes (2026-08-13)
+
+- [x] **Save/load rows now all render.** `SaveRow`/`LoadRow` gained
+      `function HashT GetHash () slotName.GetHash` — the `Dynamic` widget
+      keys its children by `GetHash()` (`UI/Widget/Dynamic.cpp:31`), and with
+      no `GetHash`/`GetName` defined every row hashed to the empty-name hash,
+      so `childrenMap` collapsed all rows into the first one.
+- [x] **Rows are now clickable (fixes DELETE / row selection dead).** Same bug
+      class as the A.1 Button fix: `Components:CaptureMouse` was on the
+      outermost wrapper, but `SaveRow`/`LoadRow` `PostUpdate` checked their
+      own `self.focusMouse`, which is never set by a parent's `CaptureMouse`
+      (focus propagates up, not down). Added the Button-style
+      `CaptureFocus` clip-region hit-test to both row types.
+- [x] **SAVE / LOAD buttons were never rendering — `CreateButton` never
+      compiled.** Root cause: `Button.lts`'s `CreateButton` passed an
+      `enabled` argument positionally (`Button onPress text size false
+      enabled`), but the AutoClass-generated constructor for the script type
+      only accepts up to 4 args (`onPress text size focus`) — the defaulted
+      `enabled` field is not settable via the constructor. Every launch
+      printed 155 `'Widget/Button'` errors, and the managers' `CreateButton`
+      calls failed to compile (66 errors each) → the SAVE/LOAD buttons never
+      rendered. **The LSP smoke test cannot catch this class of bug** — its
+      analyzer models script-type constructors with more arities than the
+      engine generates. Fix: `CreateButton` deleted from `Button.lts`, and
+      the managers now use the proven `Button:Create <msg> "SAVE"/"LOAD" 20`
+      pattern (the same one CREATE NEW SAVE / DELETE use); `DoSave`/`DoLoad`
+      validate the name on click instead of a stale `enabled` flag.
+- [x] **Slots-used count now live.** The `N / 25 slots used` header was set
+      once in `Create()` and never recomputed on rebuild. It's now a fresh
+      `Widgets:Text` line in `CreateChildren`, so it updates after every
+      delete/save/select. `Create()` no longer pre-fills the count into
+      `status`. LSP smoke = exactly 8 diagnostics (known fixtures).
+- [x] **SAVE / DELETE / LOAD clicks did nothing — `this.Method` arity trap.**
+      The buttons rendered and rows highlighted (inline `Receive` branches
+      compiled), but `this.DoSave` / `this.DoDelete` / `this.DoLoad` were
+      silently dropped statements. Root cause: `a.b` rewrites to `(b a)`
+      (`LTSL.cpp` `RewriteDot`), so `this.DoSave` calls `DoSave` with **one**
+      argument — but a type method declared `function Void DoSave (Widget self)`
+      has `parameters = [this, self]` (the implicit `this` param is pushed in
+      `Expression/Function.cpp:56`, and `paramCount`/arity checks count it,
+      `ExpressionCall.cpp:167`). The arity check fails, the statement is
+      dropped by `Expression_Block`, and the compile error is surfaced to the
+      console (`Function.cpp:100-103`) but does not stop the rest of `Receive`
+      from compiling. **The working pattern:** `this.Method` with **no**
+      declared params (`this.QuickSave`, `this.GetEnergy`), or `this.Method args`
+      where each declared param gets an explicit argument — the receiver fills
+      `this`, remaining args fill the declared params (`this.DoSave self`,
+      `this.ShowToast "T" a b n`). Fix: `this.DoSave self` etc. in both
+      managers; the SAVE button moved inside the `if editMode` block so it
+      only appears after a row is selected or CREATE NEW SAVE is clicked.
+      LSP smoke = exactly 8 diagnostics (known fixtures).
+- [ ] **Follow-up: engine-side script compile gate.** The LSP smoke test
+      missed the `CreateButton` breakage (see above). A CLI that compiles
+      every `.lts` with the real engine (`Expression_Compile` over all
+      `resource/script/*.lts` via `Script_Load`) would catch these at CI
+      time. See also the LSP constructor-arity divergence for defaulted
+      script-type fields.
 
 ---
 

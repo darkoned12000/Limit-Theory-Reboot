@@ -211,12 +211,15 @@ type App
     var ok (SaveGame_Create player root)
     if ok
       var d (SaveGame_Load)
-      this.ShowToast "GAME SAVED" (this.BuildToastLabels d) (this.BuildToastValues d) "Note: Quick save overwrites your last save game -- be careful."
+      this.ShowToast "GAME SAVED" (this.BuildToastLabels d) (this.BuildToastValues d) "Note: Each quick save adds a new slot and counts toward the 25-slot limit."
     else
       var labels (Array String)
       labels += ""
       var values (Array String)
-      values += "Could not write save file"
+      if (SaveGame_Count) >= 25
+        values += "All 25 save slots are full - delete an old save (SAVE GAME menu) to free a slot, then press F6 again."
+      else
+        values += "Could not write save file"
       this.ShowToast "SAVE FAILED" labels values ""
 
   function Void QuickLoad ()
@@ -253,44 +256,51 @@ type App
         passes.Append (RenderPass_Clear (Vec4 0.0))
         passes.Append (RenderPass_Camera camera)
         passes.Append (RenderPass_SMAA)
-        passes.push(RenderPass_Bloom(128, 64));
+        passes.Append (RenderPass_Bloom 128 64)
         passes.Append (RenderPass_Interface ui)
         passes.Append (RenderPass_PostFilter "post/dither.jsl")
         gameView.Clear
         gameView.Add (Widget_Rendered passes)
         started = true
         this.QuickLoad
+        player.SetName "SuperSpaceSquirrel"
       return
 
     var dt (Min 0.1 FrameTimer_Get)
-    root.Update dt
 
-    var ship player.GetPiloting
-    for it root.GetInteriorObjects it.HasMore it.Advance
-      var o it.Get
-      if (o.GetType == "Planet")
-        var toShip (ship.GetPos - o.GetPos)
-        var dist (Length toShip)
-        var minDist (o.GetScale.x * 1.1)
-        if (dist < minDist)
-          var normal (toShip / dist)
-          ship.SetPos (o.GetPos + (minDist * normal))
+    if (Widget/Pause:Pause_State 0) == false
+      root.Update dt
+
+      var ship player.GetPiloting
+      for it root.GetInteriorObjects it.HasMore it.Advance
+        var o it.Get
+        if (o.GetType == "Planet")
+          var toShip (ship.GetPos - o.GetPos)
+          var dist (Length toShip)
+          var minDist (o.GetScale.x * 1.1)
+          if (dist < minDist)
+            var normal (toShip / dist)
+            ship.SetPos (o.GetPos + (minDist * normal))
+
+      if Key_Y.Pressed
+        var target Object
+        for it player.GetPiloting.GetTargets it.HasMore it.Advance
+          target = it.Get
+        if target.IsNotNull
+          target.Send (MessageStartUsing player.GetPiloting)
+
+      if Key_U.Pressed
+        var target Object
+        for it player.GetPiloting.GetTargets it.HasMore it.Advance
+          target = it.Get
+        if target.IsNotNull
+          target.Send (MessageStopUsing player.GetPiloting)
+
+      var container player.GetPiloting.GetContainer
+      if Key_H.Down dt *= 20.0
+      container.Update dt
 
     camera.SetTarget player.GetPiloting
-
-    if Key_Y.Pressed
-      var target Object
-      for it player.GetPiloting.GetTargets it.HasMore it.Advance
-        target = it.Get
-      if target.IsNotNull
-        target.Send (MessageStartUsing player.GetPiloting)
-
-    if Key_U.Pressed
-      var target Object
-      for it player.GetPiloting.GetTargets it.HasMore it.Advance
-        target = it.Get
-      if target.IsNotNull
-        target.Send (MessageStopUsing player.GetPiloting)
 
     # F3 Debug
     if Key_F3.Pressed
@@ -302,10 +312,6 @@ type App
         otherwise
           if debugWidget.IsNotNull
             debugWidget.Delete
-
-    var container player.GetPiloting.GetContainer
-    if Key_H.Down dt *= 20.0
-    container.Update dt
 
     # F6 save / F7 load
     if Key_F6.Pressed

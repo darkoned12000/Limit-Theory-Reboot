@@ -85,6 +85,9 @@ type Map
             MapObjects player container
     l
 
+  function Void Destroy (Widget self)
+    Widget/Pause:Pause_State -1
+
 function Widget Create (Player player Object container)
   Components:Expand
     Stack

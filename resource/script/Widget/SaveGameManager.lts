@@ -1,0 +1,268 @@
+# Copyright (C) 2025  darkoned12000
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Part of the ltheory-old-test modernization effort (Revamp Work).
+# See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
+
+type MessageSaveSelect
+  String slotName
+
+type MessageSaveCommit
+type MessageSaveNew
+type MessageSaveDelete
+
+function String Short (String s)
+  if s.Length > 24
+    return (s.Substring 0 21) + "..."
+  s
+
+type SaveRow
+  String slotName
+  String title
+  String subtitle
+  String location
+  Bool selected
+
+  function List CreateChildren (Widget self)
+    var l List
+    l +=
+      Widgets:ListV3 4
+        Components:AlignLeftCenter
+          Widgets:Text Fonts:Default title 20 1.0
+        Components:AlignLeftCenter
+          Widgets:Text Fonts:Default subtitle 15 0.6
+        Components:AlignLeftCenter
+          Widgets:Text Fonts:Default location 14 0.5
+    l
+
+  function HashT GetHash ()
+    slotName.GetHash
+
+  function Void CaptureFocus (Widget self)
+    var c Cursor_Get
+    var p1 (Max self.pos ClipRegion_GetMin)
+    var p2 (Min self.pos + self.size ClipRegion_GetMax)
+    self.focusMouse = (p1 <= c && c <= p2)
+
+  function Void PreDraw (Widget self)
+    var c (? (selected 2.0 * Colors:Primary) (otherwise (Vec3 0.1)))
+    DrawPanel self.pos self.size c 0.5 1 0
+
+  function Void PostUpdate (Widget self)
+    if self.focusMouse && Mouse_LeftPressed
+      self.SendUp (MessageSaveSelect slotName)
+      Sound_Play "ui/elementselect.wav" 0.2
+
+function Widget CreateRow (String slotName String title String subtitle String location Bool selected)
+  Components:ExpandX
+    Components:CaptureMouse
+      Components:MinSize (Vec2 0 68)
+        Components:MaxSize (Vec2 2000 68)
+          Stack
+            Custom Widget
+              SaveRow slotName title subtitle location selected
+
+type SaveList
+  Player player
+  (Pointer String) pSelected
+
+  function List CreateChildren (Widget self)
+    var l List
+    var slots (SaveGame_ListSlots)
+    for i 0 i < slots.Size i.++
+      var info (slots.Get i)
+      var title (? (info.saveName.Length > 0 info.saveName) (otherwise info.slotName))
+      var subtitle (? (info.saveDescription.Length > 0 info.saveDescription) (otherwise info.dateCreated))
+      var location "Loc: " + info.playerPos.x + ", " + info.playerPos.y + ", " + info.playerPos.z
+      l += (CreateRow info.slotName title subtitle location (info.slotName == (deref pSelected)))
+    if slots.Size == 0
+      l +=
+        Components:AlignCenter
+          Widgets:Text Fonts:Default "No saved games yet - click CREATE NEW SAVE." 18 0.7
+    l
+
+type SaveGameManager
+  Player player
+  String slotName ""
+  String saveName ""
+  String saveDescription ""
+  String status ""
+  Vec3 statusColor (Vec3 1)
+  Bool editMode false
+  Bool showClose true
+
+  function Void Create (Widget self)
+    status = "Select a save, or click CREATE NEW SAVE."
+
+  function Void Receive (Widget self Data data)
+    switch
+      (data.IsType "MessageSaveSelect")
+        ref msg (cast MessageSaveSelect data)
+        editMode = true
+        slotName = msg.slotName
+        var d (SaveGame_LoadSlot msg.slotName)
+        saveName = d.saveName
+        saveDescription = d.saveDescription
+        status = "Selected: " + (Short msg.slotName) + " - edit, then SAVE."
+        statusColor = (Vec3 1)
+        self.Rebuild
+      (data.IsType "MessageSaveNew")
+        editMode = true
+        slotName = ""
+        saveName = ""
+        saveDescription = ""
+        status = "New save - type a name, then SAVE."
+        statusColor = (Vec3 1)
+        self.Rebuild
+      (data.IsType "MessageSaveCommit")
+        this.DoSave self
+      (data.IsType "MessageSaveDelete")
+        this.DoDelete self
+
+  function Void DoSave (Widget self)
+    var target slotName
+    if target.Length == 0
+      target = saveName
+      if target.Length == 0
+        status = "Enter a name for the new save."
+        statusColor = (Vec3 1)
+        self.Rebuild
+        return
+    var root player.GetPiloting.GetContainer
+    var ok (SaveGame_SaveSlot player root target saveName saveDescription)
+    if ok
+      slotName = target
+      saveName = ""
+      saveDescription = ""
+      status = "Saved to '" + (Short target) + "'."
+      statusColor = (Vec3 1)
+    else
+      if (SaveGame_Count) >= 25
+        status = "All 25 slots are full - please delete a save to allow saving."
+        statusColor = (Vec3 1 0.5 0)
+      else
+        status = "Save failed - the file could not be written."
+        statusColor = (Vec3 1)
+    self.Rebuild
+
+  function Void DoDelete (Widget self)
+    var doomed slotName
+    if doomed.Length == 0
+      status = "Select a save to delete first."
+      statusColor = (Vec3 1)
+      self.Rebuild
+      return
+    if (SaveGame_Delete doomed)
+      slotName = ""
+      saveName = ""
+      saveDescription = ""
+      status = "Deleted '" + (Short doomed) + "'."
+      statusColor = (Vec3 1)
+    else
+      status = "Delete failed."
+      statusColor = (Vec3 1)
+    self.Rebuild
+
+  function List CreateChildren (Widget self)
+    var left (ListV 12 Widget)
+    left.AddChild
+      Components:AlignLeftCenter
+        Widgets:Text Fonts:Default "Click 'CREATE NEW SAVE' to create a custom save file" 14 0.6
+    left.AddChild
+      Components:Expand
+        Button:Create MessageSaveNew "CREATE NEW SAVE" 20
+    left.AddChild
+      Components:AlignLeftCenter
+        Widgets:Text Fonts:Default "Select a save game slot to DELETE" 14 0.6
+    left.AddChild (Components:MinSize (Vec2 0 40) Widget)
+    left.AddChild
+      Components:Expand
+        Button:Create MessageSaveDelete "DELETE" 20
+    if editMode
+      left.AddChild (Components:MinSize (Vec2 0 12) Widget)
+      var fields (ListV 12 Widget)
+      fields.AddChild
+        Components:AlignLeftCenter
+          Widgets:Text Fonts:Subheading "NAME" 16 0.6
+      fields.AddChild
+        Components:Expand
+          Components:MinSize (Vec2 0 40)
+            TextField:Create "" 22 (address saveName)
+      fields.AddChild
+        Components:AlignLeftCenter
+          Widgets:Text Fonts:Subheading "DESCRIPTION" 16 0.6
+      fields.AddChild
+        Components:Expand
+          Components:MinSize (Vec2 0 56)
+            TextField:Create "" 18 (address saveDescription)
+      left.AddChild
+        Components:Expand
+          fields
+      left.AddChild
+        Components:Expand
+          Button:Create MessageSaveCommit "SAVE" 20
+    else
+      left.AddChild (Components:MinSize (Vec2 0 40) Widget)
+    left.AddChild (Components:MinSize (Vec2 0 60) Widget)
+
+    var slotCount (SaveGame_Count)
+    var slotsColor (Vec3 0 1 0)
+    if slotCount >= 22
+      slotsColor = (Vec3 1 0 0)
+    else
+      if slotCount >= 17
+        slotsColor = (Vec3 1 0.5 0)
+
+    var right (ListV 8 Widget)
+    right.AddChild
+      Components:AlignLeftCenter
+        Widgets:Text Fonts:Subheading ("" + slotCount + " / 25 slots used") 22 slotsColor
+    right.AddChild
+      Components:AlignLeftCenter
+        Widgets:Text Fonts:Default "To EDIT a save game, just select one and insert a new NAME and DESCRIPTION then click 'SAVE'." 14 0.5
+    right.AddChild
+      Components:AlignLeftCenter
+        Widgets:Text Fonts:Default status 15 statusColor
+    right.AddChild
+      Components:Expand
+        Widgets:ScrollFrameV
+          Components:Expand
+            Dynamic
+              Components:Padding 4 4
+                ListV 8
+                  Custom Widget
+                    SaveList player (address slotName)
+    right.AddChild (Components:MinSize (Vec2 0 60) Widget)
+
+    var l List
+    l +=
+      Components:Expand
+        Components:GreedyY
+          Widgets:ListH2 48
+            Components:MinSize (Vec2 300 0)
+              left
+            Components:Expand
+              Components:MinSize (Vec2 340 0)
+                right
+    if showClose
+      l +=
+        Components:AlignBottomCenter
+          Components:MinSize (Vec2 200 46)
+            Button:Create (Widget/Window:MessageClose) "Close" 20
+    l
+
+function Widget Create (Player player)
+  Window:CreateStyled "SAVE GAME"
+    Components:MinSize (Vec2 720 480)
+      Components:Margin (Vec2 16 12) (Vec2 16 12)
+        Stack
+          Custom Widget
+            SaveGameManager player
+    20.0
+    Colors:Primary
+
+function Widget CreateContent (Player player)
+  var m (SaveGameManager player)
+  m.showClose = false
+  Components:Expand
+    Stack
+      Custom Widget m

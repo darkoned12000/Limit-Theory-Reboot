@@ -1,0 +1,209 @@
+# Copyright (C) 2025  darkoned12000
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Part of the ltheory-old-test modernization effort (Revamp Work).
+# See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
+
+type MessageLoadSelect
+  String slotName
+
+type MessageLoadCommit
+type MessageLoadDelete
+
+function String Short (String s)
+  if s.Length > 24
+    return (s.Substring 0 21) + "..."
+  s
+
+type LoadRow
+  String slotName
+  String title
+  String subtitle
+  String location
+  Bool selected
+
+  function List CreateChildren (Widget self)
+    var l List
+    l +=
+      Widgets:ListV3 4
+        Components:AlignLeftCenter
+          Widgets:Text Fonts:Default title 20 1.0
+        Components:AlignLeftCenter
+          Widgets:Text Fonts:Default subtitle 15 0.6
+        Components:AlignLeftCenter
+          Widgets:Text Fonts:Default location 14 0.5
+    l
+
+  function HashT GetHash ()
+    slotName.GetHash
+
+  function Void CaptureFocus (Widget self)
+    var c Cursor_Get
+    var p1 (Max self.pos ClipRegion_GetMin)
+    var p2 (Min self.pos + self.size ClipRegion_GetMax)
+    self.focusMouse = (p1 <= c && c <= p2)
+
+  function Void PreDraw (Widget self)
+    var c (? (selected 2.0 * Colors:Primary) (otherwise (Vec3 0.1)))
+    DrawPanel self.pos self.size c 0.5 1 0
+
+  function Void PostUpdate (Widget self)
+    if self.focusMouse && Mouse_LeftPressed
+      self.SendUp (MessageLoadSelect slotName)
+      Sound_Play "ui/elementselect.wav" 0.2
+
+function Widget CreateRow (String slotName String title String subtitle String location Bool selected)
+  Components:ExpandX
+    Components:CaptureMouse
+      Components:MinSize (Vec2 0 68)
+        Components:MaxSize (Vec2 2000 68)
+          Stack
+            Custom Widget
+              LoadRow slotName title subtitle location selected
+
+type LoadList
+  Player player
+  (Pointer String) pSelected
+
+  function List CreateChildren (Widget self)
+    var l List
+    var slots (SaveGame_ListSlots)
+    for i 0 i < slots.Size i.++
+      var info (slots.Get i)
+      var title (? (info.saveName.Length > 0 info.saveName) (otherwise info.slotName))
+      var subtitle (? (info.saveDescription.Length > 0 info.saveDescription) (otherwise (info.dateCreated + "  |  Credits: " + info.playerCredits)))
+      var location "Loc: " + info.playerPos.x + ", " + info.playerPos.y + ", " + info.playerPos.z
+      l += (CreateRow info.slotName title subtitle location (info.slotName == (deref pSelected)))
+    if slots.Size == 0
+      l +=
+        Components:AlignCenter
+          Widgets:Text Fonts:Default "No saved games found." 18 0.7
+    l
+
+type LoadGameManager
+  Player player
+  String slotName ""
+  String status ""
+  Bool showClose true
+
+  function Void Create (Widget self)
+    status = "Select a save to load."
+
+  function Void Receive (Widget self Data data)
+    switch
+      (data.IsType "MessageLoadSelect")
+        ref msg (cast MessageLoadSelect data)
+        slotName = msg.slotName
+        status = "Selected: " + (Short msg.slotName) + " - click LOAD."
+        self.Rebuild
+      (data.IsType "MessageLoadCommit")
+        this.DoLoad self
+      (data.IsType "MessageLoadDelete")
+        this.DoDelete self
+
+  function Void DoLoad (Widget self)
+    if slotName.Length == 0
+      status = "Select a save to load first."
+      self.Rebuild
+      return
+    var d (SaveGame_LoadSlot slotName)
+    if d.version == 0
+      status = "Save is missing or corrupt."
+      self.Rebuild
+      return
+    player.SetName d.playerName
+    player.SetCredits d.playerCredits
+    var ship player.GetPiloting
+    ship.SetPos d.playerPos
+    ship.SetLook d.playerLook
+    self.SendUp (Widget/Window:MessageClose)
+
+  function Void DoDelete (Widget self)
+    var doomed slotName
+    if doomed.Length == 0
+      status = "Select a save to delete first."
+      self.Rebuild
+      return
+    if (SaveGame_Delete doomed)
+      slotName = ""
+      status = "Deleted '" + (Short doomed) + "'."
+    else
+      status = "Delete failed."
+    self.Rebuild
+
+  function List CreateChildren (Widget self)
+    var left (ListV 12 Widget)
+    left.AddChild
+      Components:AlignLeftCenter
+        Widgets:Text Fonts:Default "Select a save game slot to DELETE" 14 0.6
+    left.AddChild (Components:MinSize (Vec2 0 40) Widget)
+    left.AddChild
+      Components:Expand
+        Button:Create MessageLoadDelete "DELETE" 20
+    left.AddChild (Components:MinSize (Vec2 0 40) Widget)
+    left.AddChild
+      Components:Expand
+        Button:Create MessageLoadCommit "LOAD" 20
+    left.AddChild (Components:MinSize (Vec2 0 60) Widget)
+
+    var slotCount (SaveGame_Count)
+    var slotsColor (Vec3 0 1 0)
+    if slotCount >= 22
+      slotsColor = (Vec3 1 0 0)
+    else
+      if slotCount >= 17
+        slotsColor = (Vec3 1 0.5 0)
+
+    var right (ListV 8 Widget)
+    right.AddChild
+      Components:AlignLeftCenter
+        Widgets:Text Fonts:Subheading ("" + slotCount + " / 25 slots used") 22 slotsColor
+    right.AddChild
+      Components:AlignLeftCenter
+        Widgets:Text Fonts:Default "Select a save, then click LOAD to apply it." 14 0.5
+    right.AddChild
+      Components:AlignLeftCenter
+        Widgets:Text Fonts:Default status 15 1.0
+    right.AddChild
+      Components:Expand
+        Widgets:ScrollFrameV
+          Components:Expand
+            Dynamic
+              Components:Padding 4 4
+                ListV 8
+                  Custom Widget
+                    LoadList player (address slotName)
+    right.AddChild (Components:MinSize (Vec2 0 60) Widget)
+
+    var l List
+    l +=
+      Components:Expand
+        Components:GreedyY
+          Widgets:ListH2 48
+            Components:MinSize (Vec2 300 0)
+              left
+            Components:Expand
+              Components:MinSize (Vec2 340 0)
+                right
+    if showClose
+      l +=
+        Components:AlignBottomCenter
+          Components:MinSize (Vec2 200 46)
+            Button:Create (Widget/Window:MessageClose) "Close" 20
+    l
+
+function Widget Create (Player player)
+  Window:CreateStyled "LOAD GAME"
+    Components:MinSize (Vec2 720 480)
+      Components:Margin (Vec2 16 12) (Vec2 16 12)
+        Stack
+          Custom Widget
+            LoadGameManager player
+    20.0
+    Colors:Primary
+
+function Widget CreateContent (Player player)
+  var m (LoadGameManager player)
+  m.showClose = false
+  Components:Expand
+    Stack
+      Custom Widget m

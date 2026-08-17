@@ -19,6 +19,8 @@ const int kSaveGameVersion = 1;
 AutoClass(SaveGameData,
   int, version,
   String, dateCreated,
+  String, saveName,
+  String, saveDescription,
   String, playerName,
   Quantity, playerCredits,
   ItemID, shipHull,

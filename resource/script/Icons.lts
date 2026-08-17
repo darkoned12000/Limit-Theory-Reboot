@@ -403,3 +403,27 @@ function Icon Wormhole ()
         icon += (Glyph_LineFade 0.9 * offset 0.6 * offset 2 1)
       icon
   self
+
+# Revamp Work: Save/Load tab icons (down-arrow into tray / up-arrow out of tray,
+# ring-shaped so they read as circular inside the TabIcon ring).
+function Icon Save ()
+  static self
+    block
+      var icon Icon
+      icon += (Glyph_Arc 0 0.8 0.01 1 1 0 1)
+      icon += (Glyph_Line (Vec2 0 0.6) (Vec2 0 0.0) 1 1)
+      icon += (Glyph_Triangle (Vec2 0.4 0.0) (Vec2 -0.4 0.0) (Vec2 0 -0.4) 1 1)
+      icon += (Glyph_Line (Vec2 -0.6 -0.55) (Vec2 0.6 -0.55) 1 1.5)
+      icon
+  self
+
+function Icon Load ()
+  static self
+    block
+      var icon Icon
+      icon += (Glyph_Arc 0 0.8 0.01 1 1 0 1)
+      icon += (Glyph_Line (Vec2 0 -0.6) (Vec2 0 0.0) 1 1)
+      icon += (Glyph_Triangle (Vec2 0.4 0.0) (Vec2 -0.4 0.0) (Vec2 0 0.4) 1 1)
+      icon += (Glyph_Line (Vec2 -0.6 -0.55) (Vec2 0.6 -0.55) 1 1.5)
+      icon
+  self

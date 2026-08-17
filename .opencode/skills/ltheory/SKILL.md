@@ -12,8 +12,8 @@ description: >-
 # SKILL.md - Limit Theory Engine & LTSL Scripting
 
 **Purpose:** Master reference for AI agents helping with Limit Theory engine development and gameplay scripting.  
-**Version:** 2.2.0 (current: quick save/load + toasts, Config.lts extraction, 492 checks)  
-**Last Updated:** 2026-08-10
+**Version:** 2.3.2 (current: Browser centered via CenterIn + toast auto-size + save manager orange cap msg + click-to-cursor TextField, 634 checks)  
+**Last Updated:** 2026-08-15
 
 ---
 
@@ -901,12 +901,23 @@ resource/script/gameConfig.txt          # Game configuration (seed, etc.)
 
 **Save/Load (JSON)** (`Game/SaveGameJSON.{h,cpp}` + `Game/SaveGame.cpp`)
 - Status: Multi-slot JSON saves (`cache/saves/<slot>.json`, versioned schema +
-  `dateCreated`), bindings `SaveGame_Create` (quicksave), `SaveGame_Load`
-  (latest), `SaveGame_LoadSlot`, `SaveGame_ListSlots`. Covered by
-  `TestSaveGameJSON.cpp` (7 tests).
+  `dateCreated`, `kSaveJSONVersion = 3`), 25-slot cap (`kMaxSaveSlots`, new
+  slot at cap fails; overwrites always allowed; quicksaves accumulate into
+  timestamped `quick-...` slots and count against the cap). Bindings:
+  `SaveGame_Create` (quicksave), `SaveGame_Load`
+  (latest), `SaveGame_LoadSlot`, `SaveGame_ListSlots` (Vector<SaveSlotInfo>,
+  includes `playerPos`), `SaveGame_SaveSlot(player, root, slotName, saveName,
+  saveDescription)`, `SaveGame_Delete`, `SaveGame_Exists`, `SaveGame_Count`.
+  Covered by `TestSaveGameJSON.cpp` (suite 634 checks / 0 failures).
 - Wired into `ltheory-main` (2026-08-10): F6 quicksave / F7 quickload /
   launch auto-load, each with a two-tone config-driven toast.
-- Missing: GameMenu "SAVE GAME" entry + save-browser widget (data already ready).
+- Esc GameMenu SAVE GAME / LOAD GAME open `Widget/SaveGameManager.lts` /
+  `Widget/LoadGameManager.lts` (2026-08-10, see AGENTS.md A.12). `version == 0`
+  means "no save". Cross-file message types must be qualified
+  (`Widget/Window:MessageClose`), and single-line method calls whose arg is a
+  namespaced call with its own args trip the LSP analyzer's unit-counting —
+  use the multiline `self.AddChild <newline> Arg` form (sets
+  `argCountKnown=false`).
 
 **Gamepad Support** (`Game/Widget/HUD.cpp`)
 - Status: VERIFIED WORKING (lines 227-281)
@@ -935,10 +946,12 @@ resource/script/gameConfig.txt          # Game configuration (seed, etc.)
 - Code provided in: SAVE-LOAD-AND-INVENTORY.md Part 5
 
 **Save/Load UI (menu)**
-- Status: Quick save/load wired (F6/F7 + launch auto-load, `Widget/Toast.lts`
-  feedback) in `ltheory-main`.
-- Remaining: main-menu "SAVE GAME" entry + save-browser widget + slot-naming
-  dialog. `SaveGame_ListSlots`/`SaveGame_LoadSlot` provide the browser data.
+- Status: DONE (2026-08-10, AGENTS.md A.12). Esc GameMenu SAVE GAME → save
+  browser (`Widget/SaveGameManager.lts`: list, select-to-overwrite, editable
+  name/description, Create New Save, Delete, `N / 25` header); LOAD GAME →
+  `Widget/LoadGameManager.lts` (select + LOAD applies QuickLoad state, Delete).
+  Phase 2 (Main Menu state machine in `ltheory-main`): New Game / Load Game /
+  Settings / Help / About on screenshot backdrop.
 - Trap: toast label/value text must be parallel `(Array String)` arrays — a
   cross-file `ToastLine` struct adds 8 analyzer warnings.
 
@@ -1122,7 +1135,7 @@ python configure.py run ltheory-main
 
 ### Testing
 ```bash
-# Run all unit tests (492 checks)
+# Run all unit tests (634 checks)
 python configure.py test
 
 # Check for errors in specific file
@@ -1239,9 +1252,12 @@ quickload, and launch auto-loads the last save (after the loading screen).
 
 **Current status:**
 - ✅ Multi-slot JSON saves (`SaveGameJSON.{h,cpp}`), exception-free nlohmann/json
-- ✅ `SaveGame_Create`/`SaveGame_Load`/`SaveGame_LoadSlot`/`SaveGame_ListSlots` bindings
+- ✅ `SaveGame_Create`/`SaveGame_Load`/`SaveGame_LoadSlot`/`SaveGame_ListSlots` +
+      `SaveGame_SaveSlot`/`SaveGame_Delete`/`SaveGame_Exists`/`SaveGame_Count` bindings
 - ✅ Wired in `ltheory-main` with F6/F7 + launch auto-load + toast feedback
-- ❌ No main-menu save entry / save-browser widget yet
+- ✅ Esc GameMenu SAVE GAME / LOAD GAME managers (`Widget/SaveGameManager.lts` /
+      `Widget/LoadGameManager.lts`, 25-slot cap)
+- ❌ Main Menu (New Game / Load Game / Settings / Help / About) — Phase 2 state machine
 
 **Applying a load:** the engine only reads the file; the app applies state
 itself (`player.SetName`, `player.SetCredits`, `ship.SetPos`, `ship.SetLook`).
@@ -1411,7 +1427,7 @@ See AUDIO-SYSTEM-GUIDE.md for 300+ sound asset catalog.
 ### Memory
 - **Refcounting:** Intrusive via `Reference<T>`
 - **Allocation:** ~585 raw `new`/`delete` (most wrapped in Reference<T>)
-- **Leaks:** None detected in 399 unit checks
+- **Leaks:** None detected in 634 unit checks
 
 ---
 
@@ -1440,7 +1456,7 @@ See AUDIO-SYSTEM-GUIDE.md for 300+ sound asset catalog.
 
 ### Unit Tests
 ```bash
-# Run all tests (492 checks)
+# Run all tests (634 checks)
 python configure.py test
 
 # Tests cover:
@@ -1555,14 +1571,14 @@ See LTSL-ARCHITECTURE-AND-IMPROVEMENTS.md Part 7 for full roadmap:
   + launch auto-load wired into `ltheory-main`, two-tone config-driven toast
   (`Widget/Toast.lts`), `Config_Get` → `Config:Get` (Config.lts), added
   `Object_SetCredits` binding
-- Test counts refreshed: 492 checks (lte_tests)
+- Test counts refreshed: 634 checks (lte_tests)
 - Loading-screen pattern updated to `Config:Get`; "How do I save the game?" Q&A
   rewritten
 
 **v2.1.0 (2026-08-08):** DX-hardening session follow-up
 - Fixed a corrupted line in the LTSL Components section (garbled `obj.SetMass` line + broken code fence)
 - LSP section updated: ZED extension (not VS Code)
-- Test counts refreshed: 399 checks (lte_tests), selftest app added to §11
+- Test counts refreshed: 634 checks (lte_tests), selftest app added to §11
 - Added the LSP diagnostics smoke gate (8 diagnostics expected)
 
 **v2.0.0 (2026-07-30):** Enhanced with real codebase patterns (LTSL examples from war.lts/Button.lts, map guide, shader patterns)

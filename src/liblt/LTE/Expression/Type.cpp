@@ -211,6 +211,22 @@ namespace LTE {
     env.script->types[name] = type;
     env.context.push(type);
 
+    /* Pass A : pre-register every method's signature (with implicit 'this')
+       before any method body compiles. This lets a method call a method that
+       is declared LATER in the same type — without it, Expression_ExpressionCall
+       fails the arity/type check at compile time, the statement is silently
+       dropped, and the call never happens at runtime. */
+    for (size_t i = 2; i < list->GetSize(); ++i) {
+      StringList const& sub = list->Get(i);
+      if (sub->Get(0)->GetValue() == "function") {
+        ScriptFunction signature = ScriptFunction_ParseSignature(sub, env, type);
+        if (!signature)
+          return nullptr;
+        type->functions[signature->name] = signature;
+      }
+    }
+
+    /* Pass B : compile the method bodies into the pre-registered signatures. */
     for (size_t i = 2; i < list->GetSize(); ++i) {
       StringList const& sub = list->Get(i);
       if (sub->Get(0)->GetValue() == "function")

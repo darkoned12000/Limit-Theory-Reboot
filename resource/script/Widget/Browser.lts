@@ -62,6 +62,9 @@ type Browser
       if Key_Escape.Pressed
         self.Delete
 
+  function Void Destroy (Widget self)
+    Widget/Pause:Pause_State -1
+
   function Void Receive (Widget self Data data)
     if (data.IsType "MessageLink")
       Sound_Play "ui/objectmenuopen.ogg" 0.1
@@ -83,9 +86,11 @@ type Browser
 function Widget Create (Widget widget)
   var array (Array Widget)
   array += widget
-  Components:Backdrop 0.075 0.95 1 16
-    Components:CaptureKey
-      Components:Expand
-        ListV 0
-          Custom Widget
-            Browser array
+  Components:MaxSize (Vec2 1600 902)
+    Components:CenterIn
+      Components:Backdrop 0.075 0.95 1 16
+        Components:CaptureKey
+          Components:Expand
+            ListV 0
+              Custom Widget
+                Browser array

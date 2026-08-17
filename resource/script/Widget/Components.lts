@@ -95,6 +95,12 @@ function Widget GreedyY (Widget widget)
 function Widget Margin (Vec2 inner Vec2 outer Widget widget)
   Custom widget (Component/Margin:Margin inner outer)
 
+function Widget ClampSize (Widget widget)
+  Custom widget (Component/ClampSize:ClampSize)
+
+function Widget CenterIn (Widget widget)
+  Custom widget (Component/CenterIn:CenterIn)
+
 function Widget MaxSize (Vec2 size Widget widget)
   Custom widget (Component/MaxSize:MaxSize size)
 

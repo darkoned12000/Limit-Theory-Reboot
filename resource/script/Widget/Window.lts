@@ -7,12 +7,15 @@ type WidgetWindow
   Widget contents
   String title
   Float opacity 0.0
+  Float titleSize 14.0
+  Vec3 titleColor (Vec3 0.4)
 
   function Void Create (Widget self)
     Sound_Play "ui/windowopen.wav" 0.1
 
   function Void Destroy (Widget self)
     Sound_Play "ui/windowclose.wav" 0.2
+    Widget/Pause:Pause_State -1
 
   function List CreateChildren (Widget self)
     var l List
@@ -37,11 +40,11 @@ type WidgetWindow
   function Void PreDraw (Widget self)
     var color 2.0 * Colors:Primary
     DrawPanel self.pos self.size 0.05 0.95 opacity * self.alpha 16
-    # DrawPanel self.pos (Vec2 self.size.x 32.0) 0.10 0.5 opacity * self.alpha 0
+    DrawPanel self.pos (Vec2 self.size.x 32.0) 0.10 0.5 opacity * self.alpha 0
     var p1 self.TopLeft
     var p2 self.TopRight
     var pos self.pos + (Vec2 0 12) + (Vec2 (self.size.x / 2.0) 0)
-    # DrawText Fonts:Subheading title.UpperCase self.TopLeft + (Vec2 self.size.x / 2.0 16.0) 14.0 0.4 1.0 true
+    DrawText Fonts:Subheading title.UpperCase self.TopLeft + (Vec2 self.size.x / 2.0 16.0) titleSize titleColor 1.0 true
     ClipRegion_Push self.pos self.size
 
   function Void PostDraw (Widget self)
@@ -67,7 +70,51 @@ type WidgetWindow
       self.Delete
 
 function Widget Create (String title Widget contents)
-  Stack
-    Components:CaptureKey
-      Custom Widget
-        WidgetWindow contents title
+  Components:ClampSize
+    Components:AlignCenter
+      Stack
+        Components:CaptureKey
+          Custom Widget
+            WidgetWindow contents title
+
+function Widget CreateStyled (String title Widget contents Float titleSize Vec3 titleColor)
+  var w (WidgetWindow contents title)
+  w.titleSize = titleSize
+  w.titleColor = titleColor
+  Components:ClampSize
+    Components:AlignCenter
+      Stack
+        Components:CaptureKey
+          Custom Widget w
+
+type CloseButton
+
+  function List CreateChildren (Widget self)
+    var l List
+    l +=
+      Components:AlignCenter
+        Widgets:Text Fonts:Subheading "Close" 20 1.0
+    l
+
+  function Void PreDraw (Widget self)
+    var c (? (self.focusMouse (Vec3 0.45 0.8 1.0)) (otherwise Colors:Primary))
+    DrawPanel self.pos self.size c 0.5 1 0
+
+  function Void CaptureFocus (Widget self)
+    var c Cursor_Get
+    var p1 (Max self.pos ClipRegion_GetMin)
+    var p2 (Min self.pos + self.size ClipRegion_GetMax)
+    self.focusMouse = (p1 <= c && c <= p2)
+
+  function Void PostUpdate (Widget self)
+    if self.focusMouse
+      if Mouse_LeftPressed
+        self.SendUp MessageClose
+        Sound_Play "ui/elementselect.wav" 0.2
+
+function Widget CreateClose ()
+  Components:CaptureMouse
+    Components:Padding (Vec2 6 6) 6
+      Stack
+        Custom Widget
+          CloseButton

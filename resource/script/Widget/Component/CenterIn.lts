@@ -1,0 +1,5 @@
+type CenterIn
+  function Void PostPosition (Widget self)
+    var p self.GetParent
+    if p.IsNotNull
+      self.pos = p.pos + (p.size - self.size) * 0.5

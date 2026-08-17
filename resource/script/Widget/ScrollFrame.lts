@@ -3,6 +3,8 @@ type ScrollFrameV
   Float scrollTarget 0.0
   Float innerSize 0.0
   Float excess 0.0
+  Bool dragging false
+  Float dragOffset 0.0
 
   function Void PrePosition (Widget self)
     innerSize = self.minSize.y
@@ -21,12 +23,10 @@ type ScrollFrameV
     ClipRegion_Pop
     if excess > 0.0
       var t scroll / excess
-      var z 0.5 * self.size.y * (self.size.y / innerSize)
+      var z (Max 4.0 (0.5 * self.size.y * (self.size.y / innerSize)))
       var y (Mix self.TopRight.y self.BottomRight.y - z t)
-      var p1 (Vec2 self.TopRight.x - 2.0 y)
-      var p2 p1 + (Vec2 0 z)
-      DrawPanel (Vec2 self.TopRight.x - 4.0 self.pos.y) (Vec2 2 self.size.y) 0.1 0.5 0.5 0
-      DrawPanel (Vec2 self.TopRight.x - 6.0 y) (Vec2 6 z) 0.2 1 0.5 0
+      DrawPanel (Vec2 self.TopRight.x - 6.0 self.pos.y) (Vec2 6 self.size.y) Colors:Primary 0.5 0.25 0
+      DrawPanel (Vec2 self.TopRight.x - 7.0 y) (Vec2 7 z) Colors:Primary 0.5 0.85 0
 
   function Void PreUpdate (Widget self)
     ClipRegion_Push (Vec2 -100000.0 self.pos.y) (Vec2 200000.0 self.size.y)
@@ -45,6 +45,24 @@ type ScrollFrameV
 
     if self.focusScroll
       scrollTarget -= 0.1 * self.size.y * Mouse_GetScrollDelta
+
+    if excess > 0.0
+      var c Cursor_Get
+      var inBar (self.TopRight.x - 14.0 <= c.x && c.x <= self.TopRight.x)
+      var inBarY (self.pos.y <= c.y && c.y <= self.BottomRight.y)
+      var z (Max 4.0 (0.5 * self.size.y * (self.size.y / innerSize)))
+      var t scroll / excess
+      var y (Mix self.TopRight.y self.BottomRight.y - z t)
+      if (! dragging)
+        if inBar && inBarY && Mouse_LeftPressed
+          dragging = true
+          dragOffset = c.y - y
+      else
+        if Mouse_LeftDown
+          var ty (Clamp (c.y - dragOffset) self.pos.y (self.BottomRight.y - z))
+          scrollTarget = ((ty - self.pos.y) / (self.size.y - z)) * excess
+        else
+          dragging = false
 
     scrollTarget = (Clamp scrollTarget 0.0 excess)
     scroll = (Mix scroll scrollTarget 1.0 - (ExpDecay FrameTimer_Get 0.1))
