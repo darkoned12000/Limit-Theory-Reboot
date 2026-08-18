@@ -32,7 +32,8 @@ set(TEST_SRC
   TestLogBindings.cpp
   TestProgramBindings.cpp
   TestCrashHandler.cpp
-  TestJsonDatabase.cpp)
+  TestJsonDatabase.cpp
+  TestPlanets.cpp)
 
 add_executable(lte_tests ${TEST_SRC})
 

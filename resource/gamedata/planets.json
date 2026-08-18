@@ -31,8 +31,9 @@
     }
   },
   "version": 1,
+  "biomeOrder": ["desert", "terran", "ice", "lava", "gas_giant"],
   "defaults": {
-    "scaleRange": [100000, 100000],
+    "scaleRange": [100000, 125000],
     "dockCapacity": -1,
     "atmoDensityRange": [0.0, 2.0],
     "atmoTintSaturationRange": [0.5, 1.0],
