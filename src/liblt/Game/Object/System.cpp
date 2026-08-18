@@ -193,7 +193,9 @@ AutoClassDerived(System, SystemBaseT,
       MessageGetColor starColor;
       star->Send(starColor);
       args.color1 = starColor.color;
-      args.color2 = Mix(args.color1, GenerateStarColor(rng), 0.5f);
+      /* Derive color2 from star color by rotating hue, not legacy formula. */
+      V3 sc = starColor.color;
+      args.color2 = V3(sc.z, sc.x, sc.y);
       args.starDir = Normalize(star->GetPos());
 
       envMap = DiskCached(

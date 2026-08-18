@@ -31,8 +31,8 @@ void main() {
     light += 96.0 * (1.0 - fog) * l * color;
     light += 4.0 * env;
 #else
-    light += 8.0 * l;
-    light += 8.0 * env;
+    light += 8.0 * l * color;
+    light += 8.0 * env * color;
 #endif
   }
 

@@ -19,5 +19,6 @@ void main() {
   vec3 c = vertnormal;
   vec4 bg = textureCube(envMap, vertpos);
   c *= mix(vec3(1.0), bg.xyz, saturate(0.5 * bg.w));
-  RETURN(vec4(c * a * (1.0 - 0.75 * fog), 1.0));
+  float brightness = dot(starColor, vec3(0.299, 0.587, 0.114));
+  RETURN(vec4(c * a * (1.0 - 0.75 * fog) * brightness, 1.0));
 }
