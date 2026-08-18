@@ -272,6 +272,8 @@ Item Item_PlanetType(uint const& seed) { AUTO_FRAME;
       JRange(biome, "atmoDensityRange", bp, atmoDensityMin, atmoDensityMax);
       JRange(biome, "cloudLevelRange", bp, cloudLevelMin, cloudLevelMax);
       JRange(biome, "oceanLevelRange", bp, oceanLevelMin, oceanLevelMax);
+      JRange(biome, "desaturationRange", bp, desatMin, desatMax);
+      JRange(biome, "atmoTintSaturationRange", bp, atmoSatMin, atmoSatMax);
       JFloat(biome, "blendStrength", blendStrength, blendStrength);
       JFloat(biome, "ringProbability", ringProb, ringProb);
 

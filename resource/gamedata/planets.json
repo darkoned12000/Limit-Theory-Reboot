@@ -99,14 +99,14 @@
     },
     "lava": {
       "name": "Lava",
-      "surfaceTint": [0.9, 0.2, 0.1],
+      "surfaceTint": "#851515",
       "colorPalette": [
-        [0.80, 0.12, 0.05],
-        [0.95, 0.35, 0.10],
-        [0.70, 0.15, 0.05],
-        [0.55, 0.08, 0.02]
+        "#1a110f",
+        "#914934",
+        "#f71c1c",
+        "#5e5858"
       ],
-      "blendStrength": 0.15,
+      "blendStrength": 0.0,
       "atmoDensityRange": [0.2, 0.5],
       "oceanLevelRange": [0.0, 0.0],
       "cloudLevelRange": [-0.2, -0.2],
