@@ -21,14 +21,46 @@
 const float kCullBrightness = 0.01f;
 const float kOcclusionSpeed = 8.0f;
 const uint kMaxFlares = 64;
+const int kFlareTextureCount = 7;
 
 namespace {
+  struct FlareShape {
+    float coreTightness;
+    float streakIntensity;
+    float glowWidth;
+  };
+
+  /* Per-class flare shapes: O, B, A, F, G, K, M */
+  const FlareShape kFlareShapes[kFlareTextureCount] = {
+    { 512.0f, 0.08f, 0.005f },  /* O: tight core, strong streak, faint glow */
+    { 384.0f, 0.06f, 0.008f },  /* B: tight core, moderate streak */
+    { 256.0f, 0.04f, 0.010f },  /* A: balanced core, moderate streak */
+    { 256.0f, 0.02f, 0.010f },  /* F: classic circular (original) */
+    { 192.0f, 0.01f, 0.015f },  /* G: softer core, less streak, wider glow */
+    { 128.0f, 0.005f, 0.020f }, /* K: wide glow, minimal streak */
+    { 96.0f,  0.002f, 0.030f }, /* M: widest glow, almost no streak */
+  };
+
+  /* Determine star class index (0-6) from light color.
+   * O/B are blue (z high, x low), F/G are white-yellow, K/M are orange-red. */
+  int GetStarClassFromColor(Color const& color) {
+    float r = color.x, b = color.z;
+    if (b > 0.95f && r < 0.70f) return 0; /* O */
+    if (b > 0.95f && r < 0.80f) return 1; /* B */
+    if (b > 0.95f && r < 0.90f) return 2; /* A */
+    if (b > 0.95f)               return 3; /* F */
+    if (b > 0.85f)               return 4; /* G */
+    if (b > 0.60f)               return 5; /* K */
+    return 6;                               /* M */
+  }
+
   AutoClass(LensFlare,
     V2, center,
     V2, scale,
     Color, color,
     float, depth,
-    Light*, light)
+    Light*, light,
+    int, flareClass)
 
     LensFlare() = default;
 
@@ -43,7 +75,7 @@ namespace {
     Shader shader;
     Shader shaderComposite;
     Shader shaderComputeVisibility;
-    Texture2D flareTexture;
+    Texture2D flareTextures[kFlareTextureCount];
     Texture2D dirtTexture;
     Texture2D queryBuffer;
     Texture2D resultBuffer;
@@ -68,16 +100,24 @@ namespace {
       return "Lens Flares";
     }
 
+    void EnsureFlareTextures() {
+      static Shader generate = Shader_Create("identity.jsl", "gen/lensflare.jsl");
+      for (int c = 0; c < kFlareTextureCount; c++) {
+        if (flareTextures[c])
+          continue;
+        flareTextures[c] = Texture_Create(1024, 1024, GL_TextureFormat::R16F);
+        (*generate)
+          ("coreTightness", kFlareShapes[c].coreTightness)
+          ("streakIntensity", kFlareShapes[c].streakIntensity)
+          ("glowWidth", kFlareShapes[c].glowWidth);
+        Texture_Generate(flareTextures[c], generate);
+      }
+    }
+
     void OnRender(DrawState* state) override {
       RendererZBuffer zBuffer(false);
 
-      /* Generate flare texture. */ {
-        static Shader generate = Shader_Create("identity.jsl", "gen/lensflare.jsl");
-        if (!flareTexture) {
-          flareTexture = Texture_Create(1024, 1024, GL_TextureFormat::R16F);
-          Texture_Generate(flareTexture, generate);
-        }
-      }
+      EnsureFlareTextures();
 
       Texture2D const& targetBuffer = state->tertiary;
 
@@ -112,12 +152,15 @@ namespace {
             state->view->proj.TransformPoint(
             state->view->view.TransformPoint(transform.pos));
 
+          int flareClass = GetStarClassFromColor(light->color);
+
           LensFlare flare(
             0.5f * (projMin + projMax).GetXY(),
             0.5f * (projMax - projMin).GetXY(),
             light->color,
             Min(static_cast<float>(projected.z), state->view->zFar),
-            light);
+            light,
+            flareClass);
 
           flares.push(flare);
         }
@@ -131,7 +174,7 @@ namespace {
             ("baseColor", flare.color)
             ("depth", flare.depth)
             ("opacity", flare.light->visibility)
-            ("texture", flareTexture);
+            ("texture", flareTextures[flare.flareClass]);
 
           Renderer_DrawQuad(
             flare.center - flare.scale,
