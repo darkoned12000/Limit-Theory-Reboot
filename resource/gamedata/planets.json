@@ -7,8 +7,7 @@
       "colorPalette": "[[R,G,B], ...] or [\"#hex\", ...] — 4 colors the shader mixes across the surface using noise-driven gradient. Each entry can be a float array [0.0-1.0] or a hex string \"#RRGGBB\". All 4 should be in the same color family for a coherent biome.",
       "blendStrength": "0.0-1.0 — How much random noise mixes with each palette color. 0.0 = pure palette (exact JSON colors), 0.4 = moderate blending (default), 1.0 = pure noise (palette ignored). Lower = more predictable color, higher = more variety between planets.",
       "atmoDensityRange": "[min, max] — Controls atmosphere thickness and glow. 0.0 = no atmosphere (sharp edge), 1.0 = Earth-like, 2.0 = very thick (Venus-like haze). Higher values make the planet look hazier and more diffuse.",
-      "cloudLevel": "Single value — Height of the cloud layer relative to surface. Negative = clouds below surface (hidden). 0.0 = surface level. 0.15 = raised clouds visible as bright bands. Higher = more prominent cloud bands.",
-      "cloudLevelRange": "[min, max] — If present, overrides cloudLevel with a random range per-planet. Use this for variety within a biome.",
+      "cloudLevelRange": "[min, max] — Height of the cloud layer relative to surface. Negative = below surface (hidden). 0.0 = surface level. 0.15 = raised clouds visible as bright bands.",
       "oceanLevelRange": "[min, max] — Fraction of surface covered by water. 0.0 = no ocean (dry land). 0.3 = moderate oceans (Earth-like). 1.0 = fully water world.",
       "hasRings": "true/false — Whether this biome typically has rings. Gas giants and ice worlds usually have rings. Individual planets still have a small random chance to deviate.",
       "ringProbability": "0.0-1.0 — Global fallback ring probability if biome doesn't specify hasRings. 0.6 = 60% of planets have rings.",
@@ -16,9 +15,8 @@
       "wavelengthJitter": "Single value — Random ± variation applied to each wavelength component. 0.1 = each RGB channel varies by ±0.1. Higher = more color variety between planets of the same biome.",
       "desaturationRange": "[min, max] — How washed out the surface colors are. 0.0 = fully saturated (vivid colors), 1.0 = fully grey. 0.4-1.0 gives natural-looking variety.",
       "atmoTintSaturationRange": "[min, max] — How saturated the atmosphere glow color is. 0.5 = somewhat grey atmosphere, 1.0 = vivid colored atmosphere.",
-      "rotationSpeed": "float — How fast the planet spins (radians per frame). 0.0001 = slow, 0.0005 = fast gas giant. Currently informational only (shader wiring pending).",
-      "scaleRange": "[min, max] — Planet radius in engine units. Random value between min and max per-planet. [100000, 100000] = fixed standard size. [150000, 200000] = large planets with variation.",
-      "oceanLevelPower": "float — Power curve applied to random ocean level. Higher = more planets tend toward extremes (very dry or very wet). 1.5 = moderate bias."
+      "_rotationSpeed": "float (pending) — How fast the planet spins (radians per frame). 0.0001 = slow, 0.0005 = fast gas giant. Prefixed with _ = not wired to engine yet.",
+      "scaleRange": "[min, max] — Planet radius in engine units. Random value between min and max per-planet. [100000, 100000] = fixed standard size. [150000, 200000] = large planets with variation."
     },
     "tips": {
       "make_planet_redder": "Set colorPalette to reds/oranges, e.g. [[0.8,0.1,0.05], [0.9,0.3,0.1], [0.7,0.15,0.05], [0.6,0.1,0.02]]",
@@ -38,12 +36,12 @@
     "atmoDensityRange": [0.0, 2.0],
     "atmoTintSaturationRange": [0.5, 1.0],
     "cloudLevelRange": [-0.2, 0.15],
+    "oceanLevelRange": [0.0, 0.0],
     "ringProbability": 0.6,
     "wavelengthBase": [0.66, 0.53, 0.4],
     "wavelengthJitter": [-0.1, 0.1],
     "desaturationRange": [0.4, 1.0],
-    "blendStrength": 0.4,
-    "oceanLevelPower": 1.5
+    "blendStrength": 0.4
   },
   "biomes": {
     "desert": {
@@ -57,11 +55,11 @@
       ],
       "blendStrength": 0.3,
       "atmoDensityRange": [0.0, 0.5],
-      "oceanLevel": 0.0,
-      "cloudLevel": -0.1,
-      "cloudWindSpeed": 0.0,
+      "oceanLevelRange": [0.0, 0.0],
+      "cloudLevelRange": [-0.1, -0.1],
+      "_cloudWindSpeed": 0.0,
       "hasRings": false,
-      "rotationSpeed": 0.0001,
+      "_rotationSpeed": 0.0001,
       "description": "Arid, barren world with minimal atmosphere"
     },
     "terran": {
@@ -75,11 +73,11 @@
       ],
       "blendStrength": 0.25,
       "atmoDensityRange": [0.5, 1.5],
-      "oceanLevel": 0.3,
-      "cloudLevel": 0.1,
-      "cloudWindSpeed": 0.0005,
+      "oceanLevelRange": [0.3, 0.3],
+      "cloudLevelRange": [0.1, 0.1],
+      "_cloudWindSpeed": 0.0005,
       "hasRings": false,
-      "rotationSpeed": 0.0002,
+      "_rotationSpeed": 0.0002,
       "description": "Earth-like world with oceans and vegetation"
     },
     "ice": {
@@ -93,11 +91,11 @@
       ],
       "blendStrength": 0.2,
       "atmoDensityRange": [0.2, 0.8],
-      "oceanLevel": 0.0,
-      "cloudLevel": 0.0,
-      "cloudWindSpeed": 0.0003,
+      "oceanLevelRange": [0.0, 0.0],
+      "cloudLevelRange": [0.0, 0.0],
+      "_cloudWindSpeed": 0.0003,
       "hasRings": true,
-      "rotationSpeed": 0.00015,
+      "_rotationSpeed": 0.00015,
       "description": "Frozen world with thick ice crust"
     },
     "lava": {
@@ -111,11 +109,11 @@
       ],
       "blendStrength": 0.15,
       "atmoDensityRange": [1.0, 2.0],
-      "oceanLevel": 0.0,
-      "cloudLevel": -0.2,
-      "cloudWindSpeed": 0.001,
+      "oceanLevelRange": [0.0, 0.0],
+      "cloudLevelRange": [-0.2, -0.2],
+      "_cloudWindSpeed": 0.001,
       "hasRings": false,
-      "rotationSpeed": 0.0003,
+      "_rotationSpeed": 0.0003,
       "description": "Volcanic world with molten surface"
     },
     "gas_giant": {
@@ -130,11 +128,11 @@
       ],
       "blendStrength": 0.15,
       "atmoDensityRange": [1.5, 2.0],
-      "oceanLevel": 0.0,
-      "cloudLevel": 0.15,
-      "cloudWindSpeed": 0.002,
+      "oceanLevelRange": [0.0, 0.0],
+      "cloudLevelRange": [0.15, 0.15],
+      "_cloudWindSpeed": 0.002,
       "hasRings": true,
-      "rotationSpeed": 0.0005,
+      "_rotationSpeed": 0.0005,
       "description": "Massive gas giant with prominent ring system"
     }
   },
