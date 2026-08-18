@@ -16,6 +16,7 @@ uniform vec3 color3;
 uniform vec3 color4;
 uniform float cloudLevel;
 uniform float heightMult;
+uniform float oceanLevel;
 const float kSpecular = 1.0;
 const vec3 kOceanColor = vec3(0.03, 0.05, 0.10);
 const float seed = 151.2;
@@ -64,7 +65,7 @@ void main() {
   float cloud = map.z;
 
   h = heightFn(h);
-  float ocean = 1.0 - exp(-16.0 * max(0.0, 0.3 - h));
+  float ocean = 1.0 - exp(-16.0 * max(0.0, oceanLevel - h));
   float land = 1.0 - ocean;
   land *= visibility(planetMap, h, 0.10, 6.0);
 

@@ -324,8 +324,16 @@ Item Item_PlanetType(uint const& seed) { AUTO_FRAME;
 
   self->hasRings = rg->GetFloat() < ringProb;
 
-  printf("Item_PlanetType(seed=%u) biome=%s\n",
-    seed, biomeName.c_str());
+  printf("Item_PlanetType(seed=%u) biome=%s\n"
+    "  color1=(%.3f,%.3f,%.3f) color2=(%.3f,%.3f,%.3f)\n"
+    "  color3=(%.3f,%.3f,%.3f) color4=(%.3f,%.3f,%.3f)\n"
+    "  desat=%.2f blend=%.2f ocean=%.2f\n",
+    seed, biomeName.c_str(),
+    self->color1.x, self->color1.y, self->color1.z,
+    self->color2.x, self->color2.y, self->color2.z,
+    self->color3.x, self->color3.y, self->color3.z,
+    self->color4.x, self->color4.y, self->color4.z,
+    desat, blendStrength, self->oceanLevel);
   self->renderable = Generate(*self);
   return self;
 }
