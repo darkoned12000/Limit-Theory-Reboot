@@ -204,9 +204,15 @@ AutoClassDerived(System, SystemBaseT,
     }
 
     /* Interior. */ {
-      interior = Renderable_Starfield(
-        Seeded.seed,
-        Abs(kBaseStarCount + 2000 * rng->GetGaussian()));
+      float sfMin = 75000.0f, sfMax = 150000.0f;
+      if (EnsureStarsLoaded()) {
+        json const* defaults = DatabaseManager_Get().Find("stars", "defaults");
+        if (defaults)
+          JRange(JGet(defaults, "starFieldRange"), "stars.defaults", sfMin, sfMax);
+      }
+      uint starCount = (uint)rng->GetFloat(sfMin, sfMax);
+      printf("Starfield count=%u (range=[%.0f, %.0f])\n", starCount, sfMin, sfMax);
+      interior = Renderable_Starfield(Seeded.seed, starCount);
     }
 
     envMapLF = DiskCached(

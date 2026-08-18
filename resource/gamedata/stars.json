@@ -8,7 +8,8 @@
       "radius": "float — Light reach distance. Combined with per-instance radiusRange variation.",
       "classWeights": "[O, B, A, F, G, K, M] — Relative probability weights for each class. Higher = more common.",
       "brightnessRange": "[min, max] — Per-instance brightness variation. Base brightness * random(min, max).",
-      "radiusRange": "[min, max] — Per-instance radius variation. Base radius * random(min, max)."
+      "radiusRange": "[min, max] — Per-instance radius variation. Base radius * random(min, max).",
+      "starFieldRange": "[min, max] — Number of background stars per system. Random value between min and max per system."
     },
     "tips": {
       "more_bright_stars": "Increase brightness on O/B classes",
@@ -33,6 +34,7 @@
   "defaults": {
     "classWeights": [1, 2, 3, 4, 3, 2, 1],
     "brightnessRange": [0.8, 1.2],
-    "radiusRange": [0.9, 1.1]
+    "radiusRange": [0.9, 1.1],
+    "starFieldRange": [75000, 150000]
   }
 }
