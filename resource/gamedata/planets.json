@@ -17,7 +17,7 @@
       "desaturationRange": "[min, max] — How washed out the surface colors are. 0.0 = fully saturated (vivid colors), 1.0 = fully grey. 0.4-1.0 gives natural-looking variety.",
       "atmoTintSaturationRange": "[min, max] — How saturated the atmosphere glow color is. 0.5 = somewhat grey atmosphere, 1.0 = vivid colored atmosphere.",
       "rotationSpeed": "float — How fast the planet spins (radians per frame). 0.0001 = slow, 0.0005 = fast gas giant. Currently informational only (shader wiring pending).",
-      "scale": "int — Planet radius in engine units. 100000 = standard. Larger values = bigger planet visually.",
+      "scaleRange": "[min, max] — Planet radius in engine units. Random value between min and max per-planet. [100000, 100000] = fixed standard size. [150000, 200000] = large planets with variation.",
       "oceanLevelPower": "float — Power curve applied to random ocean level. Higher = more planets tend toward extremes (very dry or very wet). 1.5 = moderate bias."
     },
     "tips": {
@@ -32,7 +32,7 @@
   },
   "version": 1,
   "defaults": {
-    "scale": 100000,
+    "scaleRange": [100000, 100000],
     "dockCapacity": -1,
     "atmoDensityRange": [0.0, 2.0],
     "atmoTintSaturationRange": [0.5, 1.0],
@@ -120,6 +120,7 @@
     "gas_giant": {
       "name": "Gas Giant",
       "surfaceTint": [0.569, 0.404, 0.247],
+      "scaleRange": [150000, 200000],
       "colorPalette": [
         [0.569, 0.404, 0.247],
         [0.500, 0.350, 0.200],

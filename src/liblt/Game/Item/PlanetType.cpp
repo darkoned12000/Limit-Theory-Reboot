@@ -228,7 +228,7 @@ Item Item_PlanetType(uint const& seed) { AUTO_FRAME;
   float atmoSatMin = 0.5f, atmoSatMax = 1.0f;
   float ringProb = 0.6f;
   float blendStrength = 0.4f;
-  float planetScale = 100000.0f;
+  float scaleMin = 100000.0f, scaleMax = 100000.0f;
   int dockCap = -1;
   V3 wavelengthBase(0.66f, 0.53f, 0.4f);
   float wavelengthJitter = 0.1f;
@@ -259,7 +259,8 @@ Item Item_PlanetType(uint const& seed) { AUTO_FRAME;
              atmoSatMin, atmoSatMax, 0.5f, 1.0f);
       JFloat(defaults, "blendStrength", blendStrength, 0.4f);
       JFloat(defaults, "ringProbability", ringProb, 0.6f);
-      JFloat(defaults, "scale", planetScale, 100000.0f);
+      JRange(defaults, "scaleRange", "planets.json: defaults",
+             scaleMin, scaleMax, 100000.0f, 100000.0f);
       JInt(defaults, "dockCapacity", dockCap, -1);
       JColor(defaults, "wavelengthBase", "planets.json: defaults",
              wavelengthBase, V3(0.66f, 0.53f, 0.4f));
@@ -302,7 +303,7 @@ Item Item_PlanetType(uint const& seed) { AUTO_FRAME;
   }
 
   /* ---- Apply values to the planet ---- */
-  self->scale = planetScale;
+  self->scale = rg->GetFloat(scaleMin, scaleMax);
   self->dockCapacity = dockCap;
   self->atmoDensity = rg->GetFloat(atmoDensityMin, atmoDensityMax);
   self->atmoTint = Desaturate(
@@ -332,13 +333,13 @@ Item Item_PlanetType(uint const& seed) { AUTO_FRAME;
   printf("Item_PlanetType(seed=%u) biome=%s\n"
     "  color1=(%.3f,%.3f,%.3f) color2=(%.3f,%.3f,%.3f)\n"
     "  color3=(%.3f,%.3f,%.3f) color4=(%.3f,%.3f,%.3f)\n"
-    "  desat=%.2f blend=%.2f ocean=%.2f\n",
+    "  desat=%.2f blend=%.2f ocean=%.2f scale=%.0f\n",
     seed, biomeName.c_str(),
     self->color1.x, self->color1.y, self->color1.z,
     self->color2.x, self->color2.y, self->color2.z,
     self->color3.x, self->color3.y, self->color3.z,
     self->color4.x, self->color4.y, self->color4.z,
-    desat, blendStrength, self->oceanLevel);
+    desat, blendStrength, self->oceanLevel, self->scale);
   self->renderable = Generate(*self);
   return self;
 }
