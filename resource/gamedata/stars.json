@@ -1,0 +1,38 @@
+{
+  "_docs": {
+    "overview": "Star classes for system generation. Each seed picks a star class via weighted random selection, then applies per-instance variation from the defaults ranges.",
+    "class_selection": "classWeights array controls probability: [O, B, A, F, G, K, M]. Sum of weights = total probability pool. Same seed always picks the same class.",
+    "field_reference": {
+      "color": "#RRGGBB — Star surface color. O/B stars are blue-white, G stars are yellow-white, K/M are orange-red.",
+      "brightness": "float — Light intensity multiplier. Combined with per-instance brightnessRange variation.",
+      "radius": "float — Light reach distance. Combined with per-instance radiusRange variation.",
+      "classWeights": "[O, B, A, F, G, K, M] — Relative probability weights for each class. Higher = more common.",
+      "brightnessRange": "[min, max] — Per-instance brightness variation. Base brightness * random(min, max).",
+      "radiusRange": "[min, max] — Per-instance radius variation. Base radius * random(min, max)."
+    },
+    "tips": {
+      "more_bright_stars": "Increase brightness on O/B classes",
+      "more_red_stars": "Increase M class weight, decrease O/B weights",
+      "dimmer_universe": "Lower all brightness values or widen brightnessRange downward",
+      "bigger_lights": "Increase radius values on desired classes"
+    }
+  },
+
+  "version": 1,
+
+  "starClasses": {
+    "O": { "color": "#9bb0ff", "brightness": 15.0, "radius": 5000000 },
+    "B": { "color": "#aabfff", "brightness": 12.0, "radius": 4000000 },
+    "A": { "color": "#cad7ff", "brightness": 10.0, "radius": 3500000 },
+    "F": { "color": "#f8f7ff", "brightness": 8.0,  "radius": 3000000 },
+    "G": { "color": "#fff4ea", "brightness": 6.0,  "radius": 2500000 },
+    "K": { "color": "#ffd2a1", "brightness": 4.0,  "radius": 2000000 },
+    "M": { "color": "#ffcc6f", "brightness": 2.0,  "radius": 1500000 }
+  },
+
+  "defaults": {
+    "classWeights": [1, 2, 3, 4, 3, 2, 1],
+    "brightnessRange": [0.8, 1.2],
+    "radiusRange": [0.9, 1.1]
+  }
+}

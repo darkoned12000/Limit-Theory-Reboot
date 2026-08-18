@@ -19,7 +19,9 @@ using StarBaseT = ObjectWrapper
 
 AutoClassDerived(Star, StarBaseT,
   LightRef, light,
-  Color, color)
+  Color, color,
+  float, lightBrightness,
+  float, lightRadius)
 
   DERIVED_TYPE_EX(Star)
   POOLED_TYPE
@@ -41,22 +43,25 @@ AutoClassDerived(Star, StarBaseT,
 
     if (!light)
       light = Light_Create(this);
-    light->color = 10.0f * color;
-    light->radius = 3000000;
+    light->color = lightBrightness * color;
+    light->radius = lightRadius;
   }
 };
 
 DERIVED_IMPLEMENT(Star)
 
-Object Object_Star(Color const& color) {
+Object Object_Star(Color const& color, float const& brightness,
+                   float const& radius) {
   Reference<Star> self = new Star;
   self->color = color;
+  self->lightBrightness = brightness;
+  self->lightRadius = radius;
   return self;
 }
 static Function const Object_Star_Registration = Function_Bind(
   "Object_Star",
   "None",
   &Object_Star,
-  "color");
+  "color", "brightness", "radius");
 
 

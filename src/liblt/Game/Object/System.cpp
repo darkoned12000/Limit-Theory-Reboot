@@ -13,6 +13,8 @@
 #include "Game/Renderables.h"
 #include "Game/Universe.h"
 #include "Game/Graphics/Generators.h"
+#include "Game/DatabaseManager.h"
+#include "Game/JsonHelpers.h"
 
 #include "LTE/CubeMap.h"
 #include "LTE/DrawState.h"
@@ -38,6 +40,106 @@ const float kColorVariation = 0.02f;
 const float kColorLacunarity = 0.6f;
 
 namespace {
+  struct StarData {
+    V3 color;
+    float brightness;
+    float radius;
+  };
+
+  bool EnsureStarsLoaded() {
+    static bool loaded = false;
+    static bool ok = false;
+    if (loaded) return ok;
+    loaded = true;
+    ok = DatabaseManager_Get().Load("stars", "resource/gamedata/stars.json");
+    return ok;
+  }
+
+  /* Pick a star class from classWeights using weighted random selection.
+   * Returns index into starClasses array (O=0, B=1, A=2, F=3, G=4, K=5, M=6). */
+  int PickStarClass(RNG const& rng) {
+    if (!EnsureStarsLoaded())
+      return 3; /* F-class fallback */
+    json const* weights = DatabaseManager_Get().FindPath("stars", "defaults.classWeights");
+    if (!weights || !weights->is_array() || weights->size() == 0)
+      return 3;
+    float total = 0.0f;
+    for (size_t i = 0; i < weights->size(); i++)
+      total += (*weights)[i].get<float>();
+    if (total <= 0.0f)
+      return 3;
+    float roll = rng->GetFloat() * total;
+    float cumulative = 0.0f;
+    for (size_t i = 0; i < weights->size(); i++) {
+      cumulative += (*weights)[i].get<float>();
+      if (roll < cumulative)
+        return (int)i;
+    }
+    return (int)weights->size() - 1;
+  }
+
+  /* Load star class names and properties from JSON. */
+  bool GetStarClassInfo(int classIndex, V3& color, float& brightness, float& radius, RNG const& rng) {
+    if (!EnsureStarsLoaded()) {
+      /* Fallback: white star */
+      color = V3(0.97f, 0.97f, 1.0f);
+      brightness = 8.0f;
+      radius = 3000000.0f;
+      return false;
+    }
+
+    /* Map index to class name. */
+    static const char* classNames[] = { "O", "B", "A", "F", "G", "K", "M" };
+    if (classIndex < 0 || classIndex > 6) {
+      color = V3(0.97f, 0.97f, 1.0f);
+      brightness = 8.0f;
+      radius = 3000000.0f;
+      return false;
+    }
+
+    String path = Stringize() | "starClasses." | classNames[classIndex];
+    json const* cls = DatabaseManager_Get().FindPath("stars", path.c_str());
+    if (!cls) {
+      color = V3(0.97f, 0.97f, 1.0f);
+      brightness = 8.0f;
+      radius = 3000000.0f;
+      return false;
+    }
+
+    String basePath = Stringize() | "stars.starClasses." | classNames[classIndex];
+    V3 rawColor;
+    JColor(JGet(cls, "color"), basePath, rawColor, V3(0.97f, 0.97f, 1.0f));
+    float rawBrightness, rawRadius;
+    JFloat(JGet(cls, "brightness"), rawBrightness, 8.0f);
+    JFloat(JGet(cls, "radius"), rawRadius, 3000000.0f);
+
+    /* Apply per-instance variation from defaults. */
+    json const* defaults = DatabaseManager_Get().Find("stars", "defaults");
+    float bMin = 0.8f, bMax = 1.2f, rMin = 0.9f, rMax = 1.1f;
+    if (defaults) {
+      JRange(JGet(defaults, "brightnessRange"), "stars.defaults", bMin, bMax);
+      JRange(JGet(defaults, "radiusRange"), "stars.defaults", rMin, rMax);
+    }
+
+    color = rawColor;
+    brightness = rawBrightness * rng->GetFloat(bMin, bMax);
+    radius = rawRadius * rng->GetFloat(rMin, rMax);
+    return true;
+  }
+
+  StarData GenerateStar(RNG const& rng) {
+    StarData data;
+    static const char* classNames[] = { "O", "B", "A", "F", "G", "K", "M" };
+    int classIndex = PickStarClass(rng);
+    GetStarClassInfo(classIndex, data.color, data.brightness, data.radius, rng);
+    printf("GenerateStar class=%s color=(%.2f, %.2f, %.2f) brightness=%.1f radius=%.0f\n",
+      classNames[classIndex],
+      data.color.x, data.color.y, data.color.z,
+      data.brightness, data.radius);
+    return data;
+  }
+
+  /* Legacy function for nebula color — keeps the old formula. */
   V3 GenerateStarColor(RNG const& rng) {
     return V3(1.0f) - 0.5f * Log(rng->GetV3(0, 1)) * V3(1.0f, 0.5f, 1.0f);
   }
@@ -244,7 +346,8 @@ Object Object_System(Object_System_Args const& args) { AUTO_FRAME;
   self->SetPos(args.position);
 
   /* Create the central star. */ {
-    self->star = Object_Star(GenerateStarColor(rng));
+    StarData starData = GenerateStar(rng);
+    self->star = Object_Star(Color(starData.color), starData.brightness, starData.radius);
     self->star->SetPos(Spherical(60000000, 1.25f * kPi2, 0.0f));
     self->AddInterior(self->star);
     self->Initialize();
