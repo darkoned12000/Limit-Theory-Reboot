@@ -228,6 +228,8 @@ Item Item_PlanetType(uint const& seed) { AUTO_FRAME;
   float atmoSatMin = 0.5f, atmoSatMax = 1.0f;
   float ringProb = 0.6f;
   float blendStrength = 0.4f;
+  float planetScale = 100000.0f;
+  int dockCap = -1;
   V3 wavelengthBase(0.66f, 0.53f, 0.4f);
   float wavelengthJitter = 0.1f;
   V3 surfaceTint(0.5f);
@@ -257,6 +259,8 @@ Item Item_PlanetType(uint const& seed) { AUTO_FRAME;
              atmoSatMin, atmoSatMax, 0.5f, 1.0f);
       JFloat(defaults, "blendStrength", blendStrength, 0.4f);
       JFloat(defaults, "ringProbability", ringProb, 0.6f);
+      JFloat(defaults, "scale", planetScale, 100000.0f);
+      JInt(defaults, "dockCapacity", dockCap, -1);
       JColor(defaults, "wavelengthBase", "planets.json: defaults",
              wavelengthBase, V3(0.66f, 0.53f, 0.4f));
       JFloat(defaults, "wavelengthJitter", wavelengthJitter, 0.1f);
@@ -298,7 +302,8 @@ Item Item_PlanetType(uint const& seed) { AUTO_FRAME;
   }
 
   /* ---- Apply values to the planet ---- */
-  self->scale = 100000;
+  self->scale = planetScale;
+  self->dockCapacity = dockCap;
   self->atmoDensity = rg->GetFloat(atmoDensityMin, atmoDensityMax);
   self->atmoTint = Desaturate(
     rg->GetV3(0, 1.0f),

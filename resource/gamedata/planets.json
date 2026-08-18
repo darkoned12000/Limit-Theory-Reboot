@@ -1,24 +1,24 @@
 {
   "_docs": {
     "overview": "Planets are generated from a seed. Each seed deterministically picks a biome and applies its parameters with seed-driven noise. Edit values → relaunch → watch terminal for 'Item_PlanetType(seed=...) biome=...' to verify changes.",
-    "biome_selection": "biomeOrder (below) defines a stable list for seed-based iteration. Same seed always picks the same biome. To see a specific biome, change the seed in gameConfig.txt until you get the one you want.",
+    "biome_selection": "The seed picks a biome via (seed % num_biomes). Same seed always picks the same biome. To see a specific biome, change the seed in gameConfig.txt until you get the one you want.",
     "field_reference": {
-      "surfaceTint": "[R, G, B] 0.0-1.0 — Base color of the planet surface. Higher = brighter. Mixed with seed-driven noise controlled by blendStrength. Also used as colorPalette[0] if no palette is defined.",
-      "colorPalette": "[[R,G,B], [R,G,B], [R,G,B], [R,G,B]] — 4 colors the shader mixes across the surface using noise-driven gradient. All 4 should be in the same color family for a coherent biome.",
-      "blendStrength": "0.0-1.0 — How much random noise mixes with each palette color. 0.0 = pure palette (exact JSON colors), 0.4 = moderate blending (default), 1.0 = pure noise (palette ignored).",
-      "atmoDensityRange": "[min, max] — Atmosphere thickness and glow. 0.0 = no atmosphere (sharp edge), 1.0 = Earth-like, 2.0 = very thick (Venus-like haze).",
-      "cloudLevelRange": "[min, max] — Cloud layer height relative to surface. Negative = below surface (hidden). 0.0 = surface level. 0.15 = raised clouds visible as bright bands.",
-      "oceanLevelRange": "[min, max] — Fraction of surface covered by water. 0.0 = no ocean, 0.3 = moderate (Earth-like), 1.0 = fully water world.",
-      "hasRings": "true/false — Whether this biome typically has rings. Gas giants and ice worlds usually have rings.",
-      "ringProbability": "0.0-1.0 — Ring probability (used if biome doesn't specify hasRings). 0.6 = 60% of planets have rings.",
-      "wavelengthBase": "[R, G, B] — Atmospheric scattering color. Lower = more scattering (redder horizon). [0.66, 0.53, 0.4] = Earth-like blue sky.",
-      "wavelengthJitter": "0.0-1.0 — Random ± variation per wavelength component. 0.1 = each channel varies ±0.1.",
-      "desaturationRange": "[min, max] — Surface color saturation. 0.0 = fully saturated (vivid), 1.0 = fully grey.",
-      "atmoTintSaturationRange": "[min, max] — Atmosphere glow saturation. 0.5 = somewhat grey, 1.0 = vivid colored.",
-      "rotationSpeed": "float — Planet spin speed (radians/frame). 0.0001 = slow, 0.0005 = fast. Pending engine wiring.",
-      "cloudWindSpeed": "float — Cloud layer drift speed. 0.0005 = moderate. Pending engine wiring.",
-      "dockCapacity": "int — Number of docking ports on the planet. -1 = no docks (open interior). 0 = dockable but no auto-docks.",
-      "scale": "int — Planet radius in engine units. 100000 = standard."
+      "surfaceTint": "[R, G, B] or #RRGGBB — Base color of the planet surface. Higher = brighter. Mixed with seed-driven noise controlled by blendStrength. Also used as colorPalette[0] if no palette is defined.",
+      "colorPalette": "[[R,G,B], ...] or [\"#hex\", ...] — 4 colors the shader mixes across the surface using noise-driven gradient. Each entry can be a float array [0.0-1.0] or a hex string \"#RRGGBB\". All 4 should be in the same color family for a coherent biome.",
+      "blendStrength": "0.0-1.0 — How much random noise mixes with each palette color. 0.0 = pure palette (exact JSON colors), 0.4 = moderate blending (default), 1.0 = pure noise (palette ignored). Lower = more predictable color, higher = more variety between planets.",
+      "atmoDensityRange": "[min, max] — Controls atmosphere thickness and glow. 0.0 = no atmosphere (sharp edge), 1.0 = Earth-like, 2.0 = very thick (Venus-like haze). Higher values make the planet look hazier and more diffuse.",
+      "cloudLevel": "Single value — Height of the cloud layer relative to surface. Negative = clouds below surface (hidden). 0.0 = surface level. 0.15 = raised clouds visible as bright bands. Higher = more prominent cloud bands.",
+      "cloudLevelRange": "[min, max] — If present, overrides cloudLevel with a random range per-planet. Use this for variety within a biome.",
+      "oceanLevelRange": "[min, max] — Fraction of surface covered by water. 0.0 = no ocean (dry land). 0.3 = moderate oceans (Earth-like). 1.0 = fully water world.",
+      "hasRings": "true/false — Whether this biome typically has rings. Gas giants and ice worlds usually have rings. Individual planets still have a small random chance to deviate.",
+      "ringProbability": "0.0-1.0 — Global fallback ring probability if biome doesn't specify hasRings. 0.6 = 60% of planets have rings.",
+      "wavelengthBase": "[R, G, B] — Controls atmospheric scattering color. Lower values = more scattering (redder horizon). The engine divides 1/wavelength^4, so small changes have big visual effect. [0.66, 0.53, 0.4] = Earth-like blue sky.",
+      "wavelengthJitter": "Single value — Random ± variation applied to each wavelength component. 0.1 = each RGB channel varies by ±0.1. Higher = more color variety between planets of the same biome.",
+      "desaturationRange": "[min, max] — How washed out the surface colors are. 0.0 = fully saturated (vivid colors), 1.0 = fully grey. 0.4-1.0 gives natural-looking variety.",
+      "atmoTintSaturationRange": "[min, max] — How saturated the atmosphere glow color is. 0.5 = somewhat grey atmosphere, 1.0 = vivid colored atmosphere.",
+      "rotationSpeed": "float — How fast the planet spins (radians per frame). 0.0001 = slow, 0.0005 = fast gas giant. Currently informational only (shader wiring pending).",
+      "scale": "int — Planet radius in engine units. 100000 = standard. Larger values = bigger planet visually.",
+      "oceanLevelPower": "float — Power curve applied to random ocean level. Higher = more planets tend toward extremes (very dry or very wet). 1.5 = moderate bias."
     },
     "tips": {
       "make_planet_redder": "Set colorPalette to reds/oranges, e.g. [[0.8,0.1,0.05], [0.9,0.3,0.1], [0.7,0.15,0.05], [0.6,0.1,0.02]]",
@@ -28,25 +28,21 @@
       "vivid_colors": "Lower desaturationRange, e.g. [0.1, 0.5]",
       "muted_grey_colors": "Raise desaturationRange, e.g. [0.7, 1.0]",
       "exact_color_match": "Set blendStrength: 0.0 and define all 4 colorPalette entries to your target color"
-    },
-    "merge_rule": "Defaults are loaded first; biome values override them. If a biome omits a field, the defaults value is used. Range fields use the 'first range wins' pattern: biome-specific range replaces the default range entirely (no min/max merging)."
+    }
   },
   "version": 1,
-  "biomeOrder": ["desert", "terran", "ice", "lava", "gas_giant"],
   "defaults": {
     "scale": 100000,
     "dockCapacity": -1,
     "atmoDensityRange": [0.0, 2.0],
     "atmoTintSaturationRange": [0.5, 1.0],
     "cloudLevelRange": [-0.2, 0.15],
-    "oceanLevelRange": [0.0, 0.0],
     "ringProbability": 0.6,
     "wavelengthBase": [0.66, 0.53, 0.4],
-    "wavelengthJitter": 0.1,
+    "wavelengthJitter": [-0.1, 0.1],
     "desaturationRange": [0.4, 1.0],
     "blendStrength": 0.4,
-    "_rotationSpeed": 0.0002,
-    "_cloudWindSpeed": 0.0003
+    "oceanLevelPower": 1.5
   },
   "biomes": {
     "desert": {
@@ -60,9 +56,11 @@
       ],
       "blendStrength": 0.3,
       "atmoDensityRange": [0.0, 0.5],
-      "oceanLevelRange": [0.0, 0.0],
-      "cloudLevelRange": [-0.1, -0.1],
+      "oceanLevel": 0.0,
+      "cloudLevel": -0.1,
+      "cloudWindSpeed": 0.0,
       "hasRings": false,
+      "rotationSpeed": 0.0001,
       "description": "Arid, barren world with minimal atmosphere"
     },
     "terran": {
@@ -76,9 +74,11 @@
       ],
       "blendStrength": 0.25,
       "atmoDensityRange": [0.5, 1.5],
-      "oceanLevelRange": [0.3, 0.3],
-      "cloudLevelRange": [0.1, 0.1],
+      "oceanLevel": 0.3,
+      "cloudLevel": 0.1,
+      "cloudWindSpeed": 0.0005,
       "hasRings": false,
+      "rotationSpeed": 0.0002,
       "description": "Earth-like world with oceans and vegetation"
     },
     "ice": {
@@ -92,26 +92,29 @@
       ],
       "blendStrength": 0.2,
       "atmoDensityRange": [0.2, 0.8],
-      "oceanLevelRange": [0.0, 0.0],
-      "cloudLevelRange": [0.0, 0.0],
+      "oceanLevel": 0.0,
+      "cloudLevel": 0.0,
+      "cloudWindSpeed": 0.0003,
       "hasRings": true,
+      "rotationSpeed": 0.00015,
       "description": "Frozen world with thick ice crust"
     },
     "lava": {
       "name": "Lava",
-      "surfaceTint": "#851515",
+      "surfaceTint": [0.9, 0.2, 0.1],
       "colorPalette": [
-        "#1a110f",
-        "#914934",
-        "#f71c1c",
-        "#5e5858"
+        [0.80, 0.12, 0.05],
+        [0.95, 0.35, 0.10],
+        [0.70, 0.15, 0.05],
+        [0.55, 0.08, 0.02]
       ],
-      "blendStrength": 0.0,
-      "desaturationRange": [0.0, 0.0],
-      "atmoDensityRange": [0.2, 0.5],
-      "oceanLevelRange": [0.0, 0.0],
-      "cloudLevelRange": [-0.2, -0.2],
+      "blendStrength": 0.15,
+      "atmoDensityRange": [1.0, 2.0],
+      "oceanLevel": 0.0,
+      "cloudLevel": -0.2,
+      "cloudWindSpeed": 0.001,
       "hasRings": false,
+      "rotationSpeed": 0.0003,
       "description": "Volcanic world with molten surface"
     },
     "gas_giant": {
@@ -125,19 +128,20 @@
       ],
       "blendStrength": 0.15,
       "atmoDensityRange": [1.5, 2.0],
-      "oceanLevelRange": [0.0, 0.0],
-      "cloudLevelRange": [0.15, 0.15],
+      "oceanLevel": 0.0,
+      "cloudLevel": 0.15,
+      "cloudWindSpeed": 0.002,
       "hasRings": true,
+      "rotationSpeed": 0.0005,
       "description": "Massive gas giant with prominent ring system"
     }
   },
   "moons": {
-    "_docs": "Moon configuration (pending engine wiring — 2.3b Phase C).",
+    "_docs": "Moon configuration (not yet wired — 2.3b Phase C).",
     "enabled": true,
     "countRange": [0, 3],
     "orbitalRadiusRange": [150000, 500000],
     "sizeRange": [500, 5000],
-    "massExponent": 0.5,
-    "massDivisor": 1000
+    "moonScaleFormula": "Pow(mass / 1000, 0.5)"
   }
 }
