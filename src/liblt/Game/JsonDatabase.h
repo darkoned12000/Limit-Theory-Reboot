@@ -34,6 +34,9 @@ public:
    * message accessible via GetError(). */
   bool Load(String const& path);
 
+  /* Load from an in-memory string. path is for error messages only. */
+  bool LoadFromString(String const& contents, String const& label = "mem");
+
   /* Look up a top-level key. Returns nullptr if not found. */
   json const* Find(String const& key) const;
 

@@ -1,3 +1,8 @@
+// Copyright (C) 2025  darkoned12000
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Part of the ltheory-old-test modernization effort (Revamp Work).
+// See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
+
 #include "../Items.h"
 
 #include "Game/Objects.h"
@@ -11,6 +16,7 @@
 #include "Game/Graphics/Generators.h"
 #include "Game/JsonDatabase.h"
 #include "Game/DatabaseManager.h"
+#include "Game/JsonHelpers.h"
 
 #include "LTE/CubeMap.h"
 #include "LTE/DrawState.h"
@@ -28,7 +34,7 @@
 const float kOuterScale = 1.025f;
 const uint kMeshQuality = 50;
 
-using PlanetTypeBase = 
+using PlanetTypeBase =
     Attribute_Docks
   < Attribute_Icon
   < Attribute_Name
@@ -42,8 +48,11 @@ AutoClassDerived(PlanetType, PlanetTypeBase,
   float, atmoDensity,
   V3, atmoTint,
   float, cloudLevel,
+  float, oceanLevel,
   Color, color1,
   Color, color2,
+  Color, color3,
+  Color, color4,
   V3, wavelength,
   bool, hasRings)
 
@@ -80,30 +89,32 @@ Renderable Generate(PlanetType const& type) {
   RNG rg = RNG_MTG(seed);
   Model model = Model_Create();
 
-  /* Planet. */ {
+  /* Planet. */
+  {
     ShaderInstance planetShaderInstance = ShaderInstance_Create(planetShader);
     float heightMult = 1;
-    float oceanLevel = Pow(rg->GetFloat(), 1.5f);
 
     (*planetShaderInstance)
       ("atmoDensity", type.atmoDensity)
       ("atmoTint", type.atmoTint)
       ("cloudLevel", type.cloudLevel)
       ("color1", type.color1)
-      ("color2", rg->GetV3(0.5f, 0.75f))
-      ("color3", rg->GetV3(0.5f, 0.75f))
-      ("color4", type.color2)
+      ("color2", type.color2)
+      ("color3", type.color3)
+      ("color4", type.color4)
       ("colorSeed", rg->GetFloat(1, 1000))
       ("heightMult", heightMult)
-      ("oceanLevel", oceanLevel)
+      ("oceanLevel", type.oceanLevel)
       ("planetMap",
-        DiskCached(Generator_PlanetSurface(seed), Stringize() | "planetsurface_" | seed))
+        DiskCached(Generator_PlanetSurface(seed),
+          Stringize() | "planetsurface_" | seed))
       ("wavelength", type.wavelength);
     DrawState_Link(planetShaderInstance);
     model->Add(planetMesh, planetShaderInstance);
   }
 
-  /* Atmosphere. */ {
+  /* Atmosphere. */
+  {
     ShaderInstance atmoShaderInstance = ShaderInstance_Create(atmoShader);
     (*atmoShaderInstance)
       (RenderStateSwitch_BlendModeAdditive)
@@ -114,15 +125,19 @@ Renderable Generate(PlanetType const& type) {
     model->Add(atmoMesh, atmoShaderInstance, false);
   }
 
-  /* Rings. */ {
+  /* Rings. */
+  {
     if (type.hasRings) {
-      static Shader generate = Shader_Create("identity.jsl", "gen/planetring.jsl");
+      static Shader generate =
+        Shader_Create("identity.jsl", "gen/planetring.jsl");
       (*generate)("seed", rg->GetFloat());
 
-      Texture2D ringTexture = Texture_Create(1024, 1, GL_TextureFormat::R32F);
+      Texture2D ringTexture =
+        Texture_Create(1024, 1, GL_TextureFormat::R32F);
       Texture_Generate(ringTexture, generate);
 
-      ShaderInstance ringShaderInstance = ShaderInstance_Create(ringShader);
+      ShaderInstance ringShaderInstance =
+        ShaderInstance_Create(ringShader);
       (*ringShaderInstance)
         (RenderStateSwitch_BlendModeAlpha)
         (RenderStateSwitch_CullModeDisabled)
@@ -142,66 +157,50 @@ static bool EnsurePlanetsDb() {
   if (loaded)
     return available;
   loaded = true;
-  available = DatabaseManager_Get().Load("planets", "resource/gamedata/planets.json");
+  available = DatabaseManager_Get().Load(
+    "planets", "resource/gamedata/planets.json");
   if (available) {
     json const* biomes = DatabaseManager_Get().Find("planets", "biomes");
     int biomeCount = biomes ? (int)biomes->size() : 0;
     printf("Loaded planets.json (%d biomes)\n", biomeCount);
+  } else {
+    printf("WARNING: planets.json not found "
+           "— using fallback planet generation\n");
   }
-  else
-    printf("WARNING: planets.json not found — using fallback planet generation\n");
   return available;
 }
 
-/* Pick a biome name deterministically from the seed. */
+/* Pick a biome name deterministically from the seed.
+ * Uses biomeOrder array if present (stable across schema edits),
+ * otherwise falls back to map iteration order. */
 static String PickBiome(RNG& rg) {
-  Vector<String> biomes = DatabaseManager_Get().Keys("planets");
-  /* Remove "version" and "defaults" and "moons" keys — only want biome entries.
-   * Biomes are in a nested object under "biomes" key, so get those. */
-  json const* biomesObj = DatabaseManager_Get().Find("planets", "biomes");
+  json const* biomesObj =
+    DatabaseManager_Get().Find("planets", "biomes");
   if (!biomesObj || !biomesObj->is_object())
-    return "terran";  /* fallback */
+    return "terran";
 
+  /* Check for explicit biomeOrder array (§3.1 of review). */
+  json const* orderVal =
+    DatabaseManager_Get().Find("planets", "biomeOrder");
   Vector<String> biomeNames;
-  for (auto it = biomesObj->begin(); it != biomesObj->end(); ++it)
-    biomeNames.push(String(it.key().c_str()));
+  if (orderVal && orderVal->is_array()) {
+    for (size_t i = 0; i < orderVal->size(); i++) {
+      json const* entry = &(*orderVal)[i];
+      if (entry->is_string())
+        biomeNames.push(String(entry->get<std::string>().c_str()));
+    }
+  } else {
+    /* Fallback: map iteration order (unstable across edits). */
+    for (auto it = biomesObj->begin(); it != biomesObj->end(); ++it)
+      biomeNames.push(String(it.key().c_str()));
+  }
 
   if (biomeNames.size() == 0)
     return "terran";
 
   int idx = (int)(rg->GetInt() % (unsigned)biomeNames.size());
-  printf("  → biome: %s\n", biomeNames[idx].c_str());
+  printf("  -> biome: %s\n", biomeNames[idx].c_str());
   return biomeNames[idx];
-}
-
-/* Read a float range from a JSON array [min, max]. */
-static void ReadRange(json const* arr, float& minVal, float& maxVal) {
-  if (arr && arr->is_array() && arr->size() >= 2) {
-    minVal = (*arr)[0].get<float>();
-    maxVal = (*arr)[1].get<float>();
-  }
-}
-
-/* Read a Vec3 from a JSON array [r, g, b]. */
-static V3 ReadV3(json const* arr) {
-  if (arr && arr->is_array() && arr->size() >= 3)
-    return V3((*arr)[0].get<float>(), (*arr)[1].get<float>(), (*arr)[2].get<float>());
-  return V3(0.5f);
-}
-
-/* Safe JSON field access — returns nullptr if key doesn't exist. */
-static json const* JGet(json const* obj, const char* key) {
-  if (!obj || !obj->is_object())
-    return nullptr;
-  auto it = obj->find(key);
-  if (it == obj->end())
-    return nullptr;
-  return &(*it);
-}
-
-/* Safe JSON field access on a reference. */
-static json const* JGet(json const& obj, const char* key) {
-  return JGet(&obj, key);
 }
 
 Item Item_PlanetType(uint const& seed) { AUTO_FRAME;
@@ -209,7 +208,7 @@ Item Item_PlanetType(uint const& seed) { AUTO_FRAME;
 
   Reference<PlanetType> self = new PlanetType;
   self->docks.push(Bound3(V3(-1), V3(1)));
-  self->dockCapacity = -1;
+  self->dockCapacity = -1;  /* -1 = no docks (open interior) */
   ScriptFunction_Load("Icons:Planet")->Call(self->icon);
   self->name = "Planet";
   self->seed = seed;
@@ -218,104 +217,119 @@ Item Item_PlanetType(uint const& seed) { AUTO_FRAME;
   bool haveDb = EnsurePlanetsDb();
   String biomeName = haveDb ? PickBiome(rg) : "";
 
-  /* Defaults (used if JSON unavailable or biome missing). */
+  /* ---- C++ emergency defaults (only used if JSON is missing/corrupt) ----
+   * These MUST match the defaults section in planets.json. The JSON
+   * "defaults" object is the canonical source; these exist only so the
+   * engine can boot without the data file. */
   float atmoDensityMin = 0.0f, atmoDensityMax = 2.0f;
   float cloudLevelMin = -0.2f, cloudLevelMax = 0.15f;
+  float oceanLevelMin = 0.0f, oceanLevelMax = 0.0f;
   float desatMin = 0.4f, desatMax = 1.0f;
   float atmoSatMin = 0.5f, atmoSatMax = 1.0f;
   float ringProb = 0.6f;
+  float blendStrength = 0.4f;
   V3 wavelengthBase(0.66f, 0.53f, 0.4f);
-  V3 wavelengthJitter(-0.1f, 0.1f, 0.1f);
+  float wavelengthJitter = 0.1f;
   V3 surfaceTint(0.5f);
-  float blendStrength = 0.4f;  /* default: 40% noise */
 
-  /* Override defaults from JSON biome data. */
+  /* Default palette: surfaceTint + 3 random (used if JSON unavailable). */
+  V3 palette[4];
+  palette[0] = surfaceTint;
+  palette[1] = rg->GetV3(0, 1.0f);
+  palette[2] = rg->GetV3(0, 1.0f);
+  palette[3] = rg->GetV3(0, 1.0f);
+
+  /* ---- Read from JSON ---- */
   if (haveDb) {
-    String biomePath = Stringize() | "biomes." | biomeName;
-    json const* biome = DatabaseManager_Get().FindPath("planets", biomePath);
-    if (biome) {
-      /* Biome-specific ranges. */
-      json const* atmoRange = JGet(biome, "atmoDensityRange");
-      ReadRange(atmoRange, atmoDensityMin, atmoDensityMax);
-      json const* cloudRange = JGet(biome, "cloudLevelRange");
-      if (!cloudRange) {
-        /* Derive from cloudLevel if present. */
-        json const* cl = JGet(biome, "cloudLevel");
-        if (cl && cl->is_number()) {
-          float clv = cl->get<float>();
-          cloudLevelMin = clv;
-          cloudLevelMax = clv;
-        }
-      } else {
-        ReadRange(cloudRange, cloudLevelMin, cloudLevelMax);
-      }
-
-      json const* ringVal = JGet(biome, "hasRings");
-      if (ringVal && ringVal->is_boolean())
-        ringProb = ringVal->get<bool>() ? 1.0f : 0.0f;
-
-      json const* tintVal = JGet(biome, "surfaceTint");
-      surfaceTint = ReadV3(tintVal);
-
-      json const* blendVal = JGet(biome, "blendStrength");
-      if (blendVal && blendVal->is_number())
-        blendStrength = blendVal->get<float>();
-
-      json const* oceanVal = JGet(biome, "oceanLevel");
-      (void)oceanVal;  /* TODO: wire into oceanLevel shader param */
+    /* Load global defaults first. */
+    json const* defaults =
+      DatabaseManager_Get().Find("planets", "defaults");
+    if (defaults) {
+      JRange(defaults, "atmoDensityRange", "planets.json: defaults",
+             atmoDensityMin, atmoDensityMax, 0.0f, 2.0f);
+      JRange(defaults, "cloudLevelRange", "planets.json: defaults",
+             cloudLevelMin, cloudLevelMax, -0.2f, 0.15f);
+      JRange(defaults, "oceanLevelRange", "planets.json: defaults",
+             oceanLevelMin, oceanLevelMax, 0.0f, 0.0f);
+      JRange(defaults, "desaturationRange", "planets.json: defaults",
+             desatMin, desatMax, 0.4f, 1.0f);
+      JRange(defaults, "atmoTintSaturationRange", "planets.json: defaults",
+             atmoSatMin, atmoSatMax, 0.5f, 1.0f);
+      JFloat(defaults, "blendStrength", blendStrength, 0.4f);
+      JFloat(defaults, "ringProbability", ringProb, 0.6f);
+      JColor(defaults, "wavelengthBase", "planets.json: defaults",
+             wavelengthBase, V3(0.66f, 0.53f, 0.4f));
+      JFloat(defaults, "wavelengthJitter", wavelengthJitter, 0.1f);
     }
 
-    /* Also read global defaults. */
-    json const* defaults = DatabaseManager_Get().Find("planets", "defaults");
-    if (defaults) {
-      json const* desatRange = JGet(defaults, "desaturationRange");
-      ReadRange(desatRange, desatMin, desatMax);
-      json const* atmoSatRange = JGet(defaults, "atmoTintSaturationRange");
-      ReadRange(atmoSatRange, atmoSatMin, atmoSatMax);
-      /* Don't override biome-specific ring setting. */
-      json const* wlBase = JGet(defaults, "wavelengthBase");
-      wavelengthBase = ReadV3(wlBase);
-      json const* wlJitter = JGet(defaults, "wavelengthJitter");
-      wavelengthJitter = ReadV3(wlJitter);
-      json const* blendDef = JGet(defaults, "blendStrength");
-      if (blendDef && blendDef->is_number())
-        blendStrength = blendDef->get<float>();
+    /* Load biome-specific values (override defaults). */
+    String biomePath = Stringize() | "biomes." | biomeName;
+    json const* biome =
+      DatabaseManager_Get().FindPath("planets", biomePath);
+    if (biome) {
+      String bp = Stringize() | "planets.json: biomes." | biomeName;
+
+      JRange(biome, "atmoDensityRange", bp, atmoDensityMin, atmoDensityMax);
+      JRange(biome, "cloudLevelRange", bp, cloudLevelMin, cloudLevelMax);
+      JRange(biome, "oceanLevelRange", bp, oceanLevelMin, oceanLevelMax);
+      JFloat(biome, "blendStrength", blendStrength, blendStrength);
+      JFloat(biome, "ringProbability", ringProb, ringProb);
+
+      bool hasRings = false;
+      if (JBool(biome, "hasRings", hasRings))
+        ringProb = hasRings ? 1.0f : 0.0f;
+
+      /* Color palette: 4 colors for terrain gradient. */
+      json const* palVal = JGet(biome, "colorPalette");
+      if (palVal && palVal->is_array() && palVal->size() >= 4) {
+        for (int i = 0; i < 4; i++) {
+          String cp = Stringize() | bp | ".colorPalette[" | i | "]";
+          JColor(JGet(palVal, i), cp, palette[i], palette[i]);
+        }
+      }
+
+      /* Surface tint (used as palette[0] fallback). */
+      JColor(biome, "surfaceTint", bp, surfaceTint, surfaceTint);
+      if (!palVal || !palVal->is_array() || palVal->size() < 4)
+        palette[0] = surfaceTint;
     }
   }
 
-  /* Apply values: biome-tinted colors + seed-driven noise for variety. */
+  /* ---- Apply values to the planet ---- */
   self->scale = 100000;
   self->atmoDensity = rg->GetFloat(atmoDensityMin, atmoDensityMax);
   self->atmoTint = Desaturate(
     rg->GetV3(0, 1.0f),
     rg->GetFloat(atmoSatMin, atmoSatMax));
   self->cloudLevel = rg->GetFloat(cloudLevelMin, cloudLevelMax);
+  self->oceanLevel = rg->GetFloat(oceanLevelMin, oceanLevelMax);
 
-  /* Blend biome surface tint with seed-driven variation.
-   * blendStrength controls how much random noise mixes in:
-   *   0.0 = pure tint (exact JSON color)
-   *   0.4 = moderate blending (default)
-   *   1.0 = pure noise (tint ignored) */
+  /* Blend each palette color with seed-driven noise. */
   float desat = rg->GetFloat(desatMin, desatMax);
   float blend = blendStrength;
-  V3 blended = surfaceTint * (1.0f - blend) + rg->GetV3(0, 1.0f) * blend;
-  self->color1 = Desaturate(blended, desat);
-  self->color2 = Desaturate(rg->GetV3(0, 1.0f), desat);
+  self->color1 = Desaturate(
+    palette[0] * (1.0f - blend) + rg->GetV3(0, 1.0f) * blend, desat);
+  self->color2 = Desaturate(
+    palette[1] * (1.0f - blend) + rg->GetV3(0, 1.0f) * blend, desat);
+  self->color3 = Desaturate(
+    palette[2] * (1.0f - blend) + rg->GetV3(0, 1.0f) * blend, desat);
+  self->color4 = Desaturate(
+    palette[3] * (1.0f - blend) + rg->GetV3(0, 1.0f) * blend, desat);
 
   self->wavelength = V3(1) / Pow(
-    wavelengthBase + rg->GetV3(-wavelengthJitter.x, wavelengthJitter.x),
+    wavelengthBase + rg->GetV3(-wavelengthJitter, wavelengthJitter),
     4.0f);
 
   self->hasRings = rg->GetFloat() < ringProb;
 
-  printf("Item_PlanetType(seed=%u) biome=%s\n", seed, biomeName.c_str());
+  printf("Item_PlanetType(seed=%u) biome=%s\n",
+    seed, biomeName.c_str());
   self->renderable = Generate(*self);
   return self;
 }
+
 static Function const Item_PlanetType_Registration = Function_Bind(
   "Item_PlanetType",
   "None",
   &Item_PlanetType,
   "seed");
-
-

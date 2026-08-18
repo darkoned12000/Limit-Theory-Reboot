@@ -6,6 +6,7 @@
 #include "Harness.h"
 #include "Game/DatabaseManager.h"
 #include "Game/JsonDatabase.h"
+#include "Game/JsonHelpers.h"
 #include "LTE/OS.h"
 
 #include <cstdio>
@@ -151,4 +152,76 @@ LTE_TEST(DatabaseManager_Keys) {
   LTE_CHECK_EQ(keys.size(), 3);
   mgr.Erase("test_keys_db");
   CleanupTestFile("test_mgr2.json");
+}
+
+LTE_TEST(JsonDatabase_LoadFromString) {
+  JsonDatabase db;
+  LTE_CHECK(db.LoadFromString(R"({"version": 1, "a": 5})", "mem"));
+  LTE_CHECK_EQ(db.Version(), 1);
+  json const* val = db.Find("a");
+  LTE_CHECK(val != nullptr && val->get<int>() == 5);
+}
+
+LTE_TEST(JsonDatabase_LoadFromStringInvalid) {
+  JsonDatabase db;
+  LTE_CHECK(!db.LoadFromString(R"({invalid)", "mem"));
+  LTE_CHECK(!db.IsLoaded());
+}
+
+LTE_TEST(JsonDatabase_HexColorConversion) {
+  /* JColor parses "#RRGGBB" → V3 (0..1). */
+  json hex1 = json::parse(R"("#ff8040")");
+  V3 out;
+  JColor(&hex1, "test.c1", out);
+  /* ff=1.0, 80=0.502, 40=0.251 */
+  LTE_CHECK(out.x > 0.99f && out.x < 1.01f);   /* ff → ~1.0 */
+  LTE_CHECK(out.y > 0.50f && out.y < 0.51f);   /* 80 → ~0.502 */
+  LTE_CHECK(out.z > 0.25f && out.z < 0.26f);   /* 40 → ~0.251 */
+
+  json hex2 = json::parse(R"("#FF0000")");
+  JColor(&hex2, "test.c2", out);
+  LTE_CHECK(out.x > 0.99f && out.x < 1.01f);
+  LTE_CHECK(out.y < 0.01f);
+  LTE_CHECK(out.z < 0.01f);
+
+  /* Non-hex strings fall back to default. */
+  json notHex = json::parse(R"("not-a-color")");
+  JColor(&notHex, "test.c3", out, V3(0.5f));
+  LTE_CHECK(out.x > 0.49f && out.x < 0.51f);
+}
+
+LTE_TEST(JsonDatabase_HexColorArray) {
+  /* JColor also accepts [r, g, b] float arrays. */
+  json arr = json::parse(R"([0.8, 0.2, 0.1])");
+  V3 out;
+  JColor(&arr, "test.arr", out);
+  LTE_CHECK(out.x > 0.79f && out.x < 0.81f);
+  LTE_CHECK(out.y > 0.19f && out.y < 0.21f);
+  LTE_CHECK(out.z > 0.09f && out.z < 0.11f);
+}
+
+LTE_TEST(JsonDatabase_HexColorNullFallback) {
+  V3 out;
+  JColor(nullptr, "test.null", out, V3(0.3f));
+  LTE_CHECK(out.x > 0.29f && out.x < 0.31f);
+}
+
+LTE_TEST(JsonDatabase_RangeParser) {
+  /* JRange: array [min,max] */
+  json arr = json::parse(R"([0.2, 0.8])");
+  float mn, mx;
+  JRange(&arr, "test.range", mn, mx);
+  LTE_CHECK(mn > 0.19f && mn < 0.21f);
+  LTE_CHECK(mx > 0.79f && mx < 0.81f);
+
+  /* JRange: single number → fixed */
+  json single = json::parse(R"(0.5)");
+  JRange(&single, "test.fixed", mn, mx);
+  LTE_CHECK(mn > 0.49f && mn < 0.51f);
+  LTE_CHECK(mx > 0.49f && mx < 0.51f);
+
+  /* JRange: missing → fallback */
+  JRange(nullptr, "test.missing", mn, mx, 0.1f, 0.9f);
+  LTE_CHECK(mn > 0.09f && mn < 0.11f);
+  LTE_CHECK(mx > 0.89f && mx < 0.91f);
 }

@@ -12,7 +12,7 @@
 #                If missing/invalid, ltheory-main falls back to 18.0.
 # playerCredits: starting credits given to the human player.
 # shipHull     : hull/item value passed to Item_ShipType (ship class/strength).
-seed:1066799990
+seed:10667
 loadTime:22.5
 playerCredits:10000
 shipHull:20000

@@ -42,6 +42,30 @@ bool JsonDatabase::Load(String const& filePath) {
   return true;
 }
 
+bool JsonDatabase::LoadFromString(
+  String const& contents, String const& label)
+{
+  loaded = false;
+  error = "";
+  data = json();
+  path = label;
+
+  if (contents.size() == 0) {
+    error = String("Empty string: ") + label;
+    return false;
+  }
+
+  data = json::parse(contents.c_str(), nullptr, false);
+  if (data.is_discarded() || !data.is_object()) {
+    error = String("Invalid JSON: ") + label;
+    data = json();
+    return false;
+  }
+
+  loaded = true;
+  return true;
+}
+
 json const* JsonDatabase::Find(String const& key) const {
   if (!loaded)
     return nullptr;
