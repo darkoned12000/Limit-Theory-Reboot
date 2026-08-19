@@ -64,6 +64,45 @@ Iteration is slow. Modding is impossible without source access.
 
 ---
 
+## 1.1 Progress (updated 2026-08-19)
+
+### Infrastructure — **DONE**
+- `DatabaseManager` singleton (`src/liblt/Game/DatabaseManager.{h,cpp}`)
+- `JsonDatabase` wrapper (`src/liblt/Game/JsonDatabase.{h,cpp}`)
+- LTSL bindings: `Database_Load`, `Database_Get`, `Database_GetPath`,
+  `Database_Has`, `Database_HasDatabase`, `Database_Keys`, `Database_Reload`
+  (`src/liblt/Game/ScriptAPI/Database.cpp`)
+- `JsonHelpers.h` — shared `JGet`, `JColor`, `JRange`, `JFloat`, `JBool`,
+  `JInt`, `JVec3` (`src/liblt/Game/JsonHelpers.h`)
+- Unit tests: `TestJsonDatabase.cpp` (17 tests), `TestPlanets.cpp` (21
+  tests), `TestStars.cpp` (17 tests)
+
+### Stars — **DONE**
+- `resource/gamedata/stars.json` — 7 spectral classes (O/B/A/F/G/K/M) with
+  color, brightness, radius; defaults with classWeights, brightnessRange,
+  radiusRange, starFieldRange, pulseSpeedRange, pulseAmplitudeRange
+- `System.cpp` — `GenerateStar()` reads stars.json, picks class via weighted
+  random, applies per-instance variation (brightness, radius, pulse)
+- `Star.cpp` — `AutoClassDerived` gains `baseBrightness`, `pulseSpeed`,
+  `pulseAmplitude`, `age`. `OnUpdate` oscillates `lightBrightness` via
+  sine wave: `baseBrightness + baseBrightness * pulseAmplitude * Sin(age * pulseSpeed)`
+- Per-class lens flare textures — `gen/lensflare.jsl` generates 7 textures
+  with varying `coreTightness`, `streakIntensity`, `glowWidth`. Auto-detects
+  star class from light color.
+- `global.jsl` — Phong lighting now uses `starColor` multiplier
+- `starbg.jsl` — Skybox output scaled by `starColor` luminance
+- Nebula cubemap — color2 derived from star class color via RGB rotation
+
+### Planets — **PARTIAL**
+- `resource/gamedata/planets.json` — Normalized 5-biome schema with ranges,
+  hex colors, biomeOrder
+- `Item_PlanetType()` — Wired to planets.json via `JsonHelpers.h`
+- `planet.jsl` — `oceanLevel` uniform wired (was hardcoded `0.3`)
+- Biome assignment, planet rotation, cloud animation — **NOT YET WIRED**
+  (planets.json has the data; C++ doesn't read biome fields yet)
+
+---
+
 ## 2. Architecture
 
 ### 2.1 Layer Model
@@ -737,28 +776,23 @@ hardcoded spawning counts in `SystemPopulate.lts` + no existing NPC
 behavior tuning. Derived from `docs/npc-ai-integration.md` Phase 1–3
 task wiring.
 
-### 3.10 Star customization (2.3b — engine change)
+### 3.10 Star customization (DONE — `stars.json`)
 
-The star is currently invisible (light source only). The `star` section
-in `graphics.json` (§3.6) configures:
+**Status:** Fully implemented. Star generation is data-driven via
+`resource/gamedata/stars.json`. See §1.1 for details.
 
-| Parameter | Current Hardcoded | JSON Key | Purpose |
-|-----------|------------------|----------|---------|
-| Render disk | none | `star.renderDisk` | Show star as visible glowing sphere |
-| Radius | 3000000 | `star.diskRadius` | Visual size of the star disk |
-| Brightness | 10× color | `star.brightnessMult` | Emissive intensity |
-| Position | `Spherical(60M, 1.25kπ², 0)` | `star.position` | Override star position |
-| Lens flare | unwired | `star.lensFlareEnabled` | Wire existing `lensflare.jsl` |
-| Lens flare opacity | hardcoded | `star.lensFlareOpacity` | Flare intensity |
-| Default color | seeded blue-white | `star.defaultColor` | Override if no seed color |
+What's data-driven now:
+- 7 spectral classes with color, brightness, radius
+- Per-class lens flare textures (generated, auto-detected)
+- Per-instance variation: brightness, radius, pulse speed, pulse amplitude
+- Background star count range
+- Light color/brightness fed to shaders (`starColor` uniform)
+- Nebula cubemap color derived from star class
 
-**Engine changes required (2.3b):**
-1. New `Renderable_StarDisk` — procedural glowing sphere shader using
-   existing `solidcolor.jsl` + emissive + bloom. Rendered as a separate
-   pass after the skybox.
-2. Wire `lensflare.jsl` to the star position (shader exists, just not
-   connected).
-3. Read `star.*` from `graphics.json` at system creation time.
+What remains for 2.3b (ROADMAP §2.5 — procedural star surface):
+- Render star as visible glowing disk (not just light + billboard)
+- Corona / prominence effects
+- HDR/bloom integration
 
 ### 3.11 Planet rotation (2.3b — shader change)
 
@@ -837,23 +871,23 @@ sufficient visual improvement first.
 
 ### 2.3 Phases (JSON layer)
 
-#### Phase 1: Core Infrastructure (Week 1)
+#### Phase 1: Core Infrastructure (Week 1) — **DONE**
 
 **Goal:** DatabaseManager + JsonDatabase + LTSL bindings working.
 
-1. **`DatabaseManager.{h,cpp}`** — singleton, `Load`/`Get`/`Has`/`Keys`
-2. **`JsonDatabase.{h,cpp}`** — load, index, lookup
-3. **LTSL bindings** — `Database_Load`, `Database_Get`, `Database_Has`,
-   `Database_Keys`
-4. **`JsonValue` type** — new LTSL type wrapping `nlohmann::json` (see §6)
-5. **Unit tests** — `TestJsonDatabase.cpp` (load, lookup, missing key,
-   version check, malformed JSON)
-6. **Wire into `Launcher::Launch()`** — load all databases at startup
+Delivered:
+1. **`DatabaseManager.{h,cpp}`** — singleton, `Load`/`Find`/`FindPath`/`Keys`/`Erase`/`Reload`/`LoadFromString`
+2. **`JsonDatabase.{h,cpp}`** — load, index, lookup (non-throwing parse, `json::parse(str, nullptr, false)`)
+3. **LTSL bindings** — `Database_Load`, `Database_Get`, `Database_GetPath`, `Database_Has`, `Database_HasDatabase`, `Database_Keys`, `Database_Reload`
+4. **`JsonHelpers.h`** — shared `JGet`, `JColor`, `JRange`, `JFloat`, `JBool`, `JInt`, `JVec3`
+5. **Unit tests** — `TestJsonDatabase.cpp` (17 tests, 668+ checks)
+6. **Wire into `System.cpp`** — `EnsureStarsLoaded()` lazy-loads `stars.json`
 
-**Deliverable:** `Database_Load "ships" "gamedata/ships.json"` works from
-LTSL; `Database_Get "ships" "fighter"` returns a value.
+**Deliverable:** `Database_Load "stars" "resource/gamedata/stars.json"` works
+from C++; `Database_GetPath "stars" "defaults.brightnessRange"` works from
+LTSL. Stars and planets are data-driven.
 
-#### Phase 2: Content Databases (Week 2–3)
+#### Phase 2: Content Databases (Week 2–3) — **IN PROGRESS**
 
 **Goal:** Ship/weapon/planet/station data moved to JSON.
 
@@ -1057,18 +1091,19 @@ support. This is the biggest LTSL improvement in this work item.
 
 ### In Scope — 2.3 (JSON layer, Weeks 1–4)
 
-| System | JSON File | Value |
-|--------|-----------|-------|
-| Ship types | `ships.json` | Tuning ship balance without C++ |
-| Weapon types | `weapons.json` | Tuning weapon balance without C++ |
-| Planet biomes | `planets.json` | Biome variety without shader edits |
-| Station types | `stations.json` | Station variety without C++ |
-| Game config | `config.json` | Replaces gameConfig.txt |
-| Deep graphics tuning | `graphics.json` | Shader constants (nebula, scattering, dustfleck, post-processing) |
-| NPC behavior | `npc.json` | Mining/trading/piracy/patrol parameters |
-| Economy/commodities | `economy.json` | Trade goods, market dynamics |
-| Audio config | `audio.json` | Sound definitions, music tracks |
-| Database infrastructure | C++ loaders + LTSL bindings | Foundation for all above |
+| System | JSON File | Value | Status |
+|--------|-----------|-------|--------|
+| Ship types | `ships.json` | Tuning ship balance without C++ | todo |
+| Weapon types | `weapons.json` | Tuning weapon balance without C++ | todo |
+| Planet biomes | `planets.json` | Biome variety without shader edits | partial |
+| Station types | `stations.json` | Station variety without C++ | todo |
+| Game config | `config.json` | Replaces gameConfig.txt | todo |
+| Deep graphics tuning | `graphics.json` | Shader constants (nebula, scattering, dustfleck, post-processing) | todo |
+| NPC behavior | `npc.json` | Mining/trading/piracy/patrol parameters | todo |
+| Economy/commodities | `economy.json` | Trade goods, market dynamics | todo |
+| Audio config | `audio.json` | Sound definitions, music tracks | todo |
+| Star customization | `stars.json` | Star classes, brightness, pulse, lens flare | **done** |
+| Database infrastructure | C++ loaders + LTSL bindings | Foundation for all above | **done** |
 
 ### In Scope — 2.3b (engine visuals, Weeks 5–7)
 
@@ -1172,12 +1207,12 @@ Once the JSON layer exists:
 |--------|--------|
 | **Problem** | All game balance, visuals, and NPC behavior hardcoded in C++/GLSL |
 | **Solution** | JSON database layer with C++ loaders + LTSL bindings + shader uniform wiring |
-| **Effort** | 2.3: 3–4 weeks (core + graphics/NPC); 2.3b: 2–3 weeks (star/planet/moons) |
-| **Infrastructure** | `DatabaseManager` singleton, `JsonDatabase` wrapper, `JsonValue` LTSL type |
-| **JSON files** | 10 files in `resource/gamedata/` (ships, weapons, planets, stations, config, economy, graphics, audio, universe, factions, npc) |
-| **LTSL improvements** | `JsonValue` type with dot-dispatch, array access, type introspection |
+| **Effort** | 2.3: 3–4 weeks (core + graphics/NPC); 2.3b: 2–3 weeks (star surface/planet visuals/moons) |
+| **Infrastructure** | `DatabaseManager` singleton, `JsonDatabase` wrapper, `JsonHelpers.h` shared helpers — **DONE** |
+| **JSON files** | `stars.json` (done), `planets.json` (partial), `ships.json` / `weapons.json` / `stations.json` / `config.json` / `graphics.json` / `npc.json` / `economy.json` / `audio.json` / `universe.json` / `factions.json` (todo) |
+| **LTSL bindings** | `Database_Load`, `Database_Get`, `Database_GetPath`, `Database_Has`, `Database_HasDatabase`, `Database_Keys`, `Database_Reload` — **DONE** |
 | **Graphics coverage** | Nebula (3 constants), scattering (10 params), dustfleck (4 params), post-processing (12 params), star (6 params), ocean (2 params) |
 | **NPC coverage** | Spawning, mining, trading, piracy, patrol, economy allocator, combat, behavior timing |
-| **Engine changes (2.3b)** | Star rendering, planet rotation, cloud animation, moon system |
-| **Risks** | JsonValue complexity (medium), shader wiring (medium), scope creep (low if phased) |
+| **Engine changes (2.3b)** | Star surface shader (ROADMAP §2.5), planet rotation, cloud animation, moon system |
+| **Risks** | Scope creep (low if phased); JsonValue dot-dispatch deferred (flat `Database_Get`/`Database_GetPath` sufficient) |
 | **Enables** | Hot-reload, modding, visual authoring, NPC tuning, config-driven generation, PBR, economy |

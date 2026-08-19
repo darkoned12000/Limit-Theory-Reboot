@@ -106,7 +106,9 @@ LT_API Object Object_SoundEmitter(
 LT_API Object Object_Star(
   Color const& color,
   float const& brightness,
-  float const& radius);
+  float const& radius,
+  float const& pulseSpeed,
+  float const& pulseAmplitude);
 
 LT_API Object Object_Station(
   Item const& type);

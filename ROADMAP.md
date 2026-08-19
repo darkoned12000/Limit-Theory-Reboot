@@ -111,6 +111,26 @@ a big rewrite** — the engine core is healthy (§9 of AGENTS.md).
   textures on change without restart. Pairs with the LSP + live `.lts`
   recompile story (§10.3 of AGENTS.md, "LTSL Hot-Reloading").
 
+### 2.5 Procedural star surface — **P2** (`todo`)
+- **Effort:** 1–2 weeks (basic), 3–4 weeks (with corona/prominences).
+- **Why:** currently the star is just a `Light` + billboard lens flare —
+  no geometry, no surface shader. A visible animated star surface adds
+  major visual impact to every system.
+- **Scope:**
+  - **Phase 1 (basic):** sphere mesh + animated procedural surface shader
+    (plasma-like noise, convection cells, limb darkening). Reuse planet
+    mesh generator + `noise.jsl` + `t` uniform for animation. ~1–2 weeks.
+  - **Phase 2 (full):** corona shell (volumetric raymarch or billboard
+    pass), solar prominences, magnetic loops. Needs HDR/bloom integration.
+    ~3–4 weeks additional.
+  - Star parameters (pulse speed/amplitude already data-driven via
+    `stars.json`) — extend with surface detail, corona intensity, etc.
+- **Depends on:** 2.3 (JSON layer for config), 2.3b (basic star visual +
+  HDR/bloom). Phase 1 can start as soon as HDR/bloom lands.
+- **Building blocks already in engine:** `gen/planet.jsl` (procedural
+  surface), `noise.jsl`, `beam.jsl` (animated shader), GLSL 4.60 +
+  compute shaders, post-processing pipeline.
+
 ---
 
 ## 3. Work tracks
@@ -148,6 +168,7 @@ a big rewrite** — the engine core is healthy (§9 of AGENTS.md).
 | Normal maps for planets | P2 | — | todo | PRD P2 (stretch) |
 | Star-field parallax layers | P2 | — | todo | AGENTS §10.6 |
 | HDR + bloom, directional lighting, scattering | P2 | — | todo | AGENTS §10.6 |
+| Procedural star surface (animated plasma shader + corona) | P2 | 1–2 wk / 3–4 wk | todo | §2.5 — after HDR/bloom, JSON layer |
 
 ### 3.3 Modding & data-driven
 

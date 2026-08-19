@@ -44,6 +44,8 @@ namespace {
     V3 color;
     float brightness;
     float radius;
+    float pulseSpeed;
+    float pulseAmplitude;
   };
 
   bool EnsureStarsLoaded() {
@@ -132,10 +134,23 @@ namespace {
     static const char* classNames[] = { "O", "B", "A", "F", "G", "K", "M" };
     int classIndex = PickStarClass(rng);
     GetStarClassInfo(classIndex, data.color, data.brightness, data.radius, rng);
-    printf("GenerateStar class=%s color=(%.2f, %.2f, %.2f) brightness=%.1f radius=%.0f\n",
+
+    /* Pulse parameters from defaults (class-independent). */
+    EnsureStarsLoaded();
+    float psMin = 0.3f, psMax = 1.5f, paMin = 0.0f, paMax = 0.15f;
+    json const* defaults = DatabaseManager_Get().Find("stars", "defaults");
+    if (defaults) {
+      JRange(JGet(defaults, "pulseSpeedRange"), "stars.defaults", psMin, psMax);
+      JRange(JGet(defaults, "pulseAmplitudeRange"), "stars.defaults", paMin, paMax);
+    }
+    data.pulseSpeed = rng->GetFloat(psMin, psMax);
+    data.pulseAmplitude = rng->GetFloat(paMin, paMax);
+
+    printf("GenerateStar class=%s color=(%.2f, %.2f, %.2f) brightness=%.1f radius=%.0f pulseSpeed=%.2f pulseAmp=%.3f\n",
       classNames[classIndex],
       data.color.x, data.color.y, data.color.z,
-      data.brightness, data.radius);
+      data.brightness, data.radius,
+      data.pulseSpeed, data.pulseAmplitude);
     return data;
   }
 
@@ -355,7 +370,8 @@ Object Object_System(Object_System_Args const& args) { AUTO_FRAME;
 
   /* Create the central star. */ {
     StarData starData = GenerateStar(rng);
-    self->star = Object_Star(Color(starData.color), starData.brightness, starData.radius);
+    self->star = Object_Star(Color(starData.color), starData.brightness,
+      starData.radius, starData.pulseSpeed, starData.pulseAmplitude);
     self->star->SetPos(Spherical(60000000, 1.25f * kPi2, 0.0f));
     self->AddInterior(self->star);
     self->Initialize();

@@ -9,7 +9,9 @@
       "classWeights": "[O, B, A, F, G, K, M] — Relative probability weights for each class. Higher = more common.",
       "brightnessRange": "[min, max] — Per-instance brightness variation. Base brightness * random(min, max).",
       "radiusRange": "[min, max] — Per-instance radius variation. Base radius * random(min, max).",
-      "starFieldRange": "[min, max] — Number of background stars per system. Random value between min and max per system."
+      "starFieldRange": "[min, max] — Number of background stars per system. Random value between min and max per system.",
+      "pulseSpeedRange": "[min, max] — Per-instance oscillation speed in radians/sec. Higher = faster pulse.",
+      "pulseAmplitudeRange": "[min, max] — Per-instance brightness oscillation depth. 0 = no pulse, 0.15 = ±15% brightness."
     },
     "tips": {
       "more_bright_stars": "Increase brightness on O/B classes",
@@ -35,6 +37,8 @@
     "classWeights": [1, 2, 3, 4, 3, 2, 1],
     "brightnessRange": [0.8, 1.2],
     "radiusRange": [0.9, 1.1],
-    "starFieldRange": [75000, 150000]
+    "starFieldRange": [75000, 150000],
+    "pulseSpeedRange": [0.3, 1.5],
+    "pulseAmplitudeRange": [0.0, 0.15]
   }
 }

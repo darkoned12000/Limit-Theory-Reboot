@@ -39,6 +39,17 @@ class via weighted random, per-instance variation from `brightnessRange`/
 | K | #ffd2a1 | 4.0 | 2000000 | Orange |
 | M | #ffcc6f | 2.0 | 1500000 | Red-orange, dimmest |
 
+
+| Class | Core | Streak | Glow | Look |
+| --- | --- | --- | --- | --- |
+| O | tight (512) | strong (0.08) | faint (0.005) | Anamorphic streak, sharp |
+| B | tight (384) | moderate (0.06) | faint (0.008) | Streak + tight core |
+| A | balanced (256) | moderate (0.04) | moderate (0.010) | Classic balanced |
+| F | balanced (256) | subtle (0.02) | moderate (0.010) | Original look |
+| G | soft (192) | weak (0.01) | wider (0.015) | Warm, soft glow |
+| K | wide (128) | minimal (0.005) | wide (0.020) | Diffuse orange glow |
+| M | widest (96) | almost none (0.002) | widest (0.030) | Soft red bloom |
+
 ### Console output
 
 ```

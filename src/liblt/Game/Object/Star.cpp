@@ -21,7 +21,11 @@ AutoClassDerived(Star, StarBaseT,
   LightRef, light,
   Color, color,
   float, lightBrightness,
-  float, lightRadius)
+  float, lightRadius,
+  float, baseBrightness,
+  float, pulseSpeed,
+  float, pulseAmplitude,
+  float, age)
 
   DERIVED_TYPE_EX(Star)
   POOLED_TYPE
@@ -41,6 +45,9 @@ AutoClassDerived(Star, StarBaseT,
   void OnUpdate(UpdateState& state) override {
     BaseType::OnUpdate(state);
 
+    age += state.dt;
+    lightBrightness = baseBrightness + baseBrightness * pulseAmplitude * Sin(age * pulseSpeed);
+
     if (!light)
       light = Light_Create(this);
     light->color = lightBrightness * color;
@@ -51,17 +58,22 @@ AutoClassDerived(Star, StarBaseT,
 DERIVED_IMPLEMENT(Star)
 
 Object Object_Star(Color const& color, float const& brightness,
-                   float const& radius) {
+                   float const& radius, float const& pulseSpeed,
+                   float const& pulseAmplitude) {
   Reference<Star> self = new Star;
   self->color = color;
   self->lightBrightness = brightness;
   self->lightRadius = radius;
+  self->baseBrightness = brightness;
+  self->pulseSpeed = pulseSpeed;
+  self->pulseAmplitude = pulseAmplitude;
+  self->age = 0.0f;
   return self;
 }
 static Function const Object_Star_Registration = Function_Bind(
   "Object_Star",
   "None",
   &Object_Star,
-  "color", "brightness", "radius");
+  "color", "brightness", "radius", "pulseSpeed", "pulseAmplitude");
 
 
