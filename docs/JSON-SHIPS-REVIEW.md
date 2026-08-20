@@ -513,3 +513,324 @@ the `value` and `seed` arguments passed at the call site. Therefore
   from the named archetype
 - Apps call `ShipType_GetArchetype "fighter"` instead of
   `Item_ShipType 10000 20 1 1 1 1 1 1`
+
+---
+
+## 12. Ship Enhancement Research — What Could Be Added
+
+Full inventory of existing subsystems and what's missing. Organized by
+visual effects, gameplay systems, ship variety, and audio.
+
+---
+
+### 12.1 Shield System — What Exists vs What's Missing
+
+**Exists (Shield.cpp, 228 lines):**
+- Shield is a pluggable socket child (plugs into `SocketType_Generator`)
+- `SmoothHull` mesh auto-generated from parent ship's collision mesh
+- Hit ripple shader (`shield.jsl`): up to 16 simultaneous ripples, blue
+  `(0.3, 0.6, 1.8)`, expanding concentric rings at impact points
+- Recharge: charges at `parent->GetPowerFraction() / 60s`, restores 25%
+  health on depletion
+- Shield destruction: blue plasma explosion (`shield_explosion.jsl`)
+- Sound: `shield/hit.ogg` on impact, `shield/explosion.ogg` on destruction
+
+**Missing — Enhancement Opportunities:**
+- **No visible idle state** — shield only renders when being hit. No
+  visible bubble/barrier/field when idle. This is the biggest visual gap.
+- **Fixed blue color** — no per-shield-type tinting. Could be data-driven
+  via `shields.json` with color, opacity, ripple speed, idle visibility.
+- **No directional shielding** — uniform absorption from all directions.
+  Could add front-heavy vs omni shielding as an archetype variant.
+- **No shield capacity/regen rate tuning** at script level — hardcoded
+  `kChargeTime = 60`, `kRestoreFraction = 0.25`.
+- **No shield hover/wobble animation** when idle — the mesh is static.
+- **No shield color variety** — always blue regardless of faction/class.
+
+---
+
+### 12.2 Damage / Integrity System — What Exists vs What's Missing
+
+**Exists (Integrity.cpp, Event/Damage.cpp):**
+- Two-phase damage routing: shields absorb first, remainder goes to hull
+- `ApplyDamage` returns leftover damage (overflow)
+- `OnDeath` propagates to children (tasks cancelled)
+- `Event_Damage` fires `OnAttacked` for both owners
+- `GetTotalHealth/MaxHealth` recursively sums hull + shields
+- `Integrity` component: `health`, `maxHealth`, `dataDamaged`, `dataDestroyed`
+- Bindings: `GetHealth`, `GetMaxHealth`, `GetHealthNormalized`, `SetHealth`
+
+**Missing — Enhancement Opportunities:**
+- **No armor/defense modifier** — damage goes straight to health, no
+  damage resistance. Could add `armorRating` per ship archetype.
+- **No damage types** — just raw `int32 Damage`. Could add kinetic,
+  energy, explosive with per-type resistances.
+- **No per-component damage** — hull is one pool. No subsystem targeting
+  (engines, weapons, shields individually).
+- **No hull damage visualization** — no bullet holes, scorch marks,
+  missing plates, smoke from damaged areas.
+- **Collision damage is disabled** — `Collidable.cpp` line 38: `if (false
+  && ...)`. Code exists but commented out. Enabling it would add
+  raming/velocity-based damage.
+- **No death sequence** — destroyed ship gets explosions on surface but
+  no wreckage, no debris, no fragmentation.
+- **No hull regen** — only shields recharge. Could add slow hull repair
+  for certain archetypes.
+
+---
+
+### 12.3 Weapon Effects — What Exists vs What's Missing
+
+**Exists:**
+- **Pulse**: billboard glow + axis trail, raycast hit detection, `Effect_SmallPlume` on impact
+- **Missile**: physics-driven with guidance, ribbon trail (`trail.jsl`), 5 fire explosions on hit, looping sound
+- **Rail**: instant hit-cast, flash beam (`rail.jsl`), 0.25s visual, `Effect_BeamHit`
+- **Beam**: FULLY CODED but **disabled** (`#if 0` in WeaponType.cpp:104). Would create persistent beam with `beam.jsl` shader, continuous damage, looping sound
+- **Muzzle flash**: dynamic light on weapon, fades via exponential decay
+- **Weapon classes all rigged to 100% Pulse** — Beam/Missile/Rail probability = 0
+
+**Missing — Enhancement Opportunities:**
+- **Beam weapon disabled** — just needs `#if 0` removed and a few fixes. This is the easiest win.
+- **No weapon trail particles** — pulse and rail projectiles have no particle trails, only shader-based billboards.
+- **No weapon charge-up animation** — fire is instant. Could add a visible charge glow before firing.
+- **No impact flash variety** — all weapons use the same `Effect_SmallPlume`. Could differentiate per weapon class.
+- **No tracers** — pulse projectiles are glowing orbs but no tracer-style visual.
+- **No weapon color variety at render level** — color comes from weapon type but all pulse weapons look the same shape-wise.
+- **No fragmentation/area-of-effect** on missile impact — 5 separate explosions, no unified blast wave.
+
+---
+
+### 12.4 Thruster Visuals — What Exists vs What's Missing
+
+**Exists (Thruster.cpp, 208 lines):**
+- Billboard trail using `thruster_trail.jsl` with noise-based turbulence
+- Trail axis follows thruster look direction, scales with activation
+- Dynamic point light at thruster position
+- Activation smoothly interpolates via exponential easing
+- Cruise mode: 100x power draw for boost
+- Color lerp to `kBoostColor = V3(0.2, 0.7, 1.0)` when overcharged
+
+**Missing — Enhancement Opportunities:**
+- **All thrusters same color** — hardcoded orange `Color(1.0, 0.4, 0.1)`. Could be per-ship-type or per-faction via JSON.
+- **Single shared trail shader** — no visual differentiation between thruster types.
+- **No thruster glow/bloom effect** — just additive billboard + point light.
+- **No thrust-dependent trail shape** — trail scales with activation but shape is fixed.
+- **No overcharge visual** beyond color lerp — no size increase, no particle burst.
+- **No engine exhaust particles** — only the billboard trail, no particle system.
+- **No thruster sound variety** — all ships share one `thruster/loop1.ogg`.
+
+---
+
+### 12.5 Ship Hull Variety — What Exists vs What's Missing
+
+**Exists (Generate.lts, ShipType.cpp):**
+- Procedural PlateMesh hull from `(scale, seed)` — box-stacking with bilateral symmetry
+- Plate count = `2 + Sqrt(scale)` — more plates for larger ships
+- Two warp deformations: `VerticalCompress` + `HExpand` (identical for all ships)
+- `Material_Metal()` — procedural plating texture, same for all ships
+- Scale determines mass, health, cargo, thruster count, turret count
+
+**Missing — Enhancement Opportunities:**
+- **No hull class archetypes** — all ships use the same algorithm. No visual distinction between "sleek fighter" vs "bulky freighter" beyond size.
+- **No hull color/paint system** — `Material_Metal()` is uniform grey. Could add color tinting per faction or per archetype.
+- **No faction-specific hull styles** — all factions produce identical-looking ships.
+- **No procedural detail features** — no antenna, fins, sensor arrays, wing details.
+- **No hull damage visualization** — no bullet holes, scorch marks, missing plates, smoke from damaged areas.
+- **No decal system** — commented out in Generate.lts (lines 92-100, Chinese text overlay).
+- **No emissive hull elements** — no running lights, no window glow, no navigation lights.
+- **All hulls symmetric on X axis** — no asymmetric designs possible.
+- **No LOD system** — `lodLevel` field exists but no actual LOD mesh generation.
+
+---
+
+### 12.6 Particle System — What Exists vs What's Missing
+
+**Exists (ParticleSystem.h, Particles.cpp, Effects.cpp):**
+- GPU-instanced billboard particles via SSBO
+- 2 particle types: `Fire` (radial glow, 0.5s) and `Firefly` (subtle glow, 1-2s)
+- `Effect_SmallPlume`: 15 fire particles for weapon impacts
+- `Effect_BeamHit`: single firefly for rail/beam hits
+- `Effect_MultiExplosionRadial`: 15 explosions on object surface
+- Particle shaders: `particle_radial.jsl`, `particle_radialtextured.jsl`
+
+**Missing — Enhancement Opportunities:**
+- **Only 2 particle types** — no sparks, smoke, debris, energy wisps, shield particles.
+- **No weapon trail particles** — pulse/missile/rail have no particle trails.
+- **No engine exhaust particles** — only the billboard trail.
+- **No shield impact particles** — just ripples on the mesh.
+- **No debris particles** on ship destruction.
+- **No script-facing particle creation API** — particles only created from C++ `Effect_*` helpers.
+
+---
+
+### 12.7 Power/Energy System — What Exists vs What's Missing
+
+**Exists (PowerGenerator.cpp, Pluggable.h):**
+- PowerGenerator: capacitor charges at 2.0/s, discharges at 4.0/s during boost
+- Power allocation: sums `priority * powerRequest` from all consumers, distributes proportionally
+- Consumers: thruster (basePower, 100x during cruise), shield (reads parent fraction), scanner, weapon
+- Boost mechanic: capacitor energy temporarily added to output
+- `GetPowerFraction()`: how much of requested power was received (0-1)
+
+**Missing — Enhancement Opportunities:**
+- **No power HUD** — no way to see energy allocation in-game.
+- **No power routing UI** — priority is fixed at 1.0 for all consumers.
+- **No per-system power toggling** — can't divert power from weapons to shields.
+- **No overcharge/overload mechanic** beyond thruster boost.
+- **No power failure cascade** when overloaded — systems just get less power proportionally.
+- **No battery/energy storage** beyond the single capacitor.
+
+---
+
+### 12.8 Ship Audio — What Exists vs What's Missing
+
+**Exists (Ship.lts, weapon sounds, shield sounds):**
+- Interior ambiance: `ship/ambiance/interior/1.wav` (looped, volume 0.15)
+- Engine loop: `thruster/loop1.ogg` (volume scales with speed)
+- Weapon sounds: pulse (6 variants), missile (fire + loop), rail (fire)
+- Shield sounds: hit (`shield/hit.ogg`), explosion (`shield/explosion.ogg`)
+- Explosion sounds: `explosion/altsmall3.ogg`
+
+**Missing — Enhancement Opportunities:**
+- **No thruster sound variety** — all ships share one engine loop.
+- **No hull hit sound** — only shield hit has audio.
+- **No shield recharge sound** — silent recharge.
+- **No flyby/Doppler audio** — no approach/depart sound effects.
+- **No weapon class-specific fire sounds** beyond the current set.
+- **No ambient music system** visible in the engine.
+
+---
+
+### 12.9 Hardpoint / Socket System — What Exists vs What's Missing
+
+**Exists (Sockets.h, Socket.h, ShipType.cpp):**
+- 4 socket types: Generator, Interior, Thruster, Turret
+- 5 joint types: AxisX, AxisY, AxisZ, Fixed, Free
+- Thruster sockets: ray-cast to rear-facing surfaces, symmetric pairs
+- Turret sockets: ray-cast to top/bottom surfaces, 4 attempts with mirrored pairs, AxisY tracking
+- Generator/interior sockets: placed at origin (no spatial placement)
+- `Plug`/`Unplug` API for adding/removing items from sockets
+
+**Missing — Enhancement Opportunities:**
+- **No weapon hardpoint customization** — weapons always in turrets, always in turret sockets. No ability to swap weapon types on existing hardpoints.
+- **No shield socket type** — shields overload `SocketType_Generator`. Dedicated type would allow cleaner logic.
+- **No socket damage** — destroying a socket doesn't remove its contents or disable it.
+- **No runtime hardpoint modification** — sockets set at creation, not modifiable via LTSL.
+- **No visual hardpoint indicators** — no mounting points visible on hull.
+- **No socket capacity limits** — turrets always have 1 weapon socket.
+- **Generator/interior sockets at origin** — no spatial placement, no visual representation.
+
+---
+
+### 12.10 Existing Shader Effects Inventory
+
+| Shader | File | Used By | Purpose |
+|--------|------|---------|---------|
+| `beam.jsl` | `resource/shader/fragment/beam.jsl` | Beam weapon (disabled) | Pulsing energy beam with head/tail fade |
+| `shield.jsl` | `resource/shader/fragment/shield.jsl` | Shield object | Hit ripple waves on shield mesh |
+| `shield_explosion.jsl` | `resource/shader/fragment/shield_explosion.jsl` | Shield death | Blue plasma burst with ring |
+| `explosion.jsl` | `resource/shader/fragment/explosion.jsl` | Fire explosions | Radial orange glow |
+| `thruster_trail.jsl` | `resource/shader/fragment/thruster_trail.jsl` | Thruster trail | Billboard flame trail with noise |
+| `pulse_head.jsl` | `resource/shader/fragment/pulse_head.jsl` | Pulse projectile | Radial glow point |
+| `pulse_tail.jsl` | `resource/shader/fragment/pulse_tail.jsl` | Pulse trail | Axis-aligned glow |
+| `rail.jsl` | `resource/shader/fragment/rail.jsl` | Rail projectile | Instant flash beam |
+| `trail.jsl` | `resource/shader/fragment/trail.jsl` | Missile trail | Segmented ribbon trail |
+| `particle_radial.jsl` | `resource/shader/fragment/particle_radial.jsl` | Fire/Firefly | Radial particle glow |
+
+**No shaders exist for:** shield idle state, hull damage, hull glow, energy field, HUD effects, smoke, sparks, debris.
+
+---
+
+### 12.11 Enhancement Roadmap (Prioritized)
+
+#### Tier 1 — High Impact, Low-Medium Effort (ships.json + shader/script work)
+
+| Enhancement | What | How | Effort |
+|-------------|------|-----|--------|
+| **Enable Beam weapons** | Remove `#if 0` in WeaponType.cpp:104 | Fix a few references, test | 1-2 days |
+| **Enable collision damage** | Remove `if (false &&` in Collidable.cpp:38 | Test, tune energy formula | 1 day |
+| **Thruster color variety** | Add `color` to ThrusterType JSON or hardcoded per-type | Script + small C++ change | 2-3 days |
+| **Weapon class probabilities** | ShipType/WeaponType reads from `ships.json` | Already designed in §11 | 1 week |
+| **Shield idle visualization** | New `shield_idle.jsl` shader, subtle wireframe/energy field | GLSL shader work | 1 week |
+| **Hull color tinting** | Add `albedoTint` uniform to `Material_Metal` | C++ + shader change | 3-5 days |
+| **Ship archetypes** | `ships.json` archetypes with different stat distributions | Already designed in §11 | 1 week |
+
+#### Tier 2 — High Impact, Medium-High Effort (engine changes)
+
+| Enhancement | What | How | Effort |
+|-------------|------|-----|--------|
+| **Hull damage visualization** | Damage states (intact → damaged → critical), decals, smoke | New shader + component fields | 2-3 weeks |
+| **Shield color variety** | Per-shield-type tinting via uniform | Shield.cpp + shield.jsl | 1 week |
+| **Particle expansion** | Sparks, smoke, debris, energy wisps | New particle types in Particles.cpp | 1-2 weeks |
+| **Weapon trails** | Particle trails for pulse/rail projectiles | Particle system + LTSL binding | 1 week |
+| **Death sequence** | Wreckage persistence, debris, structured breakup | New component + particle system | 2-3 weeks |
+| **Power HUD** | Visualize energy allocation (bars/graph) | New LTSL widget + bindings | 1-2 weeks |
+| **Per-component damage** | Target engines/weapons/shields individually | Integrity per socket | 3-4 weeks |
+
+#### Tier 3 — Medium Impact, High Effort (major systems)
+
+| Enhancement | What | How | Effort |
+|-------------|------|-----|--------|
+| **Damage types** | Kinetic/energy/explosive with resistances | New enum + modifier system | 2-3 weeks |
+| **Socket damage** | Destroy individual hardpoints | Sockets component + integrity | 2-3 weeks |
+| **Directional shielding** | Front-heavy vs omni shielding | Shield component extension | 1-2 weeks |
+| **Faction hull styles** | Different hull generation algorithms per faction | Generate.lts variants | 2-3 weeks |
+| **Hull decals/paint** | Decal system for faction logos, damage marks | New component + shader | 2-3 weeks |
+| **Emissive hull elements** | Running lights, window glow | New shader pass | 1-2 weeks |
+| **Flyby/Doppler audio** | Approach/depart sound effects | Audio system extension | 1 week |
+| **Hull repair mechanic** | Slow hull regen in safe zones | New action + component | 1-2 weeks |
+
+---
+
+### 12.12 JSON Integration — What Goes in ships.json
+
+For the JSON data layer, the ship enhancement system would be configured
+through `ships.json` (or split into `shields.json`, `weapons.json` etc.):
+
+```json
+{
+  "archetypes": {
+    "fighter": {
+      "hullTint": [0.8, 0.8, 0.8],
+      "shieldColor": [0.3, 0.6, 1.8],
+      "shieldIdleOpacity": 0.05,
+      "thrusterColor": [1.0, 0.4, 0.1],
+      "turretCount": 2,
+      "damageResistance": 0.0,
+      "armorRating": 0
+    },
+    "cruiser": {
+      "hullTint": [0.6, 0.6, 0.7],
+      "shieldColor": [0.2, 0.8, 0.4],
+      "shieldIdleOpacity": 0.1,
+      "thrusterColor": [0.4, 0.6, 1.0],
+      "turretCount": 6,
+      "damageResistance": 0.15,
+      "armorRating": 2
+    }
+  },
+  "shields": {
+    "defaults": {
+      "chargeTime": 60,
+      "restoreFraction": 0.25,
+      "color": [0.3, 0.6, 1.8],
+      "idleOpacity": 0.0,
+      "rippleSpeed": 1.0,
+      "maxRipples": 16
+    }
+  },
+  "weapons": {
+    "classes": { ... }
+  },
+  "thrusters": {
+    "defaults": {
+      "color": [1.0, 0.4, 0.1],
+      "trailLength": 8.0,
+      "glowIntensity": 1.0
+    }
+  }
+}
+```
+
+The JSON layer makes all these parameters tunable without recompilation.
+Shader uniforms are wired from the JSON values at load time.
