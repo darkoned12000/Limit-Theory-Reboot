@@ -363,11 +363,24 @@ is no separate "player ship" vs "AI ship" path — the only difference is
 the `value` and `seed` arguments passed at the call site. Therefore
 `ships.json` should define **ship archetypes** that apply to all ships.
 
+### Ship Physics Model (for reference)
+
+The existing physics model already uses mass for movement:
+- `mass = hullValue / (compactness * 10)` + cargo weight (dynamic)
+- `inertia = mass^1.25` (superlinear — heavier ships turn much slower)
+- Top speed = `totalThrust / (0.8 * mass)`
+- Max angular acceleration = `(totalThrust / 32) / mass^1.25`
+- Angular terminal velocity = `torque / (inertia * 2.0)`
+
+The `compactness` parameter is the primary maneuverability lever —
+higher compactness = less mass for same value = better thrust-to-weight.
+Cargo adds mass every frame, degrading all maneuverability.
+
 ### Proposed Schema
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "defaults": {
     "hullValueRatio": 0.6,
     "scannerValue": 1000,
@@ -376,17 +389,29 @@ the `value` and `seed` arguments passed at the call site. Therefore
     "interiorCountFormula": "2 * (logScale / log10)",
     "generatorCountFormula": "1..2 + logScale",
     "material": "Metal",
-    "meshQuality": 12
+    "meshQuality": 12,
+    "armorRating": 0,
+    "shieldIntegrityMult": 0.0,
+    "shieldChargeTime": 60.0,
+    "shieldRestoreFraction": 0.25,
+    "shieldColor": [0.3, 0.6, 1.8],
+    "shieldIdleOpacity": 0.0,
+    "hullTint": [1.0, 1.0, 1.0],
+    "thrusterColor": [1.0, 0.4, 0.1]
   },
-  "archetypes": {
+  "shipArcheTypes": {
     "scout": {
       "name": "Scout",
       "valueRange": [5000, 15000],
       "capacityMult": 0.5,
-      "compactnessMult": 0.8,
-      "integrityMult": 0.7,
-      "turretCount": 2,
-      "description": "Fast, lightly armed scout vessel"
+      "compactnessMult": 0.7,
+      "integrityMult": 0.6,
+      "armorRating": 0,
+      "shieldIntegrityMult": 0.5,
+      "turretCount": 1,
+      "hullTint": [0.8, 0.9, 1.0],
+      "thrusterColor": [0.4, 0.7, 1.0],
+      "description": "Fast, lightly armored scout vessel. Low hull, minimal shields, high agility."
     },
     "fighter": {
       "name": "Fighter",
@@ -394,31 +419,84 @@ the `value` and `seed` arguments passed at the call site. Therefore
       "capacityMult": 1.0,
       "compactnessMult": 1.0,
       "integrityMult": 1.0,
+      "armorRating": 1,
+      "shieldIntegrityMult": 1.0,
       "turretCount": 2,
-      "description": "Standard combat fighter"
+      "hullTint": [1.0, 1.0, 1.0],
+      "thrusterColor": [1.0, 0.4, 0.1],
+      "description": "Standard combat fighter. Balanced hull, shields, and maneuverability."
+    },
+    "corvette": {
+      "name": "Corvette",
+      "valueRange": [50000, 150000],
+      "capacityMult": 1.2,
+      "compactnessMult": 1.1,
+      "integrityMult": 1.8,
+      "armorRating": 3,
+      "shieldIntegrityMult": 1.5,
+      "turretCount": 4,
+      "hullTint": [0.9, 0.9, 0.95],
+      "thrusterColor": [1.0, 0.5, 0.2],
+      "description": "Light combat vessel. Heavier than a fighter, tougher hull, more hardpoints."
+    },
+    "freighter": {
+      "name": "Freighter",
+      "valueRange": [80000, 300000],
+      "capacityMult": 3.0,
+      "compactnessMult": 1.3,
+      "integrityMult": 1.5,
+      "armorRating": 2,
+      "shieldIntegrityMult": 1.0,
+      "turretCount": 2,
+      "hullTint": [0.85, 0.8, 0.7],
+      "thrusterColor": [0.8, 0.6, 0.3],
+      "description": "Cargo hauler. Large capacity, moderate armor, slow and heavy."
     },
     "cruiser": {
       "name": "Cruiser",
-      "valueRange": [100000, 500000],
+      "valueRange": [200000, 800000],
       "capacityMult": 1.5,
       "compactnessMult": 1.2,
-      "integrityMult": 1.5,
+      "integrityMult": 2.5,
+      "armorRating": 5,
+      "shieldIntegrityMult": 2.0,
       "turretCount": 6,
-      "description": "Balanced multi-role combat vessel"
+      "hullTint": [0.7, 0.75, 0.85],
+      "thrusterColor": [0.5, 0.6, 1.0],
+      "description": "Mid-size combat vessel. Strong armor, good shields, multiple weapon arcs."
+    },
+    "battleship": {
+      "name": "Battleship",
+      "valueRange": [800000, 3000000],
+      "capacityMult": 2.0,
+      "compactnessMult": 1.5,
+      "integrityMult": 4.0,
+      "armorRating": 8,
+      "shieldIntegrityMult": 3.0,
+      "turretCount": 8,
+      "hullTint": [0.6, 0.6, 0.7],
+      "thrusterColor": [0.3, 0.5, 1.0],
+      "description": "Heavy warship. Massive armor, strong shields, many turrets. Slow but devastating."
     },
     "capital": {
       "name": "Capital Ship",
-      "valueRange": [1000000, 10000000],
-      "capacityMult": 3.0,
+      "valueRange": [3000000, 10000000],
+      "capacityMult": 4.0,
       "compactnessMult": 2.0,
-      "integrityMult": 3.0,
-      "turretCount": 8,
-      "description": "Massive heavily armed capital ship"
+      "integrityMult": 6.0,
+      "armorRating": 12,
+      "shieldIntegrityMult": 5.0,
+      "turretCount": 12,
+      "hullTint": [0.5, 0.5, 0.6],
+      "thrusterColor": [0.2, 0.4, 0.8],
+      "description": "Massive capital ship. Maximum armor and shields, overwhelming firepower. Very slow."
     }
   },
-  "classes": {
+  "weaponClasses": {
     "beam": {
       "probability": 0.0,
+      "valueRange": [5000, 50000],
+      "effectiveRange": 2000,
       "magazineSizeMult": 0,
       "magazineProbability": 0,
       "powerDrainMult": 5,
@@ -427,10 +505,13 @@ the `value` and `seed` arguments passed at the call site. Therefore
       "weightMult": 5,
       "ammoDamageMult": 5,
       "ammoLifeMult": 2.5,
-      "ammoSpeedMult": 1e10
+      "ammoSpeedMult": 1e10,
+      "description": "Continuous energy beam. High damage, high power draw, no spread."
     },
     "missile": {
       "probability": 0.0,
+      "valueRange": [3000, 30000],
+      "effectiveRange": 15000,
       "magazineSizeMult": 1,
       "magazineProbability": 1,
       "powerDrainMult": 0,
@@ -439,10 +520,13 @@ the `value` and `seed` arguments passed at the call site. Therefore
       "weightMult": 3,
       "ammoDamageMult": 20,
       "ammoLifeMult": 10,
-      "ammoSpeedMult": 1
+      "ammoSpeedMult": 1,
+      "description": "Guided missile. Slow fire rate, high damage, long range, tracks target."
     },
     "pulse": {
       "probability": 1.0,
+      "valueRange": [1000, 20000],
+      "effectiveRange": 5000,
       "magazineSizeMult": 6,
       "magazineProbability": 0.1,
       "powerDrainMult": 2,
@@ -451,10 +535,13 @@ the `value` and `seed` arguments passed at the call site. Therefore
       "weightMult": 2,
       "ammoDamageMult": 2,
       "ammoLifeMult": 1.25,
-      "ammoSpeedMult": 1
+      "ammoSpeedMult": 1,
+      "description": "Energy pulse. Fast fire rate, moderate damage, short-medium range."
     },
     "rail": {
       "probability": 0.0,
+      "valueRange": [10000, 80000],
+      "effectiveRange": 20000,
       "magazineSizeMult": 10,
       "magazineProbability": 0.9,
       "powerDrainMult": 1,
@@ -463,7 +550,8 @@ the `value` and `seed` arguments passed at the call site. Therefore
       "weightMult": 1,
       "ammoDamageMult": 1,
       "ammoLifeMult": 1,
-      "ammoSpeedMult": 1e10
+      "ammoSpeedMult": 1e10,
+      "description": "Kinetic rail round. Instant hit, high velocity, long range, low damage per shot."
     }
   },
   "balance": {
@@ -471,28 +559,84 @@ the `value` and `seed` arguments passed at the call site. Therefore
     "defaultScale": 0.5,
     "defaultOffset": [0, 0.5, 4],
     "defaultIntegrity": 100,
-    "colorFormula": "0.25 * white + seeded"
+    "colorFormula": "0.25 * white + seeded",
+    "armorDamageReduction": 0.05,
+    "maxArmorRating": 20
   }
 }
 ```
 
+### Field Descriptions
+
+**Ship Archetype Fields:**
+- `valueRange` — [min, max] budget in RU. Archetype auto-selected by value.
+- `compactnessMult` — mass multiplier. Higher = lighter = more agile.
+  Directly affects top speed and turn rate via `mass = hullValue / (compactness * 10)`.
+- `integrityMult` — hull health multiplier. More HP = survives longer.
+- `armorRating` — flat damage reduction per hit. `damageDealt = max(1,
+  damage - armorRating)`. Armor 0 = no reduction. Armor 12 = capital ship.
+- `shieldIntegrityMult` — shield health multiplier. 0 = no shield.
+  Shield plugs into `SocketType_Generator` socket, absorbs damage first.
+- `shieldChargeTime` — seconds to fully recharge depleted shield (default 60).
+- `shieldRestoreFraction` — fraction of shield HP restored on recharge
+  after depletion (default 0.25 = 25%).
+- `shieldColor` — RGB tint for shield ripple shader (default blue).
+- `shieldIdleOpacity` — 0 = invisible when not hit (current behavior),
+  >0 = visible energy field at rest.
+- `hullTint` — RGB multiplier for `Material_Metal` albedo. [1,1,1] = default
+  grey. [0.7,0.75,0.85] = bluish cruiser. Applied as shader uniform.
+- `thrusterColor` — RGB for thruster trail and glow. Per-archetype visual
+  identity (scouts blue, fighters orange, capitals cool blue).
+
+**Weapon Class Fields:**
+- `probability` — weight for random class selection. 0 = disabled.
+  Currently 100% Pulse; JSON enables mixing.
+- `valueRange` — [min, max] weapon value in RU. Determines damage scaling.
+- `effectiveRange` — range at which damage falls off (units). Beyond this,
+  damage reduced by distance falloff. Short-range weapons (pulse=5000)
+  vs long-range (rail=20000, missile=15000).
+- `magazineSizeMult` — magazine capacity multiplier (0 = no magazine).
+- `magazineProbability` — chance weapon has a magazine (0-1).
+- `powerDrainMult` — power consumption multiplier.
+- `rateMult` — fire rate multiplier (higher = faster).
+- `spreadMult` — accuracy spread multiplier (0 = pinpoint).
+- `weightMult` — mass contribution multiplier.
+- `ammoDamageMult` — base damage multiplier.
+- `ammoLifeMult` — projectile lifetime multiplier.
+- `ammoSpeedMult` — projectile velocity multiplier.
+
+**Balance Fields:**
+- `armorDamageReduction` — percentage reduction per armor rating point
+  (0.05 = 5% per point). Armor 8 = 40% reduction.
+- `maxArmorRating` — cap for armor stacking (prevents invulnerability).
+
 ### C++ Changes Required
 
-1. **`ShipType.cpp`** — Read `defaults` and `archetypes` from
+1. **`ShipType.cpp`** — Read `defaults` and `shipArcheTypes` from
    `ships.json` instead of hardcoded ratios. The archetype selection
    would be based on the `value` argument falling within an archetype's
    `valueRange`. Dead parameters (`propulsion`, `systems`, `turrets`)
-   would be removed.
+   would be removed. Armor rating applied as damage reduction in
+   `ApplyDamage`. Shield integrityMult passed to `Item_ShieldType`.
 
-2. **`WeaponType.cpp`** — Read `classes` and `balance` from `ships.json`
-   (or separate `weapons.json`) instead of hardcoded `k*` arrays.
-   Weapon class selection would use the `probability` field instead of
-   the rigged `kAmmoProbabilityMult`.
+2. **`WeaponType.cpp`** — Read `weaponClasses` and `balance` from
+   `ships.json` (or separate `weapons.json`) instead of hardcoded `k*`
+   arrays. Weapon class selection would use the `probability` field
+   instead of the rigged `kAmmoProbabilityMult`. `effectiveRange`
+   added to weapon damage falloff calculation.
 
 3. **`StationType.cpp`** — Read from `stations.json` (separate file)
    instead of hardcoded `dockCapacity = 100`.
 
-4. **Dead parameter cleanup** — Remove `propulsion`/`systems`/`turrets`
+4. **`Damager.cpp`** — Add hull hit sound (`Sound_Play3D`), physics
+   impulse (`ApplyForce`/`ApplyTorque`), and larger `Effect_SmallPlume`
+   on hit. See §13 for full hit feedback improvements.
+
+5. **`Shield.cpp`** — Read `shieldColor`, `shieldIdleOpacity`,
+   `shieldChargeTime`, `shieldRestoreFraction` from ship archetype.
+   Add idle visualization shader when `idleOpacity > 0`.
+
+6. **Dead parameter cleanup** — Remove `propulsion`/`systems`/`turrets`
    from `Item_ShipType_Args` and `Item_StationType_Args`. Update LTSL
    bindings to match.
 
@@ -503,12 +647,19 @@ the `value` and `seed` arguments passed at the call site. Therefore
 - C++ factories read from JSON, fall back to hardcoded values on missing
 - All existing apps produce identical results
 
-**Phase 2: Enable new archetypes**
-- Add new ship archetypes with different stat distributions
+**Phase 2: Enable new archetypes + weapons**
+- Add new ship archetypes (scout, corvette, freighter, battleship)
 - Enable Beam/Missile/Rail weapon classes by setting non-zero probabilities
+- Add `effectiveRange` damage falloff
 - Apps choose archetypes by name instead of raw value numbers
 
-**Phase 3: LTSL-facing API**
+**Phase 3: Visual + audio feedback**
+- Hull hit sound + physics impulse (§13)
+- Per-archetype hull tinting and thruster color
+- Shield idle visualization
+- Armor damage reduction
+
+**Phase 4: LTSL-facing API**
 - New binding `ShipType_GetArchetype(name)` returns an Item configured
   from the named archetype
 - Apps call `ShipType_GetArchetype "fighter"` instead of
@@ -784,53 +935,147 @@ visual effects, gameplay systems, ship variety, and audio.
 
 ### 12.12 JSON Integration — What Goes in ships.json
 
-For the JSON data layer, the ship enhancement system would be configured
-through `ships.json` (or split into `shields.json`, `weapons.json` etc.):
+All enhancement parameters are configured through `ships.json` (see §11
+for the full schema). The JSON layer makes all these parameters tunable
+without recompilation. Shader uniforms are wired from the JSON values at
+load time. The schema in §11 already includes hullTint, thrusterColor,
+shieldColor, shieldIdleOpacity, armorRating, and shieldIntegrityMult
+per archetype.
 
-```json
-{
-  "archetypes": {
-    "fighter": {
-      "hullTint": [0.8, 0.8, 0.8],
-      "shieldColor": [0.3, 0.6, 1.8],
-      "shieldIdleOpacity": 0.05,
-      "thrusterColor": [1.0, 0.4, 0.1],
-      "turretCount": 2,
-      "damageResistance": 0.0,
-      "armorRating": 0
-    },
-    "cruiser": {
-      "hullTint": [0.6, 0.6, 0.7],
-      "shieldColor": [0.2, 0.8, 0.4],
-      "shieldIdleOpacity": 0.1,
-      "thrusterColor": [0.4, 0.6, 1.0],
-      "turretCount": 6,
-      "damageResistance": 0.15,
-      "armorRating": 2
-    }
-  },
-  "shields": {
-    "defaults": {
-      "chargeTime": 60,
-      "restoreFraction": 0.25,
-      "color": [0.3, 0.6, 1.8],
-      "idleOpacity": 0.0,
-      "rippleSpeed": 1.0,
-      "maxRipples": 16
-    }
-  },
-  "weapons": {
-    "classes": { ... }
-  },
-  "thrusters": {
-    "defaults": {
-      "color": [1.0, 0.4, 0.1],
-      "trailLength": 8.0,
-      "glowIntensity": 1.0
-    }
-  }
-}
+---
+
+## 13. Weapon Hit Feedback Analysis — Why Pulse Lasers Feel Like They Do Nothing
+
+This section documents the root causes of poor hit feedback and what
+would need to change. Based on thorough code analysis of the full damage
+pipeline.
+
+### 13.1 The Damage Pipeline (What Happens When a Pulse Hits Something)
+
+```
+Pulse.Update()
+  → raycast from lastPos to pos (Pulse.cpp:151-156)
+  → Damager.Hit(dest, position) (Pulse.cpp:159)
+    → Collidable.Collide(dest, self) → dest.OnCollide()  [EMPTY for asteroids/ships]
+    → Effect_SmallPlume(position, velocity, color, scale)  [15 particles, 0.25s]
+    → Event_Damage(source, dest, damage)
+      → dest.ApplyDamage(damage)
+        → check shields first (Object.cpp:240)
+        → then Integrity component (Object.cpp:248)
+        → if health ≤ 0 → OnDeath() + Explodable explosion
 ```
 
-The JSON layer makes all these parameters tunable without recompilation.
-Shader uniforms are wired from the JSON values at load time.
+### 13.2 Root Causes of "No Impact" Feeling
+
+**CRITICAL: No sound on hull/asteroid hits.**
+`Damager::Hit()` (Damager.cpp:11-35) has zero `Sound_Play3D` calls.
+Shield hits play `shield/hit.ogg` (Shield.cpp:209), but hull hits and
+asteroid hits are completely silent. Sound is the primary confirmation
+of physical impact — this alone accounts for most of the "no feedback"
+feeling.
+
+**CRITICAL: No physics impulse from hits.**
+`Damager::Hit()` calls `Collidable::Collide()` which invokes
+`OnCollide()` — an empty virtual for ships and asteroids. There is no
+`ApplyForce()` or `ApplyTorque()` anywhere in the damage pipeline. A
+pulse projectile traveling at high velocity hits a target and applies
+zero kinetic force. The target doesn't budge, doesn't rotate, nothing.
+
+**CRITICAL: Asteroids are indestructible.**
+`Object_Asteroid` has no `Component_Integrity` and no
+`Component_Explodable`. When `ObjectT::ApplyDamage()` is called on an
+asteroid, it checks for shields (none) and Integrity (none), then
+silently discards the damage. Shooting asteroids is pointless — the
+damage vanishes.
+
+**Asteroid component list (Asteroid.cpp):**
+```
+BoundingBox, Collidable, Cullable, Drawable, Orientation, Seeded
+```
+No Integrity, no Explodable, no health tracking of any kind.
+
+**`Effect_SmallPlume` is too small and too brief.**
+- 15 particles with 0.25-0.5s lifetime (Effects.cpp:80-101)
+- Uses `Particle_Fire()` at 0.5 opacity with fast fade-in/out
+- Scale is based on the *shooter's* radius, not the target's
+- At typical engagement distances (hundreds of meters), nearly invisible
+
+**No intermediate damage visuals.**
+`Explodable::Run()` (Explodable.cpp:7-15) only triggers at `health <= 0`.
+Between 100% and 0% health, a ship looks pristine. No smoke, no sparks,
+no discoloration. The jump from "looks fine" to "explodes" is instant.
+
+**Weapon fire sound is very quiet.**
+`WeaponType.cpp:90` plays fire sound at volume 0.1. Combined with no hit
+sound, the entire combat audio is nearly silent.
+
+### 13.3 Feedback Comparison Table
+
+| Feedback | Shield Hit | Ship Hull Hit | Asteroid Hit |
+|----------|-----------|---------------|--------------|
+| Sound | `shield/hit.ogg` ✓ | **NONE** ✗ | **NONE** ✗ |
+| Visual effect | Ripple shader + particles | 15 particles (tiny) | 15 particles (tiny) |
+| Physics impulse | **NONE** ✗ | **NONE** ✗ | **NONE** ✗ |
+| Damage applied | Reduces shield HP | Reduces hull HP | **NONE** (discarded) |
+| Death explosion | Plasma (shield) | Fire (ship) | **NEVER** |
+| Intermediate damage | Shield fades | **NOTHING** | N/A |
+
+### 13.4 What Would Fix It (Prioritized)
+
+**Tier 1 — Immediate fixes (small C++ changes):**
+
+1. **Add hull hit sound to `Damager::Hit()`.** One `Sound_Play3D` call
+   with a new `weapon/hit_hull.ogg` sound file. This is the single
+   highest-impact change. Estimated: 1 line of code + 1 sound asset.
+
+2. **Add physics impulse to `Damager::Hit()`.** After `Event_Damage`,
+   apply force to the target: `dest->GetMotion()->force +=
+   Normalize(position - source->GetPos()) * damage * impulseScale`.
+   Ships and asteroids would visibly react to impacts. Estimated:
+   5-10 lines of code.
+
+3. **Increase `Effect_SmallPlume` size and duration.** Change particle
+   count from 15 to 25-30, lifetime from 0.25-0.5s to 0.5-1.0s, and
+   use target radius instead of source radius for scale. Estimated:
+   3-5 lines of code.
+
+4. **Increase weapon fire volume.** Change volume from 0.1 to 0.3-0.5
+   in `WeaponType.cpp:90`. Estimated: 1 line.
+
+**Tier 2 — Medium effort (script + shader):**
+
+5. **Add `Component_Integrity` to asteroids.** Give asteroids health
+   so they can be destroyed. Add `Explodable` for death explosions.
+   ShipType.json could define `asteroidHealth` per value range.
+   Estimated: 10-20 lines C++ + script changes.
+
+6. **Add hit flash/spark effect.** New particle type or shader uniform
+   flash on the target object at the hit point. A brief brightening of
+   the hull material at the impact location.
+
+7. **Add damage states to ships.** At 75%/50%/25% health, spawn
+   progressively more smoke/fire particles. New `Component_DamageState`
+   or extend `Explodable` with threshold callbacks.
+
+**Tier 3 — Higher effort (new systems):**
+
+8. **Hull damage visualization.** Decal system for bullet holes, scorch
+   marks, missing plates. Requires new shader pass or texture overlay.
+
+9. **Screen shake on hit.** Camera shake proportional to damage dealt.
+   Requires new binding or camera effect system.
+
+10. **Shield hit impulse.** Shield currently absorbs damage silently —
+    add visible knockback when shield is hit.
+
+### 13.5 Sound Assets Needed
+
+| Sound | Purpose | Suggested Source |
+|-------|---------|-----------------|
+| `weapon/hit_hull.ogg` | Pulse/weapon hits ship hull | Metallic impact, short |
+| `weapon/hit_asteroid.ogg` | Weapon hits asteroid | Rock impact, short |
+| `weapon/hit_shield.ogg` | (existing) `shield/hit.ogg` | Energy field impact |
+| `weapon/chargeup.ogg` | Weapon charge before fire | Rising energy tone |
+| `ship/damage_loop.ogg` | Ambient damage at low health | Hissing/sparking loop |
+| `weapon/beam_fire.ogg` | (existing) `weapon/beam1_fire.wav` | Continuous beam |
+| `weapon/beam_loop.ogg` | (existing) `weapon/beam1_loop.wav` | Beam sustain |
