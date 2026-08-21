@@ -11,6 +11,7 @@ LT_API ShaderInstance Material_Ice();
 
 LT_API ShaderInstance Material_Metal();
 LT_API ShaderInstance Material_Metal_Diffuse(Texture2D const& diffuse);
+LT_API ShaderInstance Material_Metal_Tinted(Texture2D const& diffuse, V3 const& tint);
 
 LT_API ShaderInstance Material_Rock();
 

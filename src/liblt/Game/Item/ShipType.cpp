@@ -1,5 +1,6 @@
 #include "../Items.h"
 
+#include "Component/Integrity.h"
 #include "Game/Constants.h"
 #include "Game/Materials.h"
 #include "Game/Objects.h"
@@ -32,9 +33,11 @@
 #include "Game/Renderables.h"
 #include "LTE/FunctionBind.h"
 
-const uint kThrusterAttempts = 10;
-const uint kTurretAttempts = 100;
-const float kThrusterTolerance = 0.8f;
+/* Balance knobs — loaded from ships.json "balance" section.
+ * C++ defaults match ships.json; only used if JSON is missing. */
+static uint kThrusterAttempts = 10;
+static uint kTurretAttempts = 100;
+static float kThrusterTolerance = 0.8f;
 
 /* Ensure ships.json is loaded once. Returns true if available. */
 static bool EnsureShipsDb() {
@@ -49,6 +52,17 @@ static bool EnsureShipsDb() {
     json const* archetypes = DatabaseManager_Get().Find("ships", "shipArcheTypes");
     int archetypeCount = archetypes ? (int)archetypes->size() : 0;
     printf("Loaded ships.json (%d archetypes)\n", archetypeCount);
+
+    /* Read balance knobs from JSON. */
+    json const* balance = DatabaseManager_Get().Find("ships", "balance");
+    if (balance) {
+      int tmp;
+      JInt(balance, "thrusterAttempts", tmp, (int)kThrusterAttempts);
+      kThrusterAttempts = (uint)tmp;
+      JInt(balance, "turretAttempts", tmp, (int)kTurretAttempts);
+      kTurretAttempts = (uint)tmp;
+      JFloat(balance, "thrusterTolerance", kThrusterTolerance, 0.8f);
+    }
   } else {
     printf("WARNING: ships.json not found "
            "— using hardcoded ship defaults\n");
@@ -103,6 +117,65 @@ AutoClassDerived(ShipType, ShipTypeBase,
     while (ship->Plug(standardThruster)) {}
     ship->Plug(standardGenerator);
     ship->Plug(standardScanner);
+
+    /* Create shield and set armor from ships.json config.
+     * Re-derives values from the original total budget stored in
+     * metatype, since we can't add fields to AutoClassDerived. */
+    if (EnsureShipsDb()) {
+      float shieldValueRatio = 0.3f;
+      float hullValueRatio = 0.6f;
+      float shieldIntegrityMult = 1.0f;
+      int armorRating = 0;
+
+      json const* defaults =
+        DatabaseManager_Get().Find("ships", "defaults");
+      if (defaults) {
+        JFloat(defaults, "shieldValueRatio", shieldValueRatio, 0.3f);
+        JFloat(defaults, "hullValueRatio", hullValueRatio, 0.6f);
+      }
+
+      /* Re-derive archetype from original total budget. */
+      Item_ShipType_Args const& args =
+        this->metatype.Convert<Item_ShipType_Args>();
+      String archetypeName = PickArchetype(args.value);
+      json const* archetype = nullptr;
+      if (archetypeName.size() > 0) {
+        String archetypePath =
+          Stringize() | "shipArcheTypes." | archetypeName;
+        archetype = DatabaseManager_Get().FindPath("ships", archetypePath);
+        if (archetype) {
+          JFloat(archetype, "shieldIntegrityMult",
+                 shieldIntegrityMult, 1.0f);
+          JInt(archetype, "armorRating", armorRating, 0);
+        }
+      }
+
+      /* Mirror the budget split from Item_ShipType(). */
+      double valueRemaining = args.value;
+      double hullValue = hullValueRatio * valueRemaining;
+      valueRemaining -= hullValue;
+      double thrusterValue =
+        Saturate(0.5 / Sqrt(Sqrt(valueRemaining / 10000.0)))
+        * valueRemaining;
+      valueRemaining -= thrusterValue;
+      double shieldValue = shieldValueRatio * valueRemaining;
+
+      if (shieldValue > 0.0) {
+        RNG rng = RNG_MTG(args.seed);
+        Item shield = Item_ShieldType(
+          shieldValue, rng->GetInt(),
+          1.0f, 1.0f, shieldIntegrityMult, 1.0f);
+        ship->Plug(shield);
+      }
+
+      /* Set armor rating on ship's Integrity component. */
+      if (armorRating > 0) {
+        ComponentIntegrity* integrity = ship->GetIntegrity();
+        if (integrity)
+          integrity->armorRating = armorRating;
+      }
+    }
+
     return ship;
   }
 };
@@ -244,6 +317,8 @@ Item Item_ShipType(Item_ShipType_Args const& args) { AUTO_FRAME;
   float compactnessMult = 1.0f;
   float integrityMult = 1.0f;
   float shieldIntegrityMult = 1.0f;
+  V3 hullTint(1.0f, 1.0f, 1.0f);
+  String shipName = "Ship";
 
   /* ---- Read defaults from JSON ---- */
   if (haveDb) {
@@ -270,9 +345,17 @@ Item Item_ShipType(Item_ShipType_Args const& args) { AUTO_FRAME;
         JFloat(archetype, "integrityMult", integrityMult, 1.0f);
         JFloat(archetype, "shieldIntegrityMult", shieldIntegrityMult, 1.0f);
         JInt(archetype, "turretCount", turretCount, turretCount);
+        JColor(archetype, "hullTint",
+               Stringize() | "ships.json: " | archetypeName,
+               hullTint, V3(1.0f, 1.0f, 1.0f));
 
-        printf("  -> archetype: %s (turrets=%d, compact=%.2f, integrity=%.2f, shield=%.2f)\n",
-               archetypeName.c_str(), turretCount, compactnessMult, integrityMult,
+        /* Read ship name from archetype. */
+        json const* nameField = JGet(archetype, "name");
+        if (nameField && nameField->is_string())
+          shipName = String(nameField->get<std::string>().c_str());
+
+        printf("  -> archetype: %s (%s, turrets=%d, compact=%.2f, integrity=%.2f, shield=%.2f)\n",
+               archetypeName.c_str(), shipName.c_str(), turretCount, compactnessMult, integrityMult,
                shieldIntegrityMult);
       }
     }
@@ -290,7 +373,7 @@ Item Item_ShipType(Item_ShipType_Args const& args) { AUTO_FRAME;
   valueRemaining -= hullValue;
   double thrusterValue = Saturate(0.5 / Sqrt(Sqrt(valueRemaining / 10000.0))) * valueRemaining;
   valueRemaining -= thrusterValue;
-  double shieldValue = 0.0;
+  double shieldValue = shieldValueRatio * valueRemaining;
   valueRemaining -= shieldValue;
   double generatorValue = valueRemaining;
 
@@ -303,7 +386,7 @@ Item Item_ShipType(Item_ShipType_Args const& args) { AUTO_FRAME;
   self->integrity = integrity;
   self->mass = mass;
   self->metatype = Item_ShipType_Args(args);
-  self->name = "Ship";
+  self->name = shipName;
   self->scale = Constant_MassToScale(mass);
   self->value = hullValue;
 
@@ -315,7 +398,8 @@ Item Item_ShipType(Item_ShipType_Args const& args) { AUTO_FRAME;
 
   Script_Reload("Item/ShipType/Generate");
   ScriptFunction_Load("Item/ShipType/Generate:Main")
-    ->Call(self->renderable, self->scale, static_cast<int>(rng->GetInt()));
+    ->Call(self->renderable, self->scale, static_cast<int>(rng->GetInt()),
+           hullTint);
 
   /* Sockets. */ {
     Vector<Socket> sockets;

@@ -1133,11 +1133,11 @@ standpoint. Each is self-contained and testable.
 
 | # | Gap | File | What | Effort |
 |---|-----|------|------|--------|
-| 1.1 | **Shield creation in Instantiate()** | `ShipType.cpp:101` | `shieldValueRatio` is read from JSON but `shieldValue` is hardcoded to `0.0` (line 293). `Instantiate()` must compute shieldValue from the budget split and create + plug an `Item_ShieldType`. Remove LTSL shield creation from `ltheory-main.lts`. | 1 day |
-| 1.2 | **Wire `armorRating`** | `Damager.cpp` | `armorRating` exists in ships.json per-archetype but is never read. `Damager::Hit()` should apply: `damage = Max(1, damage - armorRating * armorDamageReduction)`. JSON `balance.armorDamageReduction = 0.05`. | 1 day |
-| 1.3 | **Hull tint via shader uniform** | `metal.jsl`, `Materials.cpp` | `hullTint` exists in ships.json per-archetype but has no shader uniform. Add `uniform vec3 hullTint` to `metal.jsl`, pass from `ShipType` via material. | 1 day |
-| 1.4 | **Ship name from archetype** | `ShipType.cpp:306` | Ship is always named "Ship". Should read `name` from archetype JSON (e.g. "Fighter", "Cruiser"). | 0.5 day |
-| 1.5 | **Balance knobs from JSON** | `ShipType.cpp:35-37` | `kThrusterAttempts`, `kTurretAttempts`, `kThrusterTolerance` are hardcoded constants. Read from `ships.json balance` section. | 0.5 day |
+| 1.1 | ✅ **Shield creation in Instantiate()** | `ShipType.cpp:101` | `shieldValueRatio` is read from JSON but `shieldValue` is hardcoded to `0.0` (line 293). `Instantiate()` must compute shieldValue from the budget split and create + plug an `Item_ShieldType`. Remove LTSL shield creation from `ltheory-main.lts`. | ✅ Done |
+| 1.2 | ✅ **Wire `armorRating`** | `Integrity.h`, `Integrity.cpp`, `ShipType.cpp` | `armorRating` added to `ComponentIntegrity`. `Instantiate()` reads archetype `armorRating` and sets it on the ship. `ApplyDamage()` reduces damage by `armorRating * armorDamageReduction`. | ✅ Done |
+| 1.3 | ✅ **Hull tint via shader uniform** | `metal.jsl`, `Materials.cpp`, `Generate.lts` | `hullTint` added as `uniform vec3` to `metal.jsl`. New `Material_Metal_Tinted(diffuse, tint)` function. `Generate.lts` accepts tint param. `Item_ShipType()` reads archetype `hullTint` and passes to mesh generation. | ✅ Done |
+| 1.4 | ✅ **Ship name from archetype** | `ShipType.cpp:366` | `self->name` now set from archetype JSON `name` field instead of hardcoded "Ship". | ✅ Done |
+| 1.5 | ✅ **Balance knobs from JSON** | `ShipType.cpp:36-38` | `kThrusterAttempts`, `kTurretAttempts`, `kThrusterTolerance` now read from `ships.json balance` section on DB load. | ✅ Done |
 
 ### Tier 2 — Important (Medium C++)
 
@@ -1172,7 +1172,7 @@ Visual and audio improvements that make ships feel alive.
 | Field | Read in C++ | Actually Used | Notes |
 |-------|-------------|---------------|-------|
 | `defaults.hullValueRatio` | ✅ ShipType.cpp:253 | ✅ Budget split | — |
-| `defaults.shieldValueRatio` | ✅ ShipType.cpp:254 | ❌ shieldValue=0.0 | **Tier 1.1** |
+| `defaults.shieldValueRatio` | ✅ ShipType.cpp:254 | ✅ Shield creation in Instantiate() | ✅ Tier 1.1 done |
 | `defaults.scannerValue` | ✅ ShipType.cpp:255 | ✅ Scanner item | — |
 | `defaults.thrusterCount` | ✅ ShipType.cpp:256 | ✅ Socket count | — |
 | `defaults.turretCount` | ✅ ShipType.cpp:257 | ✅ Socket count | — |
@@ -1180,17 +1180,17 @@ Visual and audio improvements that make ships feel alive.
 | `defaults.shieldRestoreFraction` | ❌ Not read | ❌ Hardcoded 0.25 | **Tier 2.3** |
 | `defaults.shieldColor` | ❌ Not read | ❌ Hardcoded blue | **Tier 3.2** |
 | `defaults.shieldIdleOpacity` | ❌ Not read | ❌ Always 0 | **Tier 3.1** |
-| `defaults.hullTint` | ❌ Not read | ❌ No uniform | **Tier 1.3** |
+| `defaults.hullTint` | ❌ Not read | ❌ No uniform | — Defaults only; archetype overrides handled per-type |
 | `defaults.thrusterColor` | ❌ Not read | ❌ Hardcoded orange | **Tier 2.2** |
 | `archetypes.*.capacityMult` | ✅ ShipType.cpp:268 | ✅ Capacity calc | — |
 | `archetypes.*.compactnessMult` | ✅ ShipType.cpp:269 | ✅ Mass calc | — |
 | `archetypes.*.integrityMult` | ✅ ShipType.cpp:270 | ✅ Health calc | — |
-| `archetypes.*.shieldIntegrityMult` | ✅ ShipType.cpp:271 | ❌ printf only | **Tier 1.1** |
-| `archetypes.*.armorRating` | ❌ Not read | ❌ No damage mod | **Tier 1.2** |
+| `archetypes.*.shieldIntegrityMult` | ✅ ShipType.cpp:271 | ✅ Shield creation in Instantiate() | ✅ Tier 1.1 done |
+| `archetypes.*.armorRating` | ✅ ShipType.cpp:Instantiate() | ✅ ComponentIntegrity.armorRating | ✅ Tier 1.2 done |
 | `archetypes.*.turretCount` | ✅ ShipType.cpp:272 | ✅ Socket count | — |
-| `archetypes.*.hullTint` | ❌ Not read | ❌ | **Tier 1.3** |
+| `archetypes.*.hullTint` | ✅ ShipType.cpp + Generate.lts | ✅ Material_Metal_Tinted uniform | ✅ Tier 1.3 done |
 | `archetypes.*.thrusterColor` | ❌ Not read | ❌ | **Tier 2.2** |
-| `archetypes.*.name` | ❌ Not read | ❌ Ships named "Ship" | **Tier 1.4** |
+| `archetypes.*.name` | ✅ ShipType.cpp | ✅ self->name | ✅ Tier 1.4 done |
 | `weaponClasses.*.ammoProbabilityMult` | ✅ WeaponType.cpp | ✅ Class selection | Fixed 2026-08 |
 | `weaponClasses.*.effectiveRange` | ❌ Not read | ❌ No falloff | **Tier 2.4** |
 | `weaponClasses.*.rateMult` | ✅ WeaponType.cpp | ✅ Fire rate | — |
@@ -1202,8 +1202,11 @@ Visual and audio improvements that make ships feel alive.
 | `weaponClasses.*.powerDrainMult` | ✅ WeaponType.cpp | ✅ Energy cost | — |
 | `weaponClasses.*.magazineSizeMult` | ✅ WeaponType.cpp | ✅ Magazine cap | — |
 | `weaponClasses.*.magazineProbability` | ✅ WeaponType.cpp | ✅ Magazine chance | — |
-| `balance.armorDamageReduction` | ❌ Not read | ❌ No armor | **Tier 1.2** |
-| `balance.maxArmorRating` | ❌ Not read | ❌ No armor | **Tier 1.2** |
+| `balance.armorDamageReduction` | ✅ Integrity.cpp:ApplyDamage() | ✅ Damage reduction formula | ✅ Tier 1.2 done |
+| `balance.maxArmorRating` | ❌ Not read | ❌ No armor cap enforced | Validation only |
+| `balance.thrusterAttempts` | ✅ ShipType.cpp:EnsureShipsDb() | ✅ Thruster socket placement | ✅ Tier 1.5 done |
+| `balance.turretAttempts` | ✅ ShipType.cpp:EnsureShipsDb() | ✅ Turret socket placement | ✅ Tier 1.5 done |
+| `balance.thrusterTolerance` | ✅ ShipType.cpp:EnsureShipsDb() | ✅ Thruster surface normal dot threshold | ✅ Tier 1.5 done |
 
 ---
 

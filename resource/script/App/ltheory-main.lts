@@ -154,9 +154,6 @@ type App
     ship.SetPos (planetPos + (planetRadius * 2.0 * spawnDir))
     var weapon (Item_WeaponType 46)
     while (ship.Plug weapon) 0
-    var shieldValue (cast Float (* shipHull 3) / 10)
-    var shield (Item_ShieldType shieldValue shipSeed 1 1 1 1)
-    ship.Plug shield
     root.AddInterior ship
 
     player = Player_Human
@@ -180,8 +177,6 @@ type App
       root.AddInterior aiShip
       var aiWeapon (Item_WeaponType aiRng.Int)
       while (aiShip.Plug aiWeapon) 0
-      var aiShield (Item_ShieldType 5000 aiRng.Int 1 1 1 1)
-      aiShip.Plug aiShield
 
     ui.Add (Widget/HUD:Create player)
     Sound_PlayLooped "system/ambiance/089.wav" 0.05

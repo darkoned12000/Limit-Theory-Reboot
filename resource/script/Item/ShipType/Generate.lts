@@ -24,7 +24,7 @@ type Box
   Vec3 center
   Vec3 size
 
-function Renderable Main (Float scale Int seed)
+function Renderable Main (Float scale Int seed Vec3 tint)
   var kBevel 0.25
 
   function Vec3 GetAxis (RNG rng)
@@ -99,7 +99,7 @@ function Renderable Main (Float scale Int seed)
     diffuseTex = (Texture_LoadFrom (Location_File "resource/texture/metal_panel_diffuse_green.jpg"))
   if setIndex == 4
     diffuseTex = (Texture_LoadFrom (Location_File "resource/texture/metal_rivet_diffuse.jpg"))
-  material = (Material_Metal_Diffuse diffuseTex)
+  material = (Material_Metal_Tinted diffuseTex tint)
 
   model.Add mesh material
   Renderable model

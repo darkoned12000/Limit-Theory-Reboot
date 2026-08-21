@@ -111,7 +111,8 @@ ShaderInstance Material_Metal() {
       shader = ShadingModel_Metal(Lookup(g, 0), Lookup(g, 1));
       (*shader)
         ("decalMap", kDefaultDecal)
-        ("useAlbedoColor", 0.0f);
+        ("useAlbedoColor", 0.0f)
+        ("hullTint", V3(1.0f, 1.0f, 1.0f));
     }
   }
   return shader;
@@ -128,7 +129,8 @@ ShaderInstance Material_Metal_Diffuse(Texture2D const& diffuse) {
   static Texture2D kDefaultDecal = Texture_Create(1, 1, GL_TextureFormat::RGBA8, &data);
   (*instance)
     ("decalMap", kDefaultDecal)
-    ("useAlbedoColor", 1.0f);
+    ("useAlbedoColor", 1.0f)
+    ("hullTint", V3(1.0f, 1.0f, 1.0f));
   return instance;
 }
 static Function const Material_Metal_Diffuse_Registration = Function_Bind(
@@ -136,6 +138,23 @@ static Function const Material_Metal_Diffuse_Registration = Function_Bind(
   "None",
   &Material_Metal_Diffuse,
   "diffuse");
+
+ShaderInstance Material_Metal_Tinted(Texture2D const& diffuse, V3 const& tint) {
+  Generic<Vec<Texture2D, 2> > g = Cached(Bind(FreeFn(GenerateMetal), 1337.0f));
+  ShaderInstance instance = ShadingModel_Metal(diffuse, Lookup(g, 1));
+  int data = 0;
+  static Texture2D kDefaultDecal = Texture_Create(1, 1, GL_TextureFormat::RGBA8, &data);
+  (*instance)
+    ("decalMap", kDefaultDecal)
+    ("useAlbedoColor", 1.0f)
+    ("hullTint", tint);
+  return instance;
+}
+static Function const Material_Metal_Tinted_Registration = Function_Bind(
+  "Material_Metal_Tinted",
+  "None",
+  &Material_Metal_Tinted,
+  "diffuse", "tint");
 
 
 

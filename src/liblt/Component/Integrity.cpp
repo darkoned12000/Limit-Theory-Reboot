@@ -2,11 +2,33 @@
 
 #include "Game/Items.h"
 #include "Game/Object.h"
+#include "Game/DatabaseManager.h"
+#include "Game/JsonHelpers.h"
 
 #include "LTE/Mutable.h"
 #include "LTE/FunctionBind.h"
 
 Damage ComponentIntegrity::ApplyDamage(ObjectT* self, Damage damage) {
+  /* Apply armor reduction: damage is reduced by armorRating * armorDamageReduction
+   * (from ships.json balance section). Minimum 1 damage always gets through. */
+  if (armorRating > 0) {
+    static float armorDamageReduction = 0.0f;
+    static bool loaded = false;
+    if (!loaded) {
+      loaded = true;
+      json const* balance =
+        DatabaseManager_Get().Find("ships", "balance");
+      if (balance)
+        JFloat(balance, "armorDamageReduction",
+               armorDamageReduction, 0.05f);
+      if (armorDamageReduction <= 0.0f)
+        armorDamageReduction = 0.05f;
+    }
+    float reduction = Min((float)armorRating * armorDamageReduction, 0.95f);
+    damage = Max((Damage)1,
+                 (Damage)(damage * (1.0f - reduction)));
+  }
+
   Health thisDamage = Min(damage, health);
   health -= thisDamage;
   if (health <= 0)

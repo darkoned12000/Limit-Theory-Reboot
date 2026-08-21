@@ -17,6 +17,7 @@ uniform sampler2D detailMap;
 uniform sampler2D decalMap;
 
 uniform float useAlbedoColor;
+uniform vec3 hullTint;
 
 #include fdm.jsl
 
@@ -51,6 +52,7 @@ void main() {
 
   c *= pow2(uv.x * sampleFDM(detailMap, vertpos).x);
   c *= 16.0;
+  c *= hullTint;
 
   vec3 bump = sampleTriplanarBumpmap(normalMap, vertpos / 8.0);
   mat4 effectiveWorldIT = (uInstanced > 0)

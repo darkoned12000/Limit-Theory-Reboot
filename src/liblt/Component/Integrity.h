@@ -9,12 +9,14 @@
 AutoClass(ComponentIntegrity,
   Health, health,
   Health, maxHealth,
+  int, armorRating,
   Item, dataDamaged,
   Item, dataDestroyed)
 
   ComponentIntegrity() :
     health(0),
-    maxHealth(0)
+    maxHealth(0),
+    armorRating(0)
     {}
 
   LT_API Damage ApplyDamage(ObjectT*, Damage);
