@@ -31,7 +31,7 @@ type ShipUpdate
 
 function Void Main ()
   var root (Object_System (Vec3 15.012) 12345)
-  var shipType (Item_ShipType 5000 55 1 1 1 1 1 1)
+  var shipType (Item_ShipType 5000 55 1 1 1)
   var ship shipType.Instantiate
   ship.AddScript ShipUpdate
   root.AddInterior ship

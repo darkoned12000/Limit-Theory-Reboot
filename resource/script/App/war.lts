@@ -33,7 +33,7 @@ type App
     system = (Object_System (Vec3 15.012) 33)
 
     # Create the player ship
-    var shipType (Item_ShipType 10000 20 1 1 1 1 1 1)
+    var shipType (Item_ShipType 10000 20 1 1 1)
     var ship shipType.Instantiate
     ship.SetPos kOrigin
     var weaponType (Item_WeaponType 54)
@@ -51,10 +51,10 @@ type App
       Object_Zone system 0 (kOrigin + (Vec3 1000)) 10000 (SDF_Sphere 0 1) 128 1.0 0.0 0.0 0.0
     # system.AddInterior zone
 
-    var type1 (Item_ShipType 10000 20 1 1 1 1 1 1)
-    var type2 (Item_ShipType 100000 20 1 1 1 1 1 1)
-    var type3 (Item_ShipType 1000000 20 1 1 1 1 1 1)
-    var type4 (Item_ShipType 10000000 20 1 1 1 1 1 1)
+    var type1 (Item_ShipType 10000 20 1 1 1)
+    var type2 (Item_ShipType 100000 20 1 1 1)
+    var type3 (Item_ShipType 1000000 20 1 1 1)
+    var type4 (Item_ShipType 10000000 20 1 1 1)
 
     var ships List
     for i 0 i < ShipCount i.++

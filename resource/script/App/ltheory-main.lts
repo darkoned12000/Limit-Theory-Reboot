@@ -139,18 +139,24 @@ type App
     var universeSeed (ToInt (Config:Get "seed"))
     var playerCredits (ToInt (Config:Get "playerCredits"))
     var shipHull (ToInt (Config:Get "shipHull"))
+    var shipSeed (ToInt (Config:Get "shipSeed"))
+    var weaponOverride (Config:Get "weaponOverride")
+    WeaponType_SetOverride weaponOverride
 
     root = (Object_System (Vec3 15.012) universeSeed)
     var planet (Object/SystemPopulate:Init root)
     var planetPos planet.GetPos
     var planetRadius planet.GetScale.x
 
-    var shipType (Item_ShipType shipHull 55 1 1 1 1 1 1)
+    var shipType (Item_ShipType shipHull shipSeed 1 1 1)
     var ship shipType.Instantiate
     var spawnDir (Normalize (Vec3 0.2 0.6 1.0))
     ship.SetPos (planetPos + (planetRadius * 2.0 * spawnDir))
     var weapon (Item_WeaponType 46)
     while (ship.Plug weapon) 0
+    var shieldValue (cast Float (* shipHull 3) / 10)
+    var shield (Item_ShieldType shieldValue shipSeed 1 1 1 1)
+    ship.Plug shield
     root.AddInterior ship
 
     player = Player_Human
@@ -160,9 +166,9 @@ type App
     player.SetName "SuperSpaceSquirrel"
 
     var aiRng (RNG_MTG (universeSeed + 7))
-    var type1 (Item_ShipType 10000 20 1 1 1 1 1 1)
-    var type2 (Item_ShipType 100000 20 1 1 1 1 1 1)
-    var type3 (Item_ShipType 1000000 20 1 1 1 1 1 1)
+    var type1 (Item_ShipType 10000 20 1 1 1)
+    var type2 (Item_ShipType 100000 20 1 1 1)
+    var type3 (Item_ShipType 1000000 20 1 1 1)
     for i 0 i < 12 i.++
       var choice (aiRng.Int 1 3)
       var aiShip
@@ -174,6 +180,8 @@ type App
       root.AddInterior aiShip
       var aiWeapon (Item_WeaponType aiRng.Int)
       while (aiShip.Plug aiWeapon) 0
+      var aiShield (Item_ShieldType 5000 aiRng.Int 1 1 1 1)
+      aiShip.Plug aiShield
 
     ui.Add (Widget/HUD:Create player)
     Sound_PlayLooped "system/ambiance/089.wav" 0.05

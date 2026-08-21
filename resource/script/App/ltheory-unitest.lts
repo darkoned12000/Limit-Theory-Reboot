@@ -221,7 +221,7 @@ type App
 
     # STEP 4 — CREATE THE PLAYER SHIP
     # Item_ShipType(hull value, seed...) -> Instantiate makes a fresh ship.
-    var shipType (Item_ShipType shipHull 55 1 1 1 1 1 1)
+    var shipType (Item_ShipType shipHull 55 1 1 1)
     var ship shipType.Instantiate
     if spawn.IsNotNull
       ship.SetPos (spawn.GetPos + spawnOffset)

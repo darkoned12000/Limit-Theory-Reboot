@@ -18,7 +18,7 @@ type App
       system = system.GetInteriorObjects.Get
 
     var rng (RNG_MTG 0)
-    var shipType (Item_ShipType 20000 55 1 1 1 1 1 1)
+    var shipType (Item_ShipType 20000 55 1 1 1)
     var ship shipType.Instantiate
 
     var station Object

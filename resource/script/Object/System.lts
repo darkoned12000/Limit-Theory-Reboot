@@ -120,8 +120,8 @@ function Void Init (Object self)
   commonItems += (Item_TechLabType 50000 1 1 1 1)
   commonItems += (Item_TransferUnitType 100 1 1 1 1 1)
 
-  var patrolShip (Item_ShipType 10000000 rng.Int 1 1 1 1 1 1)
-  var pirateShip (Item_ShipType 100000 rng.Int 1 1 1 1 1 1)
+  var patrolShip (Item_ShipType 10000000 rng.Int 1 1 1)
+  var pirateShip (Item_ShipType 100000 rng.Int 1 1 1)
   var pirateWeapon (Item_WeaponType rng.Int + 4)
 
   for i 0 i < zoneSeed i.++
@@ -198,7 +198,7 @@ function Void Init (Object self)
       WarpNode:BuildRail self p1 p2
 
   desc "Players"
-    var shipTypeBoss (Item_ShipType 100000000 rng.Int 1 1 1 1 1 1)
+    var shipTypeBoss (Item_ShipType 100000000 rng.Int 1 1 1)
     var transferUnit (Item_TransferUnitType 1 rng.Int 1 1 1 1)
     
     for playerIndex 0 playerIndex < playerCount playerIndex.++

@@ -22,6 +22,8 @@
 #include "LTE/Pool.h"
 #include "LTE/FunctionBind.h"
 
+#include "Module/SoundEngine.h"
+
 const float kMinAngle = -0.25f;
 const float kTrackSpeed = 2.0f * kTau;
 const bool kInfiniteAmmo = true;
@@ -99,6 +101,23 @@ AutoClassDerived(Weapon, WeaponBaseT,
     if (Dot(toTarget, heading) < 0.99f)
       return;
 
+    /* Beam weapons: create once, update each frame. */
+    if (GetWeaponType()->type == WeaponClass_Beam) {
+      if (!beam) {
+        Beam* b = Beam_Create();
+        b->width = GetScale().GetMax();
+        b->GetDamager()->type = GetWeaponType();
+        b->GetDamager()->source = this;
+        beam = b;
+        GetContainer()->AddInterior(beam);
+        Sound_Play3D("weapon/beam1_fire.wav", this, GetWeaponType()->offset, 1,
+          GetScale().GetMax());
+      }
+      UpdateBeam();
+      flash = 1;
+      return;
+    }
+
     while (CanFire()) {
       /* Note that we'll add the cooldown BEFORE raycasting, so that we don't
        * end up raycasting every transform. */
@@ -107,13 +126,8 @@ AutoClassDerived(Weapon, WeaponBaseT,
       /* Check to make sure our ship isn't in the way.  If it is, don't fire! */
       Ray r(origin + parent->GetVelocity(), heading);
       float t;
-      if (GetContainer()->QueryInterior(r, t, 100, nullptr, false) == parent) {
-        if (beam) {
-          beam->Delete();
-          beam = nullptr;
-        }
+      if (GetContainer()->QueryInterior(r, t, 100, nullptr, false) == parent)
         return;
-      }
 
       Object ammo = GetWeaponType()->Fire(this, origin, heading, targetObject);
       if (!ammo)
@@ -124,11 +138,6 @@ AutoClassDerived(Weapon, WeaponBaseT,
         magazine--;
 
       GetContainer()->AddInterior(ammo);
-      if (beam) {
-        // TODO : ...?
-        UpdateBeam();
-        UpdateBeam();
-      }
     }
   }
 
@@ -226,13 +235,10 @@ AutoClassDerived(Weapon, WeaponBaseT,
       }
     }
 
-    /* Beam handling. */
+    /* Beam cleanup: delete beam when weapon stops firing. */
     if (!isFiring && beam) {
       beam->Delete();
       beam = nullptr;
-    } else if (beam) {
-      UpdateBeam();
-      flash = 1.0f;
     }
 
     HandleHeading(state.dt);

@@ -13,6 +13,8 @@
 #include "Game/Attribute/Scale.h"
 #include "Game/Attribute/Sockets.h"
 #include "Game/Attribute/Value.h"
+#include "Game/DatabaseManager.h"
+#include "Game/JsonHelpers.h"
 
 #include "LTE/Math.h"
 #include "LTE/Meshes.h"
@@ -33,6 +35,46 @@
 const uint kThrusterAttempts = 10;
 const uint kTurretAttempts = 100;
 const float kThrusterTolerance = 0.8f;
+
+/* Ensure ships.json is loaded once. Returns true if available. */
+static bool EnsureShipsDb() {
+  static bool loaded = false;
+  static bool available = false;
+  if (loaded)
+    return available;
+  loaded = true;
+  available = DatabaseManager_Get().Load(
+    "ships", "resource/gamedata/ships.json");
+  if (available) {
+    json const* archetypes = DatabaseManager_Get().Find("ships", "shipArcheTypes");
+    int archetypeCount = archetypes ? (int)archetypes->size() : 0;
+    printf("Loaded ships.json (%d archetypes)\n", archetypeCount);
+  } else {
+    printf("WARNING: ships.json not found "
+           "— using hardcoded ship defaults\n");
+  }
+  return available;
+}
+
+/* Match a value budget to a ship archetype by valueRange.
+ * Returns the archetype name, or empty string if none matched. */
+static String PickArchetype(double value) {
+  json const* archetypes =
+    DatabaseManager_Get().Find("ships", "shipArcheTypes");
+  if (!archetypes || !archetypes->is_object())
+    return "";
+
+  for (auto it = archetypes->begin(); it != archetypes->end(); ++it) {
+    json const* rangeVal = JGet(&it.value(), "valueRange");
+    float minVal = 0, maxVal = 0;
+    if (JRange(rangeVal, "ships.json: shipArcheTypes",
+              minVal, maxVal, 0, 0)) {
+      if (value >= minVal && value <= maxVal)
+        return String(it.key().c_str());
+    }
+  }
+  return "";
+}
 
 using ShipTypeBase = 
     Attribute_Capability
@@ -185,19 +227,76 @@ void AttachTurrets(
 Item Item_ShipType(Item_ShipType_Args const& args) { AUTO_FRAME;
   RNG rng = RNG_MTG(args.seed);
 
-  double valueRemaining = args.value;
-  double scannerValue = 1000.0;
-  // valueRemaining -= scannerValue;
+  bool haveDb = EnsureShipsDb();
 
-  double hullValue = 0.6 * valueRemaining;
+  /* ---- C++ emergency defaults (only used if JSON is missing/corrupt) ----
+   * These MUST match the defaults section in ships.json. The JSON
+   * "defaults" object is the canonical source; these exist only so the
+   * engine can boot without the data file. */
+  float hullValueRatio = 0.6f;
+  float shieldValueRatio = 0.3f;
+  float scannerValue = 1000.0f;
+  int thrusterCount = 2;
+  int turretCount = 4;
+
+  /* Archetype multipliers (identity defaults = no change). */
+  float capacityMult = 1.0f;
+  float compactnessMult = 1.0f;
+  float integrityMult = 1.0f;
+  float shieldIntegrityMult = 1.0f;
+
+  /* ---- Read defaults from JSON ---- */
+  if (haveDb) {
+    json const* defaults =
+      DatabaseManager_Get().Find("ships", "defaults");
+    if (defaults) {
+      JFloat(defaults, "hullValueRatio", hullValueRatio, 0.6f);
+      JFloat(defaults, "shieldValueRatio", shieldValueRatio, 0.3f);
+      JFloat(defaults, "scannerValue", scannerValue, 1000.0f);
+      JInt(defaults, "thrusterCount", thrusterCount, 2);
+      JInt(defaults, "turretCount", turretCount, 4);
+    }
+
+    /* ---- Match archetype by value and apply overrides ---- */
+    String archetypeName = PickArchetype(args.value);
+    if (archetypeName.size() > 0) {
+      String archetypePath = Stringize() | "shipArcheTypes." | archetypeName;
+      json const* archetype =
+        DatabaseManager_Get().FindPath("ships", archetypePath);
+      if (archetype) {
+        String ap = Stringize() | "ships.json: " | archetypeName;
+        JFloat(archetype, "capacityMult", capacityMult, 1.0f);
+        JFloat(archetype, "compactnessMult", compactnessMult, 1.0f);
+        JFloat(archetype, "integrityMult", integrityMult, 1.0f);
+        JFloat(archetype, "shieldIntegrityMult", shieldIntegrityMult, 1.0f);
+        JInt(archetype, "turretCount", turretCount, turretCount);
+
+        printf("  -> archetype: %s (turrets=%d, compact=%.2f, integrity=%.2f, shield=%.2f)\n",
+               archetypeName.c_str(), turretCount, compactnessMult, integrityMult,
+               shieldIntegrityMult);
+      }
+    }
+  }
+
+  /* Apply user-supplied multipliers on top of JSON archetype values.
+   * JSON archetype sets the base; user args scale from there. */
+  float finalCapacity = args.capacity * capacityMult;
+  float finalCompactness = args.compactness * compactnessMult;
+  float finalIntegrity = args.integrity * integrityMult;
+
+  /* ---- Budget allocation (thruster formula stays in C++) ---- */
+  double valueRemaining = args.value;
+  double hullValue = hullValueRatio * valueRemaining;
   valueRemaining -= hullValue;
   double thrusterValue = Saturate(0.5 / Sqrt(Sqrt(valueRemaining / 10000.0))) * valueRemaining;
   valueRemaining -= thrusterValue;
+  double shieldValue = 0.0;
+  valueRemaining -= shieldValue;
   double generatorValue = valueRemaining;
 
-  Mass capacity = Constant_ValueToCapacity(hullValue, args.capacity);
-  Health integrity = Constant_ValueToIntegrity(hullValue, args.integrity);
-  Mass mass = Constant_ValueToMass(hullValue, args.compactness);
+  Mass capacity = Constant_ValueToCapacity(hullValue, finalCapacity);
+  Health integrity = Constant_ValueToIntegrity(hullValue, finalIntegrity);
+  Mass mass = Constant_ValueToMass(hullValue, finalCompactness);
 
   Reference<ShipType> self = new ShipType;
   self->capability = Capability_Storage(capacity);
@@ -211,8 +310,6 @@ Item Item_ShipType(Item_ShipType_Args const& args) { AUTO_FRAME;
   self->icon = GetIcon(self->scale);
 
   float logScale = Log(self->scale);
-  int thrusterCount = 2;
-  int turretCount = 4;
   int generatorCount = static_cast<int>(rng->GetFloat(1, 2) + logScale);
   int interiorCount = 2 * static_cast<int>(logScale / Log(10.0f));
 
@@ -264,7 +361,7 @@ Item Item_ShipType(Item_ShipType_Args const& args) { AUTO_FRAME;
 static Function const Item_ShipType_Registration = Function_Bind(
   "Item_ShipType",
   "None",
-  [](double const& value, uint const& seed, float const& capacity, float const& compactness, float const& integrity, float const& propulsion, float const& systems, float const& turrets) -> Item { return Item_ShipType(value, seed, capacity, compactness, integrity, propulsion, systems, turrets); },
-  "value", "seed", "capacity", "compactness", "integrity", "propulsion", "systems", "turrets");
+  [](double const& value, uint const& seed, float const& capacity, float const& compactness, float const& integrity) -> Item { return Item_ShipType(value, seed, capacity, compactness, integrity); },
+  "value", "seed", "capacity", "compactness", "integrity");
 
 

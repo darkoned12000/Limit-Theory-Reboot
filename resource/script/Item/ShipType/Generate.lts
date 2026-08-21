@@ -86,18 +86,20 @@ function Renderable Main (Float scale Int seed)
   mesh.Center
   mesh.Mesh_ComputeOcclusion
   var model Model_Create
-  var material Material_Metal
 
-  #
-    var decal (Texture2D_CreateHDR 512 512)
-    decal.BeginDrawTo
-    DrawClear 0 0
-    DrawTextGlow Fonts:ChineseSimp "紅玻璃 燒" (Vec2 256 256) 128 Colors:Primary 1 true
-    decal.EndDrawTo
-    decal.SaveTo "decal.png"
-    decal.GenerateMipmap
-    material = material.Clone
-    material.Set "decal" decal
+  var material (Material_Metal)
+  var textureSetCount 5
+  var setIndex (RNG_Int rng textureSetCount)
+  var diffuseTex (Texture_LoadFrom (Location_File "resource/texture/metal_plate_diffuse.jpg"))
+  if setIndex == 1
+    diffuseTex = (Texture_LoadFrom (Location_File "resource/texture/metal_panel_diffuse.jpg"))
+  if setIndex == 2
+    diffuseTex = (Texture_LoadFrom (Location_File "resource/texture/metal_panel_diffuse_gray.jpg"))
+  if setIndex == 3
+    diffuseTex = (Texture_LoadFrom (Location_File "resource/texture/metal_panel_diffuse_green.jpg"))
+  if setIndex == 4
+    diffuseTex = (Texture_LoadFrom (Location_File "resource/texture/metal_rivet_diffuse.jpg"))
+  material = (Material_Metal_Diffuse diffuseTex)
 
   model.Add mesh material
   Renderable model

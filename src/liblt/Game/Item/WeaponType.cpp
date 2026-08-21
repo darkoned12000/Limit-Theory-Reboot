@@ -5,6 +5,8 @@
 #include "Game/Icons.h"
 #include "Game/NLP.h"
 #include "Game/Objects.h"
+#include "Game/DatabaseManager.h"
+#include "Game/JsonHelpers.h"
 
 #include "Component/Motion.h"
 #include "Component/Pilotable.h"
@@ -24,6 +26,18 @@
 
 DERIVED_IMPLEMENT(WeaponType)
 
+/* Ensure ships.json is loaded once (shared with ShipType.cpp via singleton). */
+static bool EnsureShipsDb() {
+  static bool loaded = false;
+  static bool available = false;
+  if (loaded)
+    return available;
+  loaded = true;
+  available = DatabaseManager_Get().Load(
+    "ships", "resource/gamedata/ships.json");
+  return available;
+}
+
 const Icon kWeaponIcon[WeaponClass_SIZE] = {
   Icon_Crosshair(),
   Icon_Crosshair(),
@@ -31,45 +45,95 @@ const Icon kWeaponIcon[WeaponClass_SIZE] = {
   Icon_Crosshair(),
 };
 
-const float kWeaponMagazineSizeMult[WeaponClass_SIZE] = {
-  0, 1, 6, 10,
+/* ---- Weapon class multiplier tables ----
+ * Indexed by WeaponClass: Beam=0, Missile=1, Pulse=2, Rail=3.
+ * Loaded from ships.json weaponClasses on first call; falls back to
+ * hardcoded defaults if JSON is unavailable. */
+static float kWeaponMagazineSizeMult[WeaponClass_SIZE];
+static float kWeaponMagazineProbability[WeaponClass_SIZE];
+static float kWeaponPowerDrainMult[WeaponClass_SIZE];
+static float kWeaponRateMult[WeaponClass_SIZE];
+static float kWeaponSpreadMult[WeaponClass_SIZE];
+static float kWeaponWeightMult[WeaponClass_SIZE];
+static float kAmmoDamageMult[WeaponClass_SIZE];
+static float kAmmoLifeMult[WeaponClass_SIZE];
+static float kAmmoProbabilityMult[WeaponClass_SIZE];
+static float kAmmoSpeedMult[WeaponClass_SIZE];
+
+/* Mapping from WeaponClass enum index to JSON key name. */
+static const char* kWeaponClassKeys[WeaponClass_SIZE] = {
+  "beam", "missile", "pulse", "rail"
 };
 
-const float kWeaponMagazineProbability[WeaponClass_SIZE] = {
-  0, 1, 0.1f, 0.9f,
-};
+/* Optional weapon class override (set via LTSL WeaponType_SetOverride).
+ * When non-empty, forces all new weapons to this class regardless of
+ * probability tables. "none" or empty clears the override. */
+static String sWeaponOverride;
 
-const float kWeaponPowerDrainMult[WeaponClass_SIZE] = {
-  5, 0, 2, 1,
-};
+void WeaponType_SetOverride(String const& className) {
+  if (className == "none" || className.size() == 0)
+    sWeaponOverride = String();
+  else
+    sWeaponOverride = className;
+}
 
-const float kWeaponRateMult[WeaponClass_SIZE] = {
-  1, 0.01f, 1, 1,
-};
+/* Load multiplier tables from ships.json weaponClasses section.
+ * Each class's multipliers override the hardcoded defaults. */
+static void LoadWeaponClassTables() {
+  /* Hardcoded defaults (must match ships.json). */
+  static const float kDefMagSize[4] =        { 0, 1, 6, 10 };
+  static const float kDefMagProb[4] =        { 0, 1, 0.1f, 0.9f };
+  static const float kDefPowerDrain[4] =     { 5, 0, 2, 1 };
+  static const float kDefRate[4] =           { 1, 0.01f, 1, 1 };
+  static const float kDefSpread[4] =         { 0, 1, 2, 5 };
+  static const float kDefWeight[4] =         { 5, 3, 2, 1 };
+  static const float kDefAmmoDamage[4] =     { 5, 20, 2, 1 };
+  static const float kDefAmmoLife[4] =       { 2.5f, 10, 1.25f, 1 };
+  static const float kDefAmmoProb[4] =       { 0.0f, 0.0f, 1.0f, 0.0f };
+  static const float kDefAmmoSpeed[4] =      { 1e10f, 1, 1, 1e10f };
 
-const float kWeaponSpreadMult[WeaponClass_SIZE] = {
-  0, 1, 2, 5,
-};
+  /* Copy defaults into the mutable arrays. */
+  for (int i = 0; i < WeaponClass_SIZE; ++i) {
+    kWeaponMagazineSizeMult[i] = kDefMagSize[i];
+    kWeaponMagazineProbability[i] = kDefMagProb[i];
+    kWeaponPowerDrainMult[i] = kDefPowerDrain[i];
+    kWeaponRateMult[i] = kDefRate[i];
+    kWeaponSpreadMult[i] = kDefSpread[i];
+    kWeaponWeightMult[i] = kDefWeight[i];
+    kAmmoDamageMult[i] = kDefAmmoDamage[i];
+    kAmmoLifeMult[i] = kDefAmmoLife[i];
+    kAmmoProbabilityMult[i] = kDefAmmoProb[i];
+    kAmmoSpeedMult[i] = kDefAmmoSpeed[i];
+  }
 
-const float kWeaponWeightMult[WeaponClass_SIZE] = {
-  5, 3, 2, 1,
-};
+  bool haveDb = EnsureShipsDb();
+  if (!haveDb)
+    return;
 
-const float kAmmoDamageMult[WeaponClass_SIZE] = {
-  5, 20, 2, 1,
-};
+  json const* weaponClasses =
+    DatabaseManager_Get().Find("ships", "weaponClasses");
+  if (!weaponClasses || !weaponClasses->is_object())
+    return;
 
-const float kAmmoLifeMult[WeaponClass_SIZE] = {
-  2.5f, 10, 1.25f, 1,
-};
+  for (int i = 0; i < WeaponClass_SIZE; ++i) {
+    json const* cls = JGet(weaponClasses, kWeaponClassKeys[i]);
+    if (!cls)
+      continue;
+    String wp = Stringize() | "ships.json: weaponClasses." | kWeaponClassKeys[i];
 
-const float kAmmoProbabilityMult[WeaponClass_SIZE] = {
-  0.0f, 0.0f, 1.0f, 0.0f,
-};
-
-const float kAmmoSpeedMult[WeaponClass_SIZE] = {
-  1e10f, 1, 1, 1e10f,
-};
+    JFloat(cls, "magazineSizeMult", kWeaponMagazineSizeMult[i], kDefMagSize[i]);
+    JFloat(cls, "magazineProbability", kWeaponMagazineProbability[i], kDefMagProb[i]);
+    JFloat(cls, "powerDrainMult", kWeaponPowerDrainMult[i], kDefPowerDrain[i]);
+    JFloat(cls, "rateMult", kWeaponRateMult[i], kDefRate[i]);
+    JFloat(cls, "spreadMult", kWeaponSpreadMult[i], kDefSpread[i]);
+    JFloat(cls, "weightMult", kWeaponWeightMult[i], kDefWeight[i]);
+    JFloat(cls, "ammoDamageMult", kAmmoDamageMult[i], kDefAmmoDamage[i]);
+    JFloat(cls, "ammoLifeMult", kAmmoLifeMult[i], kDefAmmoLife[i]);
+    JFloat(cls, "ammoProbabilityMult", kAmmoProbabilityMult[i], kDefAmmoProb[i]);
+    JFloat(cls, "ammoSpeedMult", kAmmoSpeedMult[i], kDefAmmoSpeed[i]);
+  }
+  printf("Loaded weapon class tables from ships.json\n");
+}
 
 Object WeaponType::Fire(
   ObjectT* w,
@@ -100,17 +164,7 @@ Object WeaponType::Fire(
   }
 
   else if (type == WeaponClass_Beam) {
-    /* CRITICAL. */
-#if 0
-    if (!w->beam) {
-      float beamScale = w->GetScale().GetMax();
-      Beam* b = Beam_Create();
-      b->width = beamScale;
-      object = b;
-      w->beam = b;
-      Sound_Play3D("weapon/beam1_fire.wav", w, wtype->offset, 1, beamScale);
-    }
-#endif
+    /* Beam is created/updated by Weapon::Fire() which owns the beam field. */
   }
 
   else if (type == WeaponClass_Rail) {
@@ -122,7 +176,10 @@ Object WeaponType::Fire(
   if (object) {
     object->GetDamager()->type = (WeaponType*)w->GetSupertype();
     object->GetDamager()->source = w;
-    object->SetPos(origin);
+    /* Rail sets its position in Object_Rail() — it has no Orientation
+     * component, so SetPos is not implemented. */
+    if (type != WeaponClass_Rail)
+      object->SetPos(origin);
   }
 
   return object;
@@ -149,17 +206,34 @@ Item Item_WeaponType(int const& id) {
   if (!renderable)
     ScriptFunction_Load("Item/WeaponType:Generate")->Call(renderable);
 
+  /* Ensure multiplier tables are loaded from JSON (once). */
+  static bool tablesLoaded = false;
+  if (!tablesLoaded) {
+    LoadWeaponClassTables();
+    tablesLoaded = true;
+  }
+
   RNG rng = RNG_MTG(id);
   Reference<WeaponType> self = new WeaponType;
 
-  float typeValue = rng->GetFloat();
-  float thisValue = 0;
+  /* Check for weapon class override from gameConfig. */
   self->type = WeaponClass_Pulse;
-  for (int i = 0; i < WeaponClass_SIZE; ++i) {
-    thisValue += kAmmoProbabilityMult[i];
-    if (typeValue <= thisValue) {
-      self->type = i;
-      break;
+  if (sWeaponOverride.size() > 0) {
+    for (int i = 0; i < WeaponClass_SIZE; ++i) {
+      if (sWeaponOverride == kWeaponClassKeys[i]) {
+        self->type = i;
+        break;
+      }
+    }
+  } else {
+    float typeValue = rng->GetFloat();
+    float thisValue = 0;
+    for (int i = 0; i < WeaponClass_SIZE; ++i) {
+      thisValue += kAmmoProbabilityMult[i];
+      if (typeValue <= thisValue) {
+        self->type = i;
+        break;
+      }
     }
   }
 
@@ -244,5 +318,11 @@ static Function const Item_WeaponType_Registration = Function_Bind(
   "None",
   &Item_WeaponType,
   "id");
+
+static Function const WeaponType_SetOverride_Registration = Function_Bind(
+  "WeaponType_SetOverride",
+  "None",
+  &WeaponType_SetOverride,
+  "className");
 
 

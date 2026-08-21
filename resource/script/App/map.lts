@@ -7,7 +7,7 @@ type MapWidget
     system = (Object_System (Vec3 15.012) 1340)
     Object/System:Init system
 
-    var shipType (Item_ShipType 10000 20 1 1 1 1 1 1)
+    var shipType (Item_ShipType 10000 20 1 1 1)
     var ship shipType.Instantiate
     ship.SetPos (Vec3 0)
     system.AddInterior ship

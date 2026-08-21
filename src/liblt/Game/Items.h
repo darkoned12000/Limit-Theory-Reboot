@@ -190,23 +190,19 @@ AutoClass(Item_ShipType_Args,
   uint, seed,
   float, capacity,
   float, compactness,
-  float, integrity,
-  float, propulsion,
-  float, systems,
-  float, turrets)
+  float, integrity)
   Item_ShipType_Args() {}
 };
 
 LT_API Item Item_ShipType(Item_ShipType_Args const& args);
 inline Item Item_ShipType(
   double const& value, uint const& seed, float const& capacity, float const& compactness,
-  float const& integrity, float const& propulsion, float const& systems,
-  float const& turrets) {
-  return Item_ShipType(Item_ShipType_Args(value, seed, capacity, compactness, integrity, propulsion, systems, turrets));
+  float const& integrity) {
+  return Item_ShipType(Item_ShipType_Args(value, seed, capacity, compactness, integrity));
 }
 
 inline Item Item_ShipType(double value, uint seed) {
-  return Item_ShipType(value, seed, 1, 1, 1, 1, 1, 1);
+  return Item_ShipType(value, seed, 1, 1, 1);
 }
 
 using Meta_ShipType = Item_ShipType_Args;

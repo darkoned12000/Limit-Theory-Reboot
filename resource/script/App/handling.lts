@@ -19,7 +19,7 @@ type App
     system.SetName "Fermat's Last"
 
     # Create the player ship
-    var shipType (Item_ShipType 1000000 6 1 1 1 1 1 1)
+    var shipType (Item_ShipType 1000000 6 1 1 1)
     var ship shipType.Instantiate
     ship.SetPos (Vec3 0)
 
@@ -54,9 +54,9 @@ type App
     station.SetName "Konryz Mining Outpost LZ-882"
 
     var assets (Array Object)
-    var shipType2 (Item_ShipType 100000 315 1 1 1 1 1 1)
-    var shipType3 (Item_ShipType 1000000 515 1 1 1 1 1 1)
-    var shipType4 (Item_ShipType 10000000 415 1 1 1 1 1 1)
+    var shipType2 (Item_ShipType 100000 315 1 1 1)
+    var shipType3 (Item_ShipType 1000000 515 1 1 1)
+    var shipType4 (Item_ShipType 10000000 415 1 1 1)
     for i 0 i < 16 i.++
       var choice rng.Float
       var object Object

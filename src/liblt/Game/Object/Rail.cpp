@@ -21,7 +21,7 @@
 #include "LTE/ShaderInstance.h"
 #include "LTE/View.h"
 
-const float kRailAge = 0.25f;
+const float kRailAge = 0.4f;
 const float kRailSpeed = 10000;
 
 /* TODO : Unify rail and pulse. */
@@ -87,7 +87,7 @@ AutoClassDerived(Rail, RailBaseT,
 
       (*gRailShader)
         ("axis", self->direction)
-        ("size", V2(32.0f, self->length))
+        ("size", V2(48.0f, self->length))
         ("baseColor", self->Damager.type->color)
         ("opacity", Exp(-2.0f * self->age / kRailAge));
 
@@ -118,16 +118,17 @@ AutoClassDerived(Rail, RailBaseT,
       cast = true;
       Ray r(position, direction);
       float t;
+      float queryRange = Min(Damager.type->range, 99999.0f);
       ObjectT* hitObject = GetContainer()
-        ->QueryInterior(r, t, Damager.type->range, nullptr, true,
+        ->QueryInterior(r, t, queryRange, nullptr, true,
                         RaycastCanCollideBidirectional, this);
 
       if (hitObject) {
         length = t;
         if (Damager.Hit(this, hitObject, r(t), state.dt))
-          Effect_BeamHit(r(t), 0, 1, Damager.type->color);
+          Effect_BeamHit(r(t), 0, 3, Damager.type->color);
       } else
-        length = Damager.type->range;
+        length = queryRange;
     }
 
     position += velocity * state.dt;

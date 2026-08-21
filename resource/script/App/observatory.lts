@@ -27,10 +27,10 @@ type App
     system.AddInterior station
 
     desc "Battle"
-      var shipType1 (Item_ShipType 100000 512 1 1 1 1 1 1)
-      var shipType2 (Item_ShipType 1000000 101 1 1 1 1 1 1)
-      var shipType3 (Item_ShipType 10000000 181 1 1 1 1 1 1)
-      var shipType4 (Item_ShipType 100000000 333 1 1 1 1 1 1)
+      var shipType1 (Item_ShipType 100000 512 1 1 1)
+      var shipType2 (Item_ShipType 1000000 101 1 1 1)
+      var shipType3 (Item_ShipType 10000000 181 1 1 1)
+      var shipType4 (Item_ShipType 100000000 333 1 1 1)
       var ships (Array Object)
       for i 0 i < 32 i.++
         var ship
@@ -55,7 +55,7 @@ type App
         ship.PushTask (Task_Destroy (deref (ships.Get (rng.Int ships.Size))))
 
     # desc "Miners"
-      var shipType (Item_ShipType 10000000 111 1 1 1 1 1 1)
+      var shipType (Item_ShipType 10000000 111 1 1 1)
       var transferUnit (Item_TransferUnitType 1 1 1 1 1 1)
       for i 0 i < 32 i.++
         var ship shipType.Instantiate

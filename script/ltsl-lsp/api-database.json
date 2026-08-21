@@ -1480,6 +1480,17 @@
     },
     {
       "name": "Append",
+      "signature": "void Append(Vector<String> object, String element)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "object", "type": "Vector<String>"},
+        {"name": "element", "type": "String"}
+      ],
+      "documentation": "Append 'element' to the back of the vector",
+      "source": ""
+    },
+    {
+      "name": "Append",
       "signature": "void Append(Vector<SaveSlotInfo> object, SaveSlotInfo element)",
       "returnType": "void",
       "parameters": [
@@ -1518,17 +1529,6 @@
       "parameters": [
         {"name": "object", "type": "Vector<signed int>"},
         {"name": "element", "type": "Int32"}
-      ],
-      "documentation": "Append 'element' to the back of the vector",
-      "source": ""
-    },
-    {
-      "name": "Append",
-      "signature": "void Append(Vector<String> object, String element)",
-      "returnType": "void",
-      "parameters": [
-        {"name": "object", "type": "Vector<String>"},
-        {"name": "element", "type": "String"}
       ],
       "documentation": "Append 'element' to the back of the vector",
       "source": ""
@@ -2379,6 +2379,80 @@
         {"name": "path", "type": "String"}
       ],
       "documentation": "Save 'data' in binary form to 'path'",
+      "source": ""
+    },
+    {
+      "name": "Database_Get",
+      "signature": "String Database_Get(String db, String key)",
+      "returnType": "String",
+      "parameters": [
+        {"name": "db", "type": "String"},
+        {"name": "key", "type": "String"}
+      ],
+      "documentation": "Get a top-level value from a named database by key. Returns the raw JSON string.",
+      "source": ""
+    },
+    {
+      "name": "Database_GetPath",
+      "signature": "String Database_GetPath(String db, String dotPath)",
+      "returnType": "String",
+      "parameters": [
+        {"name": "db", "type": "String"},
+        {"name": "dotPath", "type": "String"}
+      ],
+      "documentation": "Get a nested value via dot notation from a named database.",
+      "source": ""
+    },
+    {
+      "name": "Database_Has",
+      "signature": "Bool Database_Has(String db, String key)",
+      "returnType": "Bool",
+      "parameters": [
+        {"name": "db", "type": "String"},
+        {"name": "key", "type": "String"}
+      ],
+      "documentation": "Check if a key exists in a named database.",
+      "source": ""
+    },
+    {
+      "name": "Database_HasDatabase",
+      "signature": "Bool Database_HasDatabase(String db)",
+      "returnType": "Bool",
+      "parameters": [
+        {"name": "db", "type": "String"}
+      ],
+      "documentation": "Check if a named database is loaded.",
+      "source": ""
+    },
+    {
+      "name": "Database_Keys",
+      "signature": "Vector<String> Database_Keys(String db)",
+      "returnType": "Vector<String>",
+      "parameters": [
+        {"name": "db", "type": "String"}
+      ],
+      "documentation": "List all top-level keys in a named database.",
+      "source": ""
+    },
+    {
+      "name": "Database_Load",
+      "signature": "Bool Database_Load(String name, String path)",
+      "returnType": "Bool",
+      "parameters": [
+        {"name": "name", "type": "String"},
+        {"name": "path", "type": "String"}
+      ],
+      "documentation": "Load a JSON file as a named database. Returns true on success.",
+      "source": ""
+    },
+    {
+      "name": "Database_Reload",
+      "signature": "Bool Database_Reload(String db)",
+      "returnType": "Bool",
+      "parameters": [
+        {"name": "db", "type": "String"}
+      ],
+      "documentation": "Reload a named database from its original file path.",
       "source": ""
     },
     {
@@ -3678,6 +3752,17 @@
     },
     {
       "name": "Get",
+      "signature": "String Get(Vector<String> object, Int32 index)",
+      "returnType": "String",
+      "parameters": [
+        {"name": "object", "type": "Vector<String>"},
+        {"name": "index", "type": "Int32"}
+      ],
+      "documentation": "Return the element at 'index' in the vector",
+      "source": ""
+    },
+    {
+      "name": "Get",
       "signature": "Object ObjectChildIterator_Get(ObjectChildIterator iterator)",
       "returnType": "Object",
       "parameters": [
@@ -3739,17 +3824,6 @@
         {"name": "index", "type": "Int32"}
       ],
       "documentation": "Return element at index 'i' in 'list'",
-      "source": ""
-    },
-    {
-      "name": "Get",
-      "signature": "String Get(Vector<String> object, Int32 index)",
-      "returnType": "String",
-      "parameters": [
-        {"name": "object", "type": "Vector<String>"},
-        {"name": "index", "type": "Int32"}
-      ],
-      "documentation": "Return the element at 'index' in the vector",
       "source": ""
     },
     {
@@ -8718,17 +8792,14 @@
     },
     {
       "name": "Item_ShipType",
-      "signature": "Item Item_ShipType(Double value, Uint32 seed, Float capacity, Float compactness, Float integrity, Float propulsion, Float systems, Float turrets)",
+      "signature": "Item Item_ShipType(Double value, Uint32 seed, Float capacity, Float compactness, Float integrity)",
       "returnType": "Item",
       "parameters": [
         {"name": "value", "type": "Double"},
         {"name": "seed", "type": "Uint32"},
         {"name": "capacity", "type": "Float"},
         {"name": "compactness", "type": "Float"},
-        {"name": "integrity", "type": "Float"},
-        {"name": "propulsion", "type": "Float"},
-        {"name": "systems", "type": "Float"},
-        {"name": "turrets", "type": "Float"}
+        {"name": "integrity", "type": "Float"}
       ],
       "documentation": "None",
       "source": ""
@@ -10264,6 +10335,16 @@
       "signature": "ShaderInstance Material_Metal()",
       "returnType": "ShaderInstance",
       "parameters": [
+      ],
+      "documentation": "None",
+      "source": ""
+    },
+    {
+      "name": "Material_Metal_Diffuse",
+      "signature": "ShaderInstance Material_Metal_Diffuse(Texture diffuse)",
+      "returnType": "ShaderInstance",
+      "parameters": [
+        {"name": "diffuse", "type": "Texture"}
       ],
       "documentation": "None",
       "source": ""
@@ -13503,10 +13584,14 @@
     },
     {
       "name": "Object_Star",
-      "signature": "Object Object_Star(Color color)",
+      "signature": "Object Object_Star(Color color, Float brightness, Float radius, Float pulseSpeed, Float pulseAmplitude)",
       "returnType": "Object",
       "parameters": [
-        {"name": "color", "type": "Color"}
+        {"name": "color", "type": "Color"},
+        {"name": "brightness", "type": "Float"},
+        {"name": "radius", "type": "Float"},
+        {"name": "pulseSpeed", "type": "Float"},
+        {"name": "pulseAmplitude", "type": "Float"}
       ],
       "documentation": "None",
       "source": ""
@@ -15316,6 +15401,18 @@
     },
     {
       "name": "Set",
+      "signature": "void Set(Vector<String> object, Int32 index, String element)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "object", "type": "Vector<String>"},
+        {"name": "index", "type": "Int32"},
+        {"name": "element", "type": "String"}
+      ],
+      "documentation": "Set the number of elements in the vector",
+      "source": ""
+    },
+    {
+      "name": "Set",
       "signature": "void Set(Vector<SaveSlotInfo> object, Int32 index, SaveSlotInfo element)",
       "returnType": "void",
       "parameters": [
@@ -15372,18 +15469,6 @@
         {"name": "elem", "type": "Data"}
       ],
       "documentation": "Set element at index 'i' in 'list' to 'elem'",
-      "source": ""
-    },
-    {
-      "name": "Set",
-      "signature": "void Set(Vector<String> object, Int32 index, String element)",
-      "returnType": "void",
-      "parameters": [
-        {"name": "object", "type": "Vector<String>"},
-        {"name": "index", "type": "Int32"},
-        {"name": "element", "type": "String"}
-      ],
-      "documentation": "Set the number of elements in the vector",
       "source": ""
     },
     {
@@ -16216,6 +16301,16 @@
     },
     {
       "name": "Size",
+      "signature": "Int32 Size(Vector<String> object)",
+      "returnType": "Int32",
+      "parameters": [
+        {"name": "object", "type": "Vector<String>"}
+      ],
+      "documentation": "Return the number of elements in the vector",
+      "source": ""
+    },
+    {
+      "name": "Size",
       "signature": "Int32 Size(Vector<SaveSlotInfo> object)",
       "returnType": "Int32",
       "parameters": [
@@ -16262,16 +16357,6 @@
         {"name": "list", "type": "List"}
       ],
       "documentation": "Return the number of elements in 'list'",
-      "source": ""
-    },
-    {
-      "name": "Size",
-      "signature": "Int32 Size(Vector<String> object)",
-      "returnType": "Int32",
-      "parameters": [
-        {"name": "object", "type": "Vector<String>"}
-      ],
-      "documentation": "Return the number of elements in the vector",
       "source": ""
     },
     {
@@ -18788,6 +18873,16 @@
       "source": ""
     },
     {
+      "name": "WeaponType_SetOverride",
+      "signature": "void WeaponType_SetOverride(String className)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "className", "type": "String"}
+      ],
+      "documentation": "None",
+      "source": ""
+    },
+    {
       "name": "Widget",
       "signature": "Widget Widget_Create()",
       "returnType": "Widget",
@@ -20535,6 +20630,33 @@
       "documentation": ""
     },
     {
+      "name": "Texture2DT",
+      "description": "",
+      "fields": [
+      ],
+      "methods": [
+      ],
+      "documentation": ""
+    },
+    {
+      "name": "Texture",
+      "description": "unknown type",
+      "fields": [
+      ],
+      "methods": [
+      ],
+      "documentation": ""
+    },
+    {
+      "name": "unknown type",
+      "description": "",
+      "fields": [
+      ],
+      "methods": [
+      ],
+      "documentation": ""
+    },
+    {
       "name": "MessageLink",
       "description": "",
       "fields": [
@@ -21139,6 +21261,68 @@
     },
     {
       "name": "Vec2",
+      "description": "",
+      "fields": [
+      ],
+      "methods": [
+      ],
+      "documentation": ""
+    },
+    {
+      "name": "Vector<String>",
+      "description": "unknown type",
+      "fields": [
+      ],
+      "methods": [
+    {
+      "name": "Append",
+      "signature": "void Append(Vector<String> object, String element)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "object", "type": "Vector<String>"},
+        {"name": "element", "type": "String"}
+      ],
+      "documentation": "Append 'element' to the back of the vector",
+      "source": ""
+    },
+    {
+      "name": "Get",
+      "signature": "String Get(Vector<String> object, Int32 index)",
+      "returnType": "String",
+      "parameters": [
+        {"name": "object", "type": "Vector<String>"},
+        {"name": "index", "type": "Int32"}
+      ],
+      "documentation": "Return the element at 'index' in the vector",
+      "source": ""
+    },
+    {
+      "name": "Size",
+      "signature": "Int32 Size(Vector<String> object)",
+      "returnType": "Int32",
+      "parameters": [
+        {"name": "object", "type": "Vector<String>"}
+      ],
+      "documentation": "Return the number of elements in the vector",
+      "source": ""
+    },
+    {
+      "name": "Set",
+      "signature": "void Set(Vector<String> object, Int32 index, String element)",
+      "returnType": "void",
+      "parameters": [
+        {"name": "object", "type": "Vector<String>"},
+        {"name": "index", "type": "Int32"},
+        {"name": "element", "type": "String"}
+      ],
+      "documentation": "Set the number of elements in the vector",
+      "source": ""
+    }
+      ],
+      "documentation": ""
+    },
+    {
+      "name": "unknown type",
       "description": "",
       "fields": [
       ],
@@ -23222,68 +23406,6 @@
       "documentation": ""
     },
     {
-      "name": "Vector<String>",
-      "description": "unknown type",
-      "fields": [
-      ],
-      "methods": [
-    {
-      "name": "Append",
-      "signature": "void Append(Vector<String> object, String element)",
-      "returnType": "void",
-      "parameters": [
-        {"name": "object", "type": "Vector<String>"},
-        {"name": "element", "type": "String"}
-      ],
-      "documentation": "Append 'element' to the back of the vector",
-      "source": ""
-    },
-    {
-      "name": "Get",
-      "signature": "String Get(Vector<String> object, Int32 index)",
-      "returnType": "String",
-      "parameters": [
-        {"name": "object", "type": "Vector<String>"},
-        {"name": "index", "type": "Int32"}
-      ],
-      "documentation": "Return the element at 'index' in the vector",
-      "source": ""
-    },
-    {
-      "name": "Size",
-      "signature": "Int32 Size(Vector<String> object)",
-      "returnType": "Int32",
-      "parameters": [
-        {"name": "object", "type": "Vector<String>"}
-      ],
-      "documentation": "Return the number of elements in the vector",
-      "source": ""
-    },
-    {
-      "name": "Set",
-      "signature": "void Set(Vector<String> object, Int32 index, String element)",
-      "returnType": "void",
-      "parameters": [
-        {"name": "object", "type": "Vector<String>"},
-        {"name": "index", "type": "Int32"},
-        {"name": "element", "type": "String"}
-      ],
-      "documentation": "Set the number of elements in the vector",
-      "source": ""
-    }
-      ],
-      "documentation": ""
-    },
-    {
-      "name": "unknown type",
-      "description": "",
-      "fields": [
-      ],
-      "methods": [
-      ],
-      "documentation": ""
-    },
-    {
       "name": "WarpT",
       "description": "",
       "fields": [
@@ -23312,33 +23434,6 @@
     },
     {
       "name": "BoundT",
-      "description": "",
-      "fields": [
-      ],
-      "methods": [
-      ],
-      "documentation": ""
-    },
-    {
-      "name": "Texture2DT",
-      "description": "",
-      "fields": [
-      ],
-      "methods": [
-      ],
-      "documentation": ""
-    },
-    {
-      "name": "Texture",
-      "description": "unknown type",
-      "fields": [
-      ],
-      "methods": [
-      ],
-      "documentation": ""
-    },
-    {
-      "name": "unknown type",
       "description": "",
       "fields": [
       ],

@@ -1,0 +1,258 @@
+{
+  "_docs": {
+    "overview": "Ship and weapon configuration. Ship archetypes are selected by the `value` budget argument (RU). Weapon classes are selected via weighted random from probability values. All values mirror current C++ hardcoded defaults — Phase 1 is read-only (no behavior change).",
+    "schema_version": 1,
+    "how_to_use": "C++ factories (ShipType.cpp, WeaponType.cpp) read these values at ship creation time. Archetype overrides defaults per value range. Weapon class probabilities control which weapon types are generated.",
+    "field_reference": {
+      "defaults.hullValueRatio": "Fraction of total budget allocated to hull (0.6 = 60%)",
+      "defaults.shieldValueRatio": "Fraction of remaining budget allocated to shield (0.3 = 30% of non-hull)",
+      "defaults.scannerValue": "Fixed scanner value in RU (always allocated, not subtracted from budget)",
+      "defaults.thrusterCount": "Base thruster pair count (directional thrusters added on top)",
+      "defaults.turretCount": "Number of turret sockets on hull surface",
+      "defaults.material": "Hull material (Metal only — procedural texture)",
+      "defaults.meshQuality": "PlateMesh quality (12 = current)",
+      "defaults.shieldChargeTime": "Seconds to fully recharge depleted shield",
+      "defaults.shieldRestoreFraction": "Fraction of max shield HP restored on recharge tick",
+      "defaults.shieldColor": "RGB tint for shield ripple shader",
+      "defaults.shieldIdleOpacity": "0 = invisible when not hit (current), >0 = visible field",
+      "defaults.hullTint": "RGB multiplier for hull albedo (Phase 3 — not yet wired)",
+      "defaults.thrusterColor": "RGB for thruster trail and glow (Phase 3 — not yet wired)",
+      "shipArcheTypes.*.valueRange": "[min, max] budget in RU. Archetype auto-selected by value.",
+      "shipArcheTypes.*.compactnessMult": "Mass multiplier. Higher = lighter = more agile.",
+      "shipArcheTypes.*.integrityMult": "Hull health multiplier. More HP = survives longer.",
+      "shipArcheTypes.*.armorRating": "Flat damage reduction per hit.",
+      "shipArcheTypes.*.shieldIntegrityMult": "Shield health multiplier. 0 = no shield.",
+      "shipArcheTypes.*.turretCount": "Number of turret hardpoints (overrides default).",
+      "weaponClasses.*.ammoProbabilityMult": "Weight for class selection. 0 = disabled. Sum need not be 1.",
+      "weaponClasses.*.magazineSizeMult": "Magazine capacity multiplier (0 = no magazine).",
+      "weaponClasses.*.magazineProbability": "Chance weapon has a magazine (0-1).",
+      "weaponClasses.*.powerDrainMult": "Power consumption multiplier.",
+      "weaponClasses.*.rateMult": "Fire rate multiplier.",
+      "weaponClasses.*.spreadMult": "Accuracy spread multiplier (0 = pinpoint).",
+      "weaponClasses.*.weightMult": "Mass contribution multiplier.",
+      "weaponClasses.*.ammoDamageMult": "Base damage multiplier.",
+      "weaponClasses.*.ammoLifeMult": "Projectile lifetime multiplier.",
+      "weaponClasses.*.ammoSpeedMult": "Projectile velocity multiplier.",
+      "balance.armorDamageReduction": "Percentage reduction per armor rating point (0.05 = 5%).",
+      "balance.maxArmorRating": "Cap for armor stacking (prevents invulnerability)."
+    }
+  },
+
+  "version": 1,
+
+  "defaults": {
+    "hullValueRatio": 0.6,
+    "shieldValueRatio": 0.3,
+    "scannerValue": 1000,
+    "thrusterCount": 2,
+    "turretCount": 4,
+    "material": "Metal",
+    "meshQuality": 12,
+    "shieldChargeTime": 60.0,
+    "shieldRestoreFraction": 0.25,
+    "shieldColor": [0.3, 0.6, 1.8],
+    "shieldIdleOpacity": 0.0,
+    "hullTint": [1.0, 1.0, 1.0],
+    "thrusterColor": [1.0, 0.4, 0.1]
+  },
+
+  "hullTextures": {
+    "sets": [
+      {
+        "name": "metal_plate",
+        "diffuse": "metal_plate_diffuse.jpg",
+        "specular": "metal_plate_specular.jpg",
+        "description": "Smooth plate panels with subtle panel lines."
+      },
+      {
+        "name": "metal_panel",
+        "diffuse": "metal_panel_diffuse.jpg",
+        "specular": "metal_panel_specular.jpg",
+        "metallic": "metal_panel_metallic.jpg",
+        "description": "Segmented panels with visible bolt patterns."
+      },
+      {
+        "name": "metal_panel_gray",
+        "diffuse": "metal_panel_diffuse_gray.jpg",
+        "specular": "metal_panel_specular.jpg",
+        "metallic": "metal_panel_metallic.jpg",
+        "description": "Gray variant of segmented panels."
+      },
+      {
+        "name": "metal_panel_green",
+        "diffuse": "metal_panel_diffuse_green.jpg",
+        "specular": "metal_panel_specular.jpg",
+        "metallic": "metal_panel_metallic.jpg",
+        "description": "Green-tinted panel variant."
+      },
+      {
+        "name": "metal_rivet",
+        "diffuse": "metal_rivet_diffuse.jpg",
+        "specular": "metal_rivet_specular.jpg",
+        "description": "Heavy rivet-studded armor plating."
+      }
+    ]
+  },
+
+  "shipArcheTypes": {
+    "scout": {
+      "name": "Scout",
+      "valueRange": [5000, 15000],
+      "capacityMult": 0.5,
+      "compactnessMult": 0.7,
+      "integrityMult": 0.6,
+      "armorRating": 0,
+      "shieldIntegrityMult": 0.5,
+      "turretCount": 1,
+      "hullTint": [0.8, 0.9, 1.0],
+      "thrusterColor": [0.4, 0.7, 1.0],
+      "description": "Fast, lightly armored scout vessel. Low hull, minimal shields, high agility."
+    },
+    "fighter": {
+      "name": "Fighter",
+      "valueRange": [10000, 50000],
+      "capacityMult": 1.0,
+      "compactnessMult": 1.0,
+      "integrityMult": 1.0,
+      "armorRating": 1,
+      "shieldIntegrityMult": 1.0,
+      "turretCount": 2,
+      "hullTint": [1.0, 1.0, 1.0],
+      "thrusterColor": [1.0, 0.4, 0.1],
+      "description": "Standard combat fighter. Balanced hull, shields, and maneuverability."
+    },
+    "corvette": {
+      "name": "Corvette",
+      "valueRange": [50000, 150000],
+      "capacityMult": 1.2,
+      "compactnessMult": 1.1,
+      "integrityMult": 1.8,
+      "armorRating": 3,
+      "shieldIntegrityMult": 1.5,
+      "turretCount": 4,
+      "hullTint": [0.9, 0.9, 0.95],
+      "thrusterColor": [1.0, 0.5, 0.2],
+      "description": "Light combat vessel. Heavier than a fighter, tougher hull, more hardpoints."
+    },
+    "freighter": {
+      "name": "Freighter",
+      "valueRange": [80000, 300000],
+      "capacityMult": 3.0,
+      "compactnessMult": 1.3,
+      "integrityMult": 1.5,
+      "armorRating": 2,
+      "shieldIntegrityMult": 1.0,
+      "turretCount": 2,
+      "hullTint": [0.85, 0.8, 0.7],
+      "thrusterColor": [0.8, 0.6, 0.3],
+      "description": "Cargo hauler. Large capacity, moderate armor, slow and heavy."
+    },
+    "cruiser": {
+      "name": "Cruiser",
+      "valueRange": [200000, 800000],
+      "capacityMult": 1.5,
+      "compactnessMult": 1.2,
+      "integrityMult": 2.5,
+      "armorRating": 5,
+      "shieldIntegrityMult": 2.0,
+      "turretCount": 6,
+      "hullTint": [0.7, 0.75, 0.85],
+      "thrusterColor": [0.5, 0.6, 1.0],
+      "description": "Mid-size combat vessel. Strong armor, good shields, multiple weapon arcs."
+    },
+    "battleship": {
+      "name": "Battleship",
+      "valueRange": [800000, 3000000],
+      "capacityMult": 2.0,
+      "compactnessMult": 1.5,
+      "integrityMult": 4.0,
+      "armorRating": 8,
+      "shieldIntegrityMult": 3.0,
+      "turretCount": 8,
+      "hullTint": [0.6, 0.6, 0.7],
+      "thrusterColor": [0.3, 0.5, 1.0],
+      "description": "Heavy warship. Massive armor, strong shields, many turrets. Slow but devastating."
+    },
+    "capital": {
+      "name": "Capital Ship",
+      "valueRange": [3000000, 10000000],
+      "capacityMult": 4.0,
+      "compactnessMult": 2.0,
+      "integrityMult": 6.0,
+      "armorRating": 12,
+      "shieldIntegrityMult": 5.0,
+      "turretCount": 12,
+      "hullTint": [0.5, 0.5, 0.6],
+      "thrusterColor": [0.2, 0.4, 0.8],
+      "description": "Massive capital ship. Maximum armor and shields, overwhelming firepower. Very slow."
+    }
+  },
+
+  "weaponClasses": {
+    "beam": {
+      "ammoProbabilityMult": 0.15,
+      "magazineSizeMult": 0,
+      "magazineProbability": 0,
+      "powerDrainMult": 5,
+      "rateMult": 1,
+      "spreadMult": 0,
+      "weightMult": 5,
+      "ammoDamageMult": 5,
+      "ammoLifeMult": 2.5,
+      "ammoSpeedMult": 1e10,
+      "description": "Continuous energy beam. High damage, high power draw, no spread."
+    },
+    "missile": {
+      "ammoProbabilityMult": 0.10,
+      "magazineSizeMult": 0,
+      "magazineProbability": 0,
+      "powerDrainMult": 0,
+      "rateMult": 0.2,
+      "spreadMult": 1,
+      "weightMult": 3,
+      "ammoDamageMult": 20,
+      "ammoLifeMult": 10,
+      "ammoSpeedMult": 1,
+      "description": "Guided missile. Fires every ~5s, high damage, long range, tracks target."
+    },
+    "pulse": {
+      "ammoProbabilityMult": 0.60,
+      "magazineSizeMult": 6,
+      "magazineProbability": 0.1,
+      "powerDrainMult": 2,
+      "rateMult": 1,
+      "spreadMult": 2,
+      "weightMult": 2,
+      "ammoDamageMult": 2,
+      "ammoLifeMult": 1.25,
+      "ammoSpeedMult": 1,
+      "description": "Energy pulse. Fast fire rate, moderate damage, short-medium range."
+    },
+    "rail": {
+      "ammoProbabilityMult": 0.15,
+      "magazineSizeMult": 10,
+      "magazineProbability": 0.9,
+      "powerDrainMult": 1,
+      "rateMult": 1,
+      "spreadMult": 5,
+      "weightMult": 1,
+      "ammoDamageMult": 1,
+      "ammoLifeMult": 1,
+      "ammoSpeedMult": 1e10,
+      "description": "Kinetic rail round. Instant hit, high velocity, long range, low damage per shot."
+    }
+  },
+
+  "balance": {
+    "magazineTimeRange": [6, 10],
+    "weaponIntegrity": 100,
+    "weaponScale": 0.5,
+    "weaponOffset": [0, 0.5, 4],
+    "armorDamageReduction": 0.05,
+    "maxArmorRating": 20,
+    "thrusterDirectionalScale": 0.25,
+    "thrusterAttempts": 10,
+    "thrusterTolerance": 0.8,
+    "turretAttempts": 100
+  }
+}

@@ -38,7 +38,7 @@
     "brightnessRange": [0.8, 1.2],
     "radiusRange": [0.9, 1.1],
     "starFieldRange": [75000, 150000],
-    "pulseSpeedRange": [0.3, 1.5],
+    "pulseSpeedRange": [0.2, 1.0],
     "pulseAmplitudeRange": [0.0, 0.15]
   }
 }

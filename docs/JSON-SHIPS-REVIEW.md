@@ -56,6 +56,7 @@ as 1. Returns `Item` (Reference<ItemT>).
 |-----------|-------|-------|
 | Hull value fraction | 60% of budget | ShipType.cpp:191 |
 | Scanner value | 1000.0 (fixed) | ShipType.cpp:189 |
+| Scanner subtracted from budget | **NO** — line 190 is commented out | ShipType.cpp:190 |
 | Thruster count | 2 base pairs + directional extras | ShipType.cpp:214 |
 | Turret count | 4 (args.turrets ignored) | ShipType.cpp:215 |
 | Generator count | `int(rng(1,2) + logScale)` | ShipType.cpp:216 |
@@ -64,6 +65,32 @@ as 1. Returns `Item` (Reference<ItemT>).
 | Turret placement attempts | 100 per turret | ShipType.cpp:240+ |
 | Ship name | Always "Ship" | ShipType.cpp:260 |
 | Material | `Material_Metal` | ShipType.cpp:209 |
+
+### 1.3a Thruster Value Formula
+
+The thruster budget is NOT a fixed fraction — it's inversely scaled by
+ship size:
+
+```
+thrusterValue = Saturate(0.5 / Sqrt(Sqrt(valueRemaining / 10000.0)))
+                * valueRemaining
+```
+
+| Value | valueRemaining (after hull) | Thruster ratio | Thruster RU | Generator RU |
+|-------|---------------------------|----------------|-------------|--------------|
+| 10,000 | 4,000 | 50.0% | 2,000 | 2,000 |
+| 100,000 | 40,000 | 34.3% | 13,726 | 26,274 |
+| 1,000,000 | 400,000 | 18.7% | 74,787 | 325,213 |
+| 10,000,000 | 4,000,000 | 10.0% | 400,000 | 3,600,000 |
+
+Result: Small ships (fighters) get roughly equal thruster/generator budgets,
+while large ships (battleships/capitals) get 90% generator and only 10%
+thruster — consistent with them being slow and energy-heavy.
+
+**Decision:** This formula stays in C++ — it's a smooth curve that doesn't
+benefit from being data-driven. JSON controls the `compactnessMult` which
+is the primary maneuverability lever; the thruster ratio is an emergent
+property of ship size.
 
 ### 1.4 Dead Parameters
 
@@ -133,10 +160,16 @@ Item_WeaponType(int id)
 | Integrity | 100 (fixed) | WeaponType.cpp:186 |
 | Scale | 0.5 (fixed) | WeaponType.cpp:187 |
 | Offset | V3(0, 0.5, 4) (fixed) | WeaponType.cpp:188 |
-| Magazine time | `Round(rng(6, 10))` if uses > 0 | WeaponType.cpp:189 |
-| Rate boost | 1.5× if weapon has magazine | WeaponType.cpp:190 |
-| Name | Generated via `Grammar_Get "$weapon"` | WeaponType.cpp |
-| Sound | Only Pulse weapons get sound (6 hardcoded .ogg files) | WeaponType.cpp |
+| Magazine time | `Round(rng(6, 10))` if uses > 0 | WeaponType.cpp:223 |
+| Rate boost | 1.5× if weapon has magazine | WeaponType.cpp:233 |
+| Name | Generated via `Grammar_Get "$weapon"` | WeaponType.cpp:214 |
+| Sound | Only Pulse weapons get sound (6 hardcoded .ogg files) | WeaponType.cpp:192-201 |
+| Fire volume | 0.1 (very quiet — §13 root cause) | WeaponType.cpp:90 |
+| Color formula | `0.25 * White + HSV(rng, 0.6-0.99 sat, 0.2-0.6 val)` | WeaponType.cpp:166-169 |
+
+The color formula is HSL-based: starts with a desaturated white base and
+adds a seeded random hue. Not data-driven — could be per-class in Phase 2
+but currently produces similar colors for all weapon types.
 
 ### 2.5 Instantiation (line 141–145)
 
@@ -354,7 +387,10 @@ PlateMesh via iterative box placement with bilateral symmetry.
 
 ---
 
-## 11. What ships.json Would Cover
+## 11. ships.json — Schema & Implementation Plan
+
+**Status:** JSON file created (`resource/gamedata/ships.json`, schema v1).
+C++ wiring not yet implemented — see Migration Strategy below.
 
 ### Scope Decision: ALL Ships
 
@@ -612,18 +648,16 @@ Cargo adds mass every frame, degrading all maneuverability.
 
 ### C++ Changes Required
 
-1. **`ShipType.cpp`** — Read `defaults` and `shipArcheTypes` from
-   `ships.json` instead of hardcoded ratios. The archetype selection
-   would be based on the `value` argument falling within an archetype's
-   `valueRange`. Dead parameters (`propulsion`, `systems`, `turrets`)
-   would be removed. Armor rating applied as damage reduction in
-   `ApplyDamage`. Shield integrityMult passed to `Item_ShieldType`.
+1. **✅ `ShipType.cpp`** — Reads `defaults` and `shipArcheTypes` from
+   `ships.json` via DatabaseManager. Archetype matched by `valueRange`.
+   Multipliers (`capacityMult`, `compactnessMult`, `integrityMult`)
+   applied on top of user args. `turretCount` overridable per archetype.
+   Dead parameters kept in Args for LTSL backward compat.
 
-2. **`WeaponType.cpp`** — Read `weaponClasses` and `balance` from
-   `ships.json` (or separate `weapons.json`) instead of hardcoded `k*`
-   arrays. Weapon class selection would use the `probability` field
-   instead of the rigged `kAmmoProbabilityMult`. `effectiveRange`
-   added to weapon damage falloff calculation.
+2. **✅ `WeaponType.cpp`** — Reads `weaponClasses` from `ships.json`.
+   Multiplier tables loaded once via `LoadWeaponClassTables()`.
+   Hardcoded defaults used if JSON unavailable. `kAmmoProbabilityMult`
+   now data-driven (still 100% Pulse in default config).
 
 3. **`StationType.cpp`** — Read from `stations.json` (separate file)
    instead of hardcoded `dockCapacity = 100`.
@@ -642,10 +676,12 @@ Cargo adds mass every frame, degrading all maneuverability.
 
 ### Migration Strategy
 
-**Phase 1: Read-only (no behavior change)**
-- Create `ships.json` with current hardcoded values as defaults
-- C++ factories read from JSON, fall back to hardcoded values on missing
-- All existing apps produce identical results
+**Phase 1: Read-only (no behavior change) — COMPLETE**
+- ✅ Create `ships.json` with current hardcoded values as defaults
+- ✅ ShipType.cpp reads `defaults` + `shipArcheTypes` from JSON, falls back to hardcoded on missing
+- ✅ WeaponType.cpp reads `weaponClasses` from JSON, falls back to hardcoded on missing
+- ⬜ Remove dead parameters (`propulsion`, `systems`, `turrets`) from Args structs and LTSL bindings
+- ✅ All existing apps produce identical results (1009 checks, 0 failures; ltheory-main verified)
 
 **Phase 2: Enable new archetypes + weapons**
 - Add new ship archetypes (scout, corvette, freighter, battleship)
@@ -1079,3 +1115,131 @@ sound, the entire combat audio is nearly silent.
 | `ship/damage_loop.ogg` | Ambient damage at low health | Hissing/sparking loop |
 | `weapon/beam_fire.ogg` | (existing) `weapon/beam1_fire.wav` | Continuous beam |
 | `weapon/beam_loop.ogg` | (existing) `weapon/beam1_loop.wav` | Beam sustain |
+
+---
+
+## 14. Recommended Engine Changes — Tier 1-3
+
+This section documents the remaining gaps between the ships.json schema and
+actual engine behavior, organized by implementation priority. Each tier
+groups changes by effort level and impact.
+
+---
+
+### Tier 1 — Must-Do (Small C++ Changes)
+
+These are the minimum changes needed to call ships "done" from a JSON
+standpoint. Each is self-contained and testable.
+
+| # | Gap | File | What | Effort |
+|---|-----|------|------|--------|
+| 1.1 | **Shield creation in Instantiate()** | `ShipType.cpp:101` | `shieldValueRatio` is read from JSON but `shieldValue` is hardcoded to `0.0` (line 293). `Instantiate()` must compute shieldValue from the budget split and create + plug an `Item_ShieldType`. Remove LTSL shield creation from `ltheory-main.lts`. | 1 day |
+| 1.2 | **Wire `armorRating`** | `Damager.cpp` | `armorRating` exists in ships.json per-archetype but is never read. `Damager::Hit()` should apply: `damage = Max(1, damage - armorRating * armorDamageReduction)`. JSON `balance.armorDamageReduction = 0.05`. | 1 day |
+| 1.3 | **Hull tint via shader uniform** | `metal.jsl`, `Materials.cpp` | `hullTint` exists in ships.json per-archetype but has no shader uniform. Add `uniform vec3 hullTint` to `metal.jsl`, pass from `ShipType` via material. | 1 day |
+| 1.4 | **Ship name from archetype** | `ShipType.cpp:306` | Ship is always named "Ship". Should read `name` from archetype JSON (e.g. "Fighter", "Cruiser"). | 0.5 day |
+| 1.5 | **Balance knobs from JSON** | `ShipType.cpp:35-37` | `kThrusterAttempts`, `kTurretAttempts`, `kThrusterTolerance` are hardcoded constants. Read from `ships.json balance` section. | 0.5 day |
+
+### Tier 2 — Important (Medium C++)
+
+These improve gameplay variety and data-driven control but are not blocking
+basic functionality.
+
+| # | Gap | File | What | Effort |
+|---|-----|------|------|--------|
+| 2.1 | **`ShipType_GetArchetype(name)` binding** | `ShipType.cpp` | New LTSL binding returns an `Item` configured from a named archetype. Apps call `ShipType_GetArchetype "fighter"` instead of `Item_ShipType 10000 20 1 1 1`. Requires reading the archetype's `valueRange` midpoint for the value budget. | 2 days |
+| 2.2 | **Thruster color per-archetype** | `ThrusterType.cpp` | `thrusterColor` exists in JSON but thrusters are always hardcoded orange `Color(1.0, 0.4, 0.1)`. Thread color through `Item_ThrusterType` and into `Thruster.cpp` render. | 1-2 days |
+| 2.3 | **Shield runtime params** | `Shield.cpp:33-34` | `kChargeTime = 60` and `kRestoreFraction = 0.25` are hardcoded. Read `shieldChargeTime` and `shieldRestoreFraction` from ship archetype JSON. Requires Shield to store reference to its ship type's config. | 2 days |
+| 2.4 | **Weapon effectiveRange falloff** | `Weapon.cpp` | `effectiveRange` is read per weapon class but never applied. Beyond `effectiveRange`, damage should fall off by `1.0 / (1.0 + distance / effectiveRange)`. | 1 day |
+| 2.5 | **Station JSON wiring** | `StationType.cpp` | `Item_StationType_Args` has dead params `systems`/`turrets`. Create `stations.json` with dock capacity, name, mass multiplier. | 1-2 days |
+
+### Tier 3 — Polish (Higher Effort)
+
+Visual and audio improvements that make ships feel alive.
+
+| # | Gap | File | What | Effort |
+|---|-----|------|------|--------|
+| 3.1 | **Shield idle visualization** | `Shield.cpp`, new `shield_idle.jsl` | Shield is invisible when not being hit. Add optional visible energy field at rest using `shieldIdleOpacity` from JSON. New shader pass. | 3-5 days |
+| 3.2 | **Shield color variety** | `Shield.cpp`, `shield.jsl` | Shield ripple color is always blue `(0.3, 0.6, 1.8)`. Read `shieldColor` from ship archetype and pass as uniform. | 1 day |
+| 3.3 | **Weapon value scaling** | `WeaponType.cpp` | Weapon damage/stats should scale with the ship's value bracket, not just random seed. | 2 days |
+| 3.4 | **Hull hit sound** | `Damager.cpp` | No `Sound_Play3D` on hull impact (only shield hits have audio). Add metallic impact sound. | 0.5 day |
+| 3.5 | **Physics impulse on hit** | `Damager.cpp` | No `ApplyForce`/`ApplyTorque` from weapon impacts. Ships don't react to being hit. | 1-2 days |
+| 3.6 | **Asteroid destructibility** | `Asteroid.cpp` | Asteroids have no `Integrity` or `Explodable` component — damage is silently discarded. Add health so asteroids can be destroyed. | 2 days |
+
+---
+
+### Current JSON Field Wiring Status
+
+| Field | Read in C++ | Actually Used | Notes |
+|-------|-------------|---------------|-------|
+| `defaults.hullValueRatio` | ✅ ShipType.cpp:253 | ✅ Budget split | — |
+| `defaults.shieldValueRatio` | ✅ ShipType.cpp:254 | ❌ shieldValue=0.0 | **Tier 1.1** |
+| `defaults.scannerValue` | ✅ ShipType.cpp:255 | ✅ Scanner item | — |
+| `defaults.thrusterCount` | ✅ ShipType.cpp:256 | ✅ Socket count | — |
+| `defaults.turretCount` | ✅ ShipType.cpp:257 | ✅ Socket count | — |
+| `defaults.shieldChargeTime` | ❌ Not read | ❌ Hardcoded 60 | **Tier 2.3** |
+| `defaults.shieldRestoreFraction` | ❌ Not read | ❌ Hardcoded 0.25 | **Tier 2.3** |
+| `defaults.shieldColor` | ❌ Not read | ❌ Hardcoded blue | **Tier 3.2** |
+| `defaults.shieldIdleOpacity` | ❌ Not read | ❌ Always 0 | **Tier 3.1** |
+| `defaults.hullTint` | ❌ Not read | ❌ No uniform | **Tier 1.3** |
+| `defaults.thrusterColor` | ❌ Not read | ❌ Hardcoded orange | **Tier 2.2** |
+| `archetypes.*.capacityMult` | ✅ ShipType.cpp:268 | ✅ Capacity calc | — |
+| `archetypes.*.compactnessMult` | ✅ ShipType.cpp:269 | ✅ Mass calc | — |
+| `archetypes.*.integrityMult` | ✅ ShipType.cpp:270 | ✅ Health calc | — |
+| `archetypes.*.shieldIntegrityMult` | ✅ ShipType.cpp:271 | ❌ printf only | **Tier 1.1** |
+| `archetypes.*.armorRating` | ❌ Not read | ❌ No damage mod | **Tier 1.2** |
+| `archetypes.*.turretCount` | ✅ ShipType.cpp:272 | ✅ Socket count | — |
+| `archetypes.*.hullTint` | ❌ Not read | ❌ | **Tier 1.3** |
+| `archetypes.*.thrusterColor` | ❌ Not read | ❌ | **Tier 2.2** |
+| `archetypes.*.name` | ❌ Not read | ❌ Ships named "Ship" | **Tier 1.4** |
+| `weaponClasses.*.ammoProbabilityMult` | ✅ WeaponType.cpp | ✅ Class selection | Fixed 2026-08 |
+| `weaponClasses.*.effectiveRange` | ❌ Not read | ❌ No falloff | **Tier 2.4** |
+| `weaponClasses.*.rateMult` | ✅ WeaponType.cpp | ✅ Fire rate | — |
+| `weaponClasses.*.ammoDamageMult` | ✅ WeaponType.cpp | ✅ Damage calc | — |
+| `weaponClasses.*.ammoLifeMult` | ✅ WeaponType.cpp | ✅ Projectile life | — |
+| `weaponClasses.*.ammoSpeedMult` | ✅ WeaponType.cpp | ✅ Projectile speed | — |
+| `weaponClasses.*.spreadMult` | ✅ WeaponType.cpp | ✅ Accuracy | — |
+| `weaponClasses.*.weightMult` | ✅ WeaponType.cpp | ✅ Mass | — |
+| `weaponClasses.*.powerDrainMult` | ✅ WeaponType.cpp | ✅ Energy cost | — |
+| `weaponClasses.*.magazineSizeMult` | ✅ WeaponType.cpp | ✅ Magazine cap | — |
+| `weaponClasses.*.magazineProbability` | ✅ WeaponType.cpp | ✅ Magazine chance | — |
+| `balance.armorDamageReduction` | ❌ Not read | ❌ No armor | **Tier 1.2** |
+| `balance.maxArmorRating` | ❌ Not read | ❌ No armor | **Tier 1.2** |
+
+---
+
+## 15. Ship Viewer — Future Tool
+
+**Status:** Design phase. Not yet implemented.
+
+A lightweight LTSL app that lets developers preview ships by seed value
+without restarting the engine. Designed to help tune archetypes, visually
+verify seed determinism, and compare ship classes.
+
+### 15.1 How It Would Work
+
+1. **Input:** Text field for seed (uint), slider or text field for value (RU).
+2. **Output:** Ship hull rendered in 3D with orbit camera.
+3. **Seed entry:** Type a number, press Enter, ship regenerates from that seed.
+4. **Value entry:** Change the value to shift which archetype is selected.
+5. **Camera:** Orbit around ship center. Mouse drag to rotate, scroll to zoom.
+6. **Info overlay:** Display archetype name, mass, hull HP, scale, weapon count.
+
+### 15.2 Implementation Pattern
+
+Follow the driven app pattern from `ltheory-main.lts`:
+- `type App` with `Initialize` + `Update`
+- Camera + Interface + single ship object
+- TextField for seed input, Button for regenerate
+- Hot-reload on Enter key or button press
+
+### 15.3 Seed Presets
+
+Save a handful of notable seeds (one per archetype) as config entries so
+you can quickly flip between scout/fighter/corvette/etc. without remembering
+the value ranges.
+
+### 15.4 Implementation Effort
+
+~2-3 days. Pure LTSL app, no C++ changes needed. Ships are already
+procedurally generated — the viewer just creates them with user-provided
+parameters and orbits the camera.

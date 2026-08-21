@@ -98,10 +98,11 @@ AutoClassDerived(BeamImpl, Beam,
       WorldRay ray(origin, Normalize(direction + RandV3(-0.01f, 0.01f)));
       targetLength = 0;
       float t;
+      float queryRange = Min(Damager.type->range, 99999.0f);
       hitObject = GetContainer()->QueryInterior(
-        ray, t, Damager.type->range, nullptr, true, RaycastCanCollideBidirectional, this);
+        ray, t, queryRange, nullptr, true, RaycastCanCollideBidirectional, this);
 
-      targetLength = hitObject ? t : Damager.type->range;
+      targetLength = hitObject ? t : queryRange;
       tick = static_cast<int>(Rand(0.9f, 1.1f) * kUpdatePeriod);
     }
 

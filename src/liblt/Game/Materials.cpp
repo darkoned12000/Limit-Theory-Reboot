@@ -110,7 +110,8 @@ ShaderInstance Material_Metal() {
       static Texture2D kDefaultDecal = Texture_Create(1, 1, GL_TextureFormat::RGBA8, &data);
       shader = ShadingModel_Metal(Lookup(g, 0), Lookup(g, 1));
       (*shader)
-        ("decal", kDefaultDecal);
+        ("decalMap", kDefaultDecal)
+        ("useAlbedoColor", 0.0f);
     }
   }
   return shader;
@@ -119,6 +120,22 @@ static Function const Material_Metal_Registration = Function_Bind(
   "Material_Metal",
   "None",
   &Material_Metal);
+
+ShaderInstance Material_Metal_Diffuse(Texture2D const& diffuse) {
+  Generic<Vec<Texture2D, 2> > g = Cached(Bind(FreeFn(GenerateMetal), 1337.0f));
+  ShaderInstance instance = ShadingModel_Metal(diffuse, Lookup(g, 1));
+  int data = 0;
+  static Texture2D kDefaultDecal = Texture_Create(1, 1, GL_TextureFormat::RGBA8, &data);
+  (*instance)
+    ("decalMap", kDefaultDecal)
+    ("useAlbedoColor", 1.0f);
+  return instance;
+}
+static Function const Material_Metal_Diffuse_Registration = Function_Bind(
+  "Material_Metal_Diffuse",
+  "None",
+  &Material_Metal_Diffuse,
+  "diffuse");
 
 
 

@@ -72,7 +72,7 @@ type App
     if true
       var object
         Instantiate
-          Item_ShipType 10.0 ^ (cast Float (Int_Random 5 7)) Int_Random 1 1 1 1 1 1
+          Item_ShipType 10.0 ^ (cast Float (Int_Random 5 7)) Int_Random 1 1 1
       scene += object
 
     if true

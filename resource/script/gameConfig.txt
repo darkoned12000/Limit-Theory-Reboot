@@ -12,10 +12,15 @@
 #                If missing/invalid, ltheory-main falls back to 18.0.
 # playerCredits: starting credits given to the human player.
 # shipHull     : hull/item value passed to Item_ShipType (ship class/strength).
-seed:345546723
+seed:44553377
 loadTime:22.5
 playerCredits:10000
 shipHull:20000
+shipSeed:46750998867
+# weaponOverride: force all weapons to one class for testing.
+#   "none" = mixed (uses probability tables from ships.json)
+#   "beam" / "missile" / "pulse" / "rail" = force that class
+weaponOverride:pulse
 # Toast popup styling (F6/F7 save/load notifications). Colors are per-channel
 # 0..1; bgColor is a dark navy, borderColor the accent strip on the left.
 toastLifetime:5
