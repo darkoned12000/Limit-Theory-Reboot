@@ -1146,7 +1146,7 @@ basic functionality.
 
 | # | Gap | File | What | Effort |
 |---|-----|------|------|--------|
-| 2.1 | **`ShipType_GetArchetype(name)` binding** | `ShipType.cpp` | New LTSL binding returns an `Item` configured from a named archetype. Apps call `ShipType_GetArchetype "fighter"` instead of `Item_ShipType 10000 20 1 1 1`. Requires reading the archetype's `valueRange` midpoint for the value budget. | 2 days |
+| 2.1 | ✅ **`ShipType_GetArchetype(name)` binding** | `ShipType.cpp` | New LTSL binding `ShipType_GetArchetype(name)` (aliased `GetArchetype`) returns an Item from a named archetype. Reads valueRange midpoint, random seed. | ✅ Done |
 | 2.2 | **Thruster color per-archetype** | `ThrusterType.cpp` | `thrusterColor` exists in JSON but thrusters are always hardcoded orange `Color(1.0, 0.4, 0.1)`. Thread color through `Item_ThrusterType` and into `Thruster.cpp` render. | 1-2 days |
 | 2.3 | **Shield runtime params** | `Shield.cpp:33-34` | `kChargeTime = 60` and `kRestoreFraction = 0.25` are hardcoded. Read `shieldChargeTime` and `shieldRestoreFraction` from ship archetype JSON. Requires Shield to store reference to its ship type's config. | 2 days |
 | 2.4 | **Weapon effectiveRange falloff** | `Weapon.cpp` | `effectiveRange` is read per weapon class but never applied. Beyond `effectiveRange`, damage should fall off by `1.0 / (1.0 + distance / effectiveRange)`. | 1 day |

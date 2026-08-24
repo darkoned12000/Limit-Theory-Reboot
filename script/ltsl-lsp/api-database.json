@@ -3859,6 +3859,16 @@
       "source": ""
     },
     {
+      "name": "GetArchetype",
+      "signature": "Item ShipType_GetArchetype(String name)",
+      "returnType": "Item",
+      "parameters": [
+        {"name": "name", "type": "String"}
+      ],
+      "documentation": "Create a ship Item from a named archetype in ships.json. Reads valueRange midpoint for the value budget. Returns an Item (ship type) ready for Instantiate().",
+      "source": ""
+    },
+    {
       "name": "GetAssets",
       "signature": "AssetsIterator Object_GetAssets(Object object)",
       "returnType": "AssetsIterator",
@@ -10350,6 +10360,17 @@
       "source": ""
     },
     {
+      "name": "Material_Metal_Tinted",
+      "signature": "ShaderInstance Material_Metal_Tinted(Texture diffuse, Vec3f tint)",
+      "returnType": "ShaderInstance",
+      "parameters": [
+        {"name": "diffuse", "type": "Texture"},
+        {"name": "tint", "type": "Vec3f"}
+      ],
+      "documentation": "None",
+      "source": ""
+    },
+    {
       "name": "Material_Rock",
       "signature": "ShaderInstance Material_Rock()",
       "returnType": "ShaderInstance",
@@ -16176,6 +16197,16 @@
       "parameters": [
       ],
       "documentation": "None",
+      "source": ""
+    },
+    {
+      "name": "ShipType_GetArchetype",
+      "signature": "Item ShipType_GetArchetype(String name)",
+      "returnType": "Item",
+      "parameters": [
+        {"name": "name", "type": "String"}
+      ],
+      "documentation": "Create a ship Item from a named archetype in ships.json. Reads valueRange midpoint for the value budget. Returns an Item (ship type) ready for Instantiate().",
       "source": ""
     },
     {
