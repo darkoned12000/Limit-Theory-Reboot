@@ -262,56 +262,185 @@ If yes → proceed to Phase 0.5. If no → stay on improved interpreter.
 
 ---
 
-## Phase 0.5: Full Corpus Audit (~1 week)
+## Phase 0.5: Full Corpus Audit — COMPLETE (2026-08-25)
 
-**Before the full rewrite is scoped**, do a complete inventory of every
-distinct LTSL construct actually in use across all 160 scripts. This
-feeds three separate parts of the plan:
+> **Done.** All deliverables below are complete. Feeds Phase 1 (lexer token
+> list), Phase 2 (grammar — especially special forms), Phase 3 (symbol
+> resolver scope), and the `#` migration path.
 
-1. **Breaking-change scope** — especially the `#` block-comment change:
-   if any script uses `#` to disable a whole block (line + deeper-indented
-   lines below it), switching to single-line `#` will cause that block
-   to silently compile and run — the opposite failure mode of everything
-   this project is trying to fix. The audit finds every such occurrence
-   before the lexer is written.
+### Corpus stats
 
-2. **Quirks completeness** — the Appendix B list is a starting point
-   based on a handful of files. The corpus has meaningfully more surface
-   area (every file we haven't looked at directly is a source of unknown
-   behavior). "100% backward compatible" does a lot of unweighted work
-   in the estimate until there's a real inventory.
+- **157 `.lts` files** (after removing 3 dead files in Phase 0)
+- 155 files define functions; 127 files use `var`; 135 files define types
 
-3. **Realistic Phase 2 estimate** — every undocumented quirk is a
-   compatibility landmine that needs explicit discovery. The audit
-   replaces guesswork with a concrete count.
+---
 
-### Audit deliverables
+### A. `#` block-comment audit
 
-| Deliverable | What | Feeds |
+**Engine behavior** (`StringList.cpp:96-117`): a `#` at the start of a line
+(in possibly preceded by whitespace) comments out that line AND all subsequent
+non-empty lines indented MORE than the `#` line. Stops at the first line with
+indent ≤ the `#` line.
+
+**Result:** 495 total `#` occurrences across 157 files.
+
+| Classification | Count | % |
 |---|---|---|
-| Construct inventory | Every distinct LTSL construct (keywords, operators, special forms) used in any `.lts` file | Appendix B, Phase 2 grammar |
-| **Special-forms inventory** | Every engine special form (`@`, `block`, `desc`, `call`, `static`, `ref`, `deref`, `address`, ...) with corpus usage count; gate grammar completion on covering all non-zero forms | Phase 2 grammar (see §Phase 2) |
-| `#` block-comment audit | Every `#` occurrence classified: single-line (safe) vs block-disabling (breaking change) | `#` migration plan below |
-| `@` / `desc` / `block` / `call` / `static` / `ref` / `deref` / `address` usage | Which files use which, how they're used | Phase 1 token list, Phase 2 grammar |
-| Cross-file dependencies | Which scripts reference types/functions defined in other scripts | Phase 3 symbol resolver scope |
+| **SINGLE-LINE** (safe — trailing comment, or followed by same/lesser indent) | 478 | 96.6% |
+| **BLOCK-DISABLING** (breaks if `#` becomes single-line) | 16 | 3.2% |
+| **EMPTY** (`#` alone, no code after, no indented block below) | 1 | 0.2% |
 
-### `#` comment migration strategy
+**Verdict:** Block-comment `#` usage is **rare** (16 occurrences). The
+migration path is: mechanically rewrite the 16 offending files, then
+`#` = single-line only going forward. No need for `##` transition period.
 
-The audit determines the migration path:
+#### BLOCK-DISABLING occurrences (complete list)
 
-- **If block-comment `#` usage is rare** (my guess, based on files
-  reviewed): mechanical one-time rewrite of the handful of offending
-  files, then `#` = single-line comment going forward.
+| # | File:Line | `#` line text | Lines killed | Risk | What's disabled |
+|---|---|---|---|---|---|
+| 1 | `App/widget.lts:31` | `#` | 13 | **HIGH** | F4 settings toggle — entire `if Key_F4.Pressed` block |
+| 2 | `App/brain.lts:96` | `# Add synch node` | 4 | **HIGH** | Right-click synapse handler (`if Mouse_RightPressed`) |
+| 3 | `Widget/Handling.lts:91` | `#` | 5 | **HIGH** | Camera follow-offset math (position decay) |
+| 4 | `Widget/HUD.lts:54` | `# l +=` | 4 | MED | PilotingBadge widget tree |
+| 5 | `Widget/GridList.lts:41` | `#` | 16 | MED | Grid-layout path (cell wrapping, child placement) |
+| 6 | `Widget/GridList.lts:77` | `# l +=` | 6 | MED | GreedyY widget tree |
+| 7 | `Widget/Object/Overview.lts:290` | `# l +=` | 6 | MED | SignatureWidget |
+| 8 | `Widget/DevPanel/Clock.lts:45` | `# l +=` | 3 | MED | Clock icon |
+| 9 | `Widget/DevPanel/Clock.lts:50` | `# Components:Expand` | 4 | MED | Month/year text |
+| 10 | `Widget/Reticle/Default.lts:16` | `# desc "Center Reticle"` | 4 | MED | 2-arc center reticle |
+| 11 | `App/observatory.lts:57` | `# desc "Miners"` | 9 | LOW | Miner-ship spawn block |
+| 12 | `Widget/Spacer.lts:6` | `#` | 3 | LOW | Debug corner dots (SpacerH) |
+| 13 | `Widget/Spacer.lts:19` | `#` | 3 | LOW | Debug corner dots (SpacerV) |
+| 14 | `Widget/ImageEditor.lts:51` | `# image =` | 2 | LOW | Median filter (inside `if false`) |
+| 15 | `Widget/RadialList.lts:9` | `# function List CreateChildren` | 1 | LOW | Old function signature |
+| 16 | `Widget/RadialList.lts:43` | `# function List CreateChildren` | 9 | LOW | Full CreateChildren body |
 
-- **If block-comment `#` usage is common**: give the block-comment
-  behavior a syntactically distinct marker (`##`, say) for a transition
-  period, mechanically migrate every real occurrence to `##`, then drop
-  the ambiguity.
+**HIGH risk** = disables live behavioral logic (3 files). **MED** = disables
+UI/layout (6 files). **LOW** = disables dead/debug code (5 files).
 
-Either way, `#` becomes unambiguous going forward. An opt-in mode where
-`#` means two different things depending on invisible context is a
-smaller version of the exact ambiguity problem (`self.x` vs bare `x`,
-`i.++` vs `(++ i)`) that's already caused real bugs in this project.
+#### Migration path
+
+1. **Rewrite the 16 occurrences** — either uncomment the dead code (if it
+   should live), or convert to explicit deletion / `##` form. Each file is
+   a case-by-case decision.
+2. After rewriting: `#` = single-line comment only, going forward.
+3. No `##` double-hash exists in the corpus today — zero occurrences.
+   If the engine keeps `##` as block-comment syntax, only the 16 rewritten
+   lines need it.
+
+---
+
+### B. Special-forms inventory
+
+**Source of truth:** `Expression.cpp:144-189` — the engine's keyword dispatch
+table. These are NOT ordinary functions; they are prefix keywords parsed
+specially by the interpreter.
+
+| Keyword | Occurrences | Files | Status |
+|---|---|---|---|
+| `var` | 1,567 | 127 | Ubiquitous — most-used keyword |
+| `function` | 902 | 155 | Nearly universal |
+| `=` (assignment) | ~628 | ~101 | Inline assignment form |
+| `if` | 522 | 92 | Heavily used |
+| `for` | 250 | 72 | Heavily used |
+| `switch` | 96 | 54 | Heavily used |
+| `type` | 313 | 135 | Nearly universal |
+| `cast` | 96 | 44 | Heavily used |
+| `otherwise` | 72 | 42 | Used with `switch` |
+| `static` | 70 | 11 | Moderate (mostly Icons.lts + Texture/Filters.lts) |
+| `ref` | 147 | 49 | Heavy — mutable parent→child state |
+| `desc` | 47 | 11 | Moderate — code organization blocks |
+| `deref` | 36 | 16 | Moderate — always paired with `address`/`ref` |
+| `block` | 39 | 3 | Rare (mostly Icons.lts) |
+| `address` | 26 | 11 | Moderate — widget mutable-state pattern |
+| `?` (switch expr) | 29 | 14 | Inline switch expression form |
+| `while` | 15 | 11 | Rare |
+| `else` | 15 | 6 | Rare |
+| `return` | 13 | 7 | Light (revamp-work addition) |
+| `@` (debug print) | 7 | 6 | Debug only |
+| `break` | 3 | 1 | Only ltheory-unitest.lts |
+| **`call`** | **0** | **0** | **UNUSED — can drop from grammar** |
+| **`list`** | **0** | **0** | **UNUSED — can drop from grammar** |
+| **`set`** | **0** | **0** | **UNUSED — only `=` form used** |
+| **`sizeof`** | **0** | **0** | **Does not exist in engine** (no handler in Expression.cpp) |
+| **`typeof`** | **0** | **0** | **Does not exist in engine** (no handler in Expression.cpp) |
+
+**Grammar implications:**
+- 5 keywords can be dropped from the new grammar: `call`, `list`, `set`,
+  `sizeof`, `typeof` (last two don't even have engine handlers).
+- `address`/`deref`/`ref` form a tight cluster (mutable state) — grammar
+  must handle them as a unit.
+- `desc` and `block` both dispatch to `Expression_Block` with different
+  skip counts (2 vs 1) — the parser must model this.
+- `@` is a prefix operator (not a function call) — the lexer must recognize
+  it as `TOK_AT` or similar.
+
+---
+
+### C. Cross-file dependency map
+
+**Hub files** (most-referenced — cutting these cascades across the corpus):
+
+| Rank | Deps | File | Role |
+|---|---|---|---|
+| 1 | 118 | `App/strukt.lts` | App shell framework — every app inherits from it |
+| 2 | 113 | `App/brain.lts` | Neural-net background animation |
+| 3 | 90 | `Widget/Components.lts` | Widget component library (40 facades) |
+| 4 | 77 | `Colors.lts` | Color palette |
+| 5 | 64 | `Config.lts` | Config reader (gameConfig.txt) |
+| 6 | 63 | `App/handling.lts` | Ship-handling physics |
+| 7 | 59 | `Fonts.lts` | Font registry |
+| 8 | 59 | `Widget/Dev/FrameInfo.lts` | Dev overlay (FPS, draw calls) |
+| 9 | 56 | `Widgets.lts` | Widget barrel file (re-exports) |
+| 10 | 45 | `App/draw.lts` | Drawing utilities |
+
+**Architecture layers:**
+
+```
+  App/strukt.lts + App/brain.lts    ← gravity wells (App type base)
+  ═══════════════════════════════════
+  Widget/Components.lts + Colors/Config/Fonts  ← shared toolkit
+  ═══════════════════════════════════
+  App/draw + App/handling + App/map  ← utilities
+  ═══════════════════════════════════
+  Individual widgets + objects + apps ← leaf consumers
+```
+
+**Circular dependencies:** 22 pairs found, all safe. LTSL compiles each
+file independently via lazy-load; circular load-order is resolved by the
+engine's file cache. The `Widgets.lts ↔ Widget/*.lts` circles are the
+classic barrel-file pattern.
+
+**`ltheory-main.lts` depends on 19 files:** App/brain, colony, draw,
+launcher, model, strukt, Colors, Config, Fonts, Icon/Cursors,
+Object/Colony, Object/Ship, Object/SystemPopulate, Texture/Filters,
+Widget/DebugScene, Widget/Dev/FrameInfo, Widget/HUD, Widget/Pause,
+Widget/Toast.
+
+---
+
+### D. Construct inventory summary
+
+All distinct LTSL constructs found in the corpus (feeds Phase 1 token list):
+
+**Keywords:** `var`, `ref`, `static`, `function`, `return`, `if`, `else`,
+`while`, `for`, `switch`, `otherwise`, `type`, `cast`, `break`, `desc`,
+`block`, `address`, `deref`, `call` (unused), `set` (unused), `list` (unused)
+
+**Operators:** `+` `-` `*` `/` `%` `==` `!=` `<` `>` `<=` `>=` `&&` `||`
+`!` `.` `=` `+=` `-=` `*=` `/=`
+
+**Delimiters:** `(` `)` `[` `]` `,` `:` `#`
+
+**Prefix operators:** `@` (debug print)
+
+**Literals:** integers, floats, strings (single-quoted `'a b'`), booleans
+(`true`/`false`), null
+
+**Patterns:** `a.b` dot-chain (rewritten to `(b a)`), `i.++` postfix
+increment (rewritten to `(++ i)`), `debugVisible.!` postfix boolean negate
+(rewritten to `(! debugVisible)`), `a ? b : c` inline switch expression,
+`[a, b, c]` array literals, `(address refvar)` mutable pointer pattern
 
 ---
 
@@ -373,8 +502,8 @@ enum TokenKind {
   TOK_IF, TOK_ELSE, TOK_WHILE, TOK_FOR, TOK_IN,
   TOK_SWITCH, TOK_OTHERWISE,
   TOK_BREAK, TOK_CONTINUE, TOK_TRUE, TOK_FALSE,
-  TOK_TYPE, TOK_CAST, TOK_CALL, TOK_BLOCK, TOK_DESC,
-  TOK_SIZEOF, TOK_TYPEOF, TOK_ADDRESS, TOK_DEREF,
+  TOK_TYPE, TOK_CAST, TOK_BLOCK, TOK_DESC,
+  TOK_ADDRESS, TOK_DEREF, TOK_AT,
 
   // Special
   TOK_NEWLINE, TOK_INDENT, TOK_DEDENT, TOK_EOF
@@ -844,10 +973,11 @@ to single-line `#` would silently compile any block currently disabled by
 it. Confirmed shipped as a real mechanism (`StringList.cpp:96-117`). Migrate
 this **independently** of Phases 1-4, as soon as it's in scope:
 
-- [ ] Phase 0.5 audit classifies every `#` occurrence (single-line vs
-      block-disabling) across all 160 scripts
-- [ ] Mechanical rewrite of offending files to the `##` block-comment form
-- [ ] Drop `##` ambiguity — `#` = single-line only, going forward
+- [x] Phase 0.5 audit classifies every `#` occurrence — **DONE (2026-08-25)**: 495
+      total, 16 block-disabling, 478 single-line. See Phase 0.5 §A.
+- [ ] Mechanical rewrite of the 16 offending files (pre-Phase 1, or fold into
+      Phase 1 lexer work — decision pending)
+- [ ] Drop block-comment behavior — `#` = single-line only, going forward
 
 ### Full Migration (If Decided)
 - [ ] All 160 `.lts` files compile with new compiler
@@ -879,44 +1009,48 @@ Phase 0 addresses #3 directly, partially #2/#7/#8/#9 (QW2-3), and leaves #4 as a
 
 ---
 
-## Appendix B: Undocumented Quirks to Discover
+## Appendix B: Undocumented Quirks — Audit Results (Phase 0.5, 2026-08-25)
 
-The Phase 0.5 corpus audit is the authoritative source. This list is
-the starting point based on files reviewed so far. Items marked
-**[audit-required]** need usage data from the full 160-script inventory
-before they can be scoped.
+All items below are now **confirmed** from the full 157-file corpus audit.
+No remaining `[audit-required]` items.
 
-### Known quirks (from files reviewed)
+### Confirmed quirks
 
 | Quirk | Status | Risk |
 |---|---|---|
-| `.` postfix negation (`debugVisible.!`) | Known | Dot-rewrite in parser |
-| `i.++` increment syntax | Known | Dot-rewrite in parser |
-| `#` comments out block below (not just line) | Known | Breaking change — see Phase 0.5 audit |
-| `self.x` vs bare-`x` field access | Known | Method-call parsing |
-| Single-quoted strings (`'a b'`) | Known | Post-hoc recognition |
-| `<...>` inside atoms (generics) | Known | Token must handle |
-| `:` colon paths (`Script:function`) | Known | Single-token identifiers |
-| Multi-line paren groups | Known | Cross-line continuation |
-| `switch` inline pairs vs indented body | Known | Both forms needed |
-| Unmatched `)` swallowing rest of line | Known | Error recovery |
+| `.` postfix negation (`debugVisible.!`) | Confirmed | Dot-rewrite in parser |
+| `i.++` increment syntax | Confirmed | Dot-rewrite in parser |
+| `#` comments out block below (not just line) | Confirmed — 16 occurrences, all intentional code-deactivation | Breaking change — 16 files need rewrite |
+| `self.x` vs bare-`x` field access | Confirmed | Method-call parsing |
+| Single-quoted strings (`'a b'`) | Confirmed | Post-hoc recognition |
+| `<...>` inside atoms (generics) | Confirmed | Token must handle |
+| `:` colon paths (`Script:function`) | Confirmed | Single-token identifiers |
+| Multi-line paren groups | Confirmed | Cross-line continuation |
+| `switch` inline pairs vs indented body | Confirmed | Both forms needed |
+| Unmatched `)` swallowing rest of line | Confirmed | Error recovery |
 
-### Constructs needing audit **[audit-required]**
+### Confirmed special forms (from Phase 0.5 §B)
 
-| Construct | What to determine | Risk |
+| Form | Corpus usage | Confirmed behavior |
 |---|---|---|
-| `@` debug print | Syntax, scope, interaction with indentation | Token + parser handling |
-| `desc` blocks | Syntax, nesting rules, relationship to `block` | Parser special form |
-| `block` blocks | Syntax, how they differ from `desc` | Parser special form |
-| `call` dynamic dispatch | Syntax, argument passing, return type | Parser + type checker |
-| `static` local variables | Scope rules, initialization timing | Symbol resolver |
-| `ref` aliases | Syntax, mutability rules, interaction with `var` | Symbol resolver |
-| `deref` / `address` pointers | Syntax, safety constraints, engine integration | Parser + type checker |
-| Any other special forms | Full inventory from Phase 0.5 | Unknown until audited |
+| `@` | 7 occurrences, 6 files | Prefix debug-print operator; must be `TOK_AT` |
+| `desc` | 47 occurrences, 11 files | `Expression_Block(list, env, 2)` — label + body block |
+| `block` | 39 occurrences, 3 files | `Expression_Block(list, env, 1)` — single-arg block |
+| `call` | **0 occurrences** | **UNUSED — drop from grammar** |
+| `static` | 70 occurrences, 11 files | Static local variable; mostly Icons.lts + Texture/Filters.lts |
+| `ref` | 147 occurrences, 49 files | Reference alias; heavy — mutable parent→child state pattern |
+| `deref` | 36 occurrences, 16 files | Pointer dereference; always paired with `address`/`ref` |
+| `address` | 26 occurrences, 11 files | Address-of operator; widget mutable-state communication |
 
-This list will grow during the Phase 0.5 audit. Budget 1 week for
-it — it feeds the grammar (Phase 2), the token list (Phase 1), and the
-estimate confidence.
+### Unused / non-existent keywords (confirmed)
+
+| Keyword | Status |
+|---|---|
+| `call` | **UNUSED** — 0 occurrences in corpus |
+| `list` | **UNUSED** — 0 occurrences in corpus |
+| `set` | **UNUSED** — 0 occurrences (only `=` form used) |
+| `sizeof` | **Does not exist** in engine (no handler in Expression.cpp) |
+| `typeof` | **Does not exist** in engine (no handler in Expression.cpp) |
 
 ---
 
