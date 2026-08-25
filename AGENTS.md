@@ -276,16 +276,39 @@ node script/ltsl-lsp/test-rpc.js                        # full protocol check
 node script/ltsl-lsp/out/smoke.js $(find resource/script -name '*.lts' | sort)
 ```
 
-Smoke must report exactly **7 diagnostics** (4 structural problems + 3
-warnings). The 4 structural problems are the **known engine unbalanced-paren
-bugs — trusted fixtures, do NOT fix them**: `resource/script/App/draw.lts:57`,
-`App/draw.lts:58`, `Widget/Slider.lts:42`, `Widget/Text.lts:26`. The 3 warnings
-are known/accepted: `SelectItem` (`Widget/Market/MidPanel.lts:108`, script
-type defined in another file), `WidgetSettings` (`Widget/Settings.lts:13`, a
-C++ engine value), and `break` (`App/ltheory-unitest.lts:201`, the WIP unitest
+Smoke must report exactly **6 diagnostics** (4 structural problems + 2
+warnings). The 4 structural problems are the **known unbalanced-paren lines —
+trusted LSP fixtures, do NOT fix them**: `resource/script/App/draw.lts:57`,
+`App/draw.lts:58`, `Widget/Slider.lts:42`, `Widget/Text.lts:26`. Note these
+compile CLEAN under the real engine (its line parser closes unbalanced parens
+at end-of-line), so they are LSP-grammar divergences, not engine bugs. The 2
+warnings are known/accepted: `SelectItem` (`Widget/Market/MidPanel.lts:108`,
+script type defined in another file) and `break` (`App/ltheory-unitest.lts:201`,
+the WIP unitest
 app uses a `break` statement, which is not valid LTSL).
 
-Any count above 7 = analyzer regression; investigate before committing.
+Any count above 6 = analyzer regression; investigate before committing.
+
+### Compile gate (engine-truth script checking)
+
+The LSP smoke test cannot catch everything (see A.14 #14 — the analyzer's
+constructor-arity model diverges from what the engine generates). The compile
+gate compiles every `.lts` with the REAL engine and fails on any error not
+explicitly allowlisted:
+
+```bash
+cmake --build ./build --target ltsl_compile_gate
+LD_LIBRARY_PATH=bin:extbin/linux64 ./bin/ltsl_compile_gate
+```
+
+- Source: `tools/compile_gate.cpp`; allowlist:
+  `tools/compile_gate_allowlist.txt` (entries `name#line`; stale entries also
+  fail the run). Expected state: **PASS, 157 files, empty allowlist**.
+- Structured per-file errors come from `Script_CompileCheck(name, errors)`
+  (`Script.h`) — compiles like `Reload()` but captures diagnostics instead of
+  printing and bypasses the script cache. Also usable from unit tests.
+- Run it before committing any `.lts` or engine compile-path change; wire
+  into CI alongside the unit tests.
 
 ### Analyzer semantics to preserve
 
@@ -1078,12 +1101,69 @@ note). Ships a real save/load manager behind the GameMenu's previously dead
       managers; the SAVE button moved inside the `if editMode` block so it
       only appears after a row is selected or CREATE NEW SAVE is clicked.
       LSP smoke = exactly 8 diagnostics (known fixtures).
-- [ ] **Follow-up: engine-side script compile gate.** The LSP smoke test
-      missed the `CreateButton` breakage (see above). A CLI that compiles
-      every `.lts` with the real engine (`Expression_Compile` over all
-      `resource/script/*.lts` via `Script_Load`) would catch these at CI
-      time. See also the LSP constructor-arity divergence for defaulted
-      script-type fields.
+- [x] **Follow-up: engine-side script compile gate.** Done (A.15) —
+      `ltsl_compile_gate` + `Script_CompileCheck`; corpus now compiles 100%
+      clean under the real engine.
+
+---
+
+### A.15 Phase 0 Quick Wins — Compile Gate + Error Hardening + Array Literals (2026-08-25)
+
+Implements the mandatory items of `docs/LTSL-MIGRATION-PLAN.md` Phase 0
+(QW2/QW3/QW5 + Appendix C.1a). **Suite: 1054 checks / 0 failures. LSP smoke =
+exactly 6 diagnostics (known fixtures). Compile gate = PASS, 157 files, empty
+allowlist.**
+
+- [x] **Compile gate (`ltsl_compile_gate`)** — `tools/compile_gate.cpp`
+      compiles every `.lts` under `resource/script` with the REAL engine via
+      new `Script_CompileCheck(name, errors)` (`Script.h`/`Script.cpp`;
+      mirrors `Reload()` but captures structured errors and bypasses the
+      script cache). Allowlist `tools/compile_gate_allowlist.txt` uses
+      `name#line` entries; stale entries also fail the run. Catches the A.14
+      #14 class of bug (engine-truth constructor arity) that the LSP analyzer
+      cannot model.
+- [x] **First gate run found 5 real broken files** (all invisible to the LSP
+      smoke test):
+  - `App/selftest.lts:88` — multi-line `&&` condition split by LTSL's
+    line-based parsing; trailing `&&` compiled as an unknown variable and the
+    enclosing regression-harness function silently died. Fixed: single-line
+    condition. NOTE: LTSL has NO cross-line continuation — parens close at
+    end-of-line (that is why draw.lts "compiles").
+  - `Widget/Settings.lts` — duplicate `function Create` definitions (the
+    engine rejects same-name script functions outright — overloads are an
+    LSP-only model); plus a dead `WidgetSettings` atom (C++ widget-component
+    class never bound to scripts). Fixed: Settings.lts now forwards to
+    `Widget/SettingsPanel:Create`, which already had a complete working
+    panel. Caller `App/widget.lts:41` unchanged (no-arg form).
+  - `App/ltheory.lts`, `App/testlts.lts`, `Widget/RadialButton.lts` — dead,
+    rotted, unreferenced by anything (including dynamic loads); deleted per
+    maintainer direction ("remove old tech"). Corpus reduced 160 → 157 files.
+- [x] **QW3 fix (`ExpressionCall.cpp`)** — argument-type-mismatch diagnostics
+      read `arguments.back()`: reported the PREVIOUS argument's type, and UB
+      on empty vector when argument 1 itself failed conversion. Now captures
+      the source type BEFORE the conversion attempt and reports at the failing
+      sub-expression's line.
+- [x] **QW2 verified as already hardened** — Block.cpp aborts blocks on
+      failed statements with recorded errors (no silent drops), and
+      `ReportError` includes line numbers (`Environment.h`). Regression tests
+      pin both behaviors.
+- [x] **QW5 array literals `[a, b, c]`**:
+  - Tokenizer (`StringList.cpp`): `[`/`]` tokenize like parens into ONE
+    token; bracket groups are marked `(__bracket e1 ...)` so the compiler can
+    distinguish them from calls. Commas separate elements inside brackets;
+    parens reset comma-splitting so `(Vec2 1 2)` stays space-separated inside
+    `[...]`. Unclosed brackets tolerated at EOL (paren-consistent).
+  - New node `Expression/ArrayLiteral.cpp` dispatched on head `__bracket`:
+    infers element type from the first element, converts remaining elements,
+    evaluates to a fresh engine array container. Instance helpers
+    `Type_ArrayAlloc/Append/Size/Get` added to `Type/Array.cpp` +
+    `Types.h` (ArrayCustom is file-private there).
+  - Empty literal errors with a hint to use `var x (Array T)`.
+- [x] **Tests** — `tests/TestScriptCompile.cpp`: Script_CompileCheck contract
+      (valid passes / missing file fails / failed statement surfaces with
+      line), arg-mismatch names types+line, bracket-group marking, nested
+      paren preservation, int/mixed-float/string literal evaluation,
+      assign-to-declared-array through the full statement pipeline.
 
 ---
 

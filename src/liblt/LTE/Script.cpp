@@ -180,6 +180,44 @@ static Function const Script_ClearCache_Registration = Function_Bind(
     script->Reload();
     return script;
   }
+
+  /* Offline compile check: compiles a script exactly as Reload() does but
+     captures the diagnostics in `errors` instead of printing them, and
+     bypasses the script cache so the result never depends on (or pollutes)
+     prior load state. Cross-file references still resolve through the cache
+     via ResolveRelativePath, so dependency failures surface on stdout from
+     their own Reload while this file's own errors come back structured.
+     Used by the compile-gate tool (tools/compile_gate.cpp) and unit tests:
+     it is the engine-truth answer to "does this .lts compile?", which the
+     LSP analyzer can only approximate (see AGENTS.md A.14 #14). */
+  bool Script_CompileCheck(String const& name, Vector<String>& errors) {
+    errors.clear();
+
+    String scriptPath = name + kScriptExtension;
+    Location location = Location_Script(scriptPath);
+    if (!location->Exists()) {
+      errors.push(Stringize() | "file not found: '" | scriptPath | "'");
+      return false;
+    }
+
+    Script script = new ScriptT;
+    script->name = name;
+
+    StringList list = StringList_Load(location);
+    list = LTSL_ApplyRewrites(list);
+
+    bool ok = true;
+    FRAME(&name.front()) {
+      CompileEnvironment env;
+      env.script = script;
+      for (size_t i = 0; i < list->GetSize(); ++i)
+        Expression_Compile(list->Get(i), env);
+      ok = !env.hasErrors;
+      errors = env.errors;
+    }
+    return ok;
+  }
+
 static Function const Script_Load_Registration = Function_Bind(
   "Script_Load",
   "None",

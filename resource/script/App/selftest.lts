@@ -85,8 +85,7 @@ type App
 
         checks = checks + 1
         switch
-          probe.pos.x > 199.5 && probe.pos.x < 200.5 &&
-          probe.pos.y > 99.5 && probe.pos.y < 100.5
+          probe.pos.x > 199.5 && probe.pos.x < 200.5 && probe.pos.y > 99.5 && probe.pos.y < 100.5
             Log "layout: probe absolute geometry: PASS"
           otherwise
             Log "layout: probe absolute geometry: FAIL"

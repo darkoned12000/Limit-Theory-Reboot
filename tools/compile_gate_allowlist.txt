@@ -1,0 +1,14 @@
+# LTSL compile-gate allowlist.
+#
+# One entry per line: <scriptName>#<line>
+# A file passes the gate only if EVERY error line in it is listed here.
+# Entries that match no actual failure are reported as STALE and fail the
+# run, so delete entries as soon as their fixture is fixed.
+#
+# Blank lines and lines starting with '#' are ignored.
+#
+# Currently EMPTY: the whole corpus compiles clean under the real engine.
+# Note: the 4 "unbalanced paren" files the LSP smoke flags (App/draw.lts:57-58,
+# Widget/Slider.lts:42, Widget/Text.lts:26) compile CLEAN here — the engine's
+# line parser closes unbalanced parens at end-of-line, so those are LSP-grammar
+# divergences, not engine bugs.

@@ -176,11 +176,16 @@ namespace LTE {
       Expression argument = Expression_Compile(list->Get(i), env);
       if (!argument) return nullptr;
 
+      /* Capture the source type BEFORE the conversion attempt: on failure
+         `argument` is nulled and the original expression is gone. (This
+         used to report arguments.back() — the PREVIOUS argument's type,
+         and undefined behavior when argument 1 itself failed.) */
+      Type argType = argument->GetType();
       argument = Expression_Conversion(argument, function->parameters[i - 1].type);
       if (!argument) {
-        env.ReportError(list, Stringize()
+        env.ReportError(list->Get(i), Stringize()
           | "argument " | (i) | " to function '" | function->name
-          | "' has type '" | arguments.back()->GetType()->GetAliasName()
+          | "' has type '" | argType->GetAliasName()
           | "' but expected '" | function->parameters[i - 1].type->GetAliasName() | "'");
         return nullptr;
       }

@@ -34,6 +34,8 @@
 
 const float kTrailLengthMult = 8;
 const float kAcceleration = 1;
+const float kBoostRampUp = 2.0f;
+const float kBoostRampDownSpeed = 0.25f;
 const V3 kBoostColor = V3(0.2f, 0.7f, 1.0f);
 
 namespace {
@@ -72,6 +74,7 @@ AutoClassDerived(Thruster, ThrusterBaseT,
   float, age,
   Color, color,
   float, cruise,
+  float, smoothOvercharge,
   float, thrust,
   LightRef, light)
 
@@ -120,6 +123,7 @@ AutoClassDerived(Thruster, ThrusterBaseT,
     activation(0),
     age(Rand(0, 100)),
     cruise(0),
+    smoothOvercharge(0),
     thrust(0)
     {}
 
@@ -178,11 +182,24 @@ AutoClassDerived(Thruster, ThrusterBaseT,
     activation = Mix(activation, thrust, 1.0f - Exp(-kAcceleration * state.dt));
     cruise *= Exp(-state.dt);
 
+    float targetOvercharge = GetOvercharge();
+    if (targetOvercharge > smoothOvercharge)
+      smoothOvercharge = Mix(smoothOvercharge, targetOvercharge,
+        1.0f - Exp(-kBoostRampUp * state.dt));
+    else
+      smoothOvercharge = Max(targetOvercharge,
+        smoothOvercharge - kBoostRampDownSpeed * state.dt);
+
     if (parent)
       GetRoot()->GetMotion()->force -= GetMaxThrust() * GetOutput() * GetLook();
 
+    Color baseColor = Supertyped.type->GetColor();
+    Color boostColor = Color(kBoostColor);
+    float t = smoothOvercharge;
+    float whiteHot = 2.0f * t * (1.0f - t);
     color = activation *
-      Mix(Supertyped.type->GetColor(), kBoostColor, GetOvercharge());
+      (baseColor * (1.0f - t) + boostColor * t +
+       Color(1.0f, 0.95f, 0.9f) * whiteHot);
     light->color = color;
   }
 

@@ -20,14 +20,23 @@ slot) compiled without error. These were two of the harder bugs to track
 down precisely because LTSL fails silently on type mismatches. Compile-time
 type checking closes this entire bug class.
 
-Additional pain points:
-- **Ordering sensitivity** — declarations must come before use
-- **Silent statement drops** — failed arity checks silently discard code
-- **`a.b` rewrite confusion** — method call order is unintuitive
-- **`~` not negation** — `(Vec3 (~ x) 0 0)` does nothing (corpus grep
-  confirms `~` only appears in comments as "approximately")
-- **Terse error messages** — "Unused variable in Shader(...)" with no
-  location info
+Additional pain points (each grounded against the ~160-file corpus and engine
+source; see §Corpus Findings):
+- **Silent statement drops** — failed arity checks silently discard code.
+  `Expression_Block` drops failed expressions (`Function.cpp:173-175`), so a
+  typo'd call like `this.DoSave` compiles to nothing and the app "works" with
+  zero diagnostics. The single biggest debugging time-waster.
+- **`a.b` rewrite confusion** — method call order is unintuitive: `this.DoSave`
+  rewrites to `(DoSave this)`, and a type method declared `function Void
+  DoSave (Widget self)` expects the receiver as its *first* param, so calling
+  it with one arg fails an arity check. This trap silently drops the statement;
+  a Phase-3 arity checker would catch it automatically.
+- **`~` not negation** — `(Vec3 (~ x) 0 0)` does nothing. **Corpus grep (all
+  ~160 files):** `~` appears *only* in comments meaning "approximately"; zero
+  operator uses. No pain to fix; QW1 is therefore optional (see §Corpus Findings).
+- **Terse error messages** — "Unused variable in Shader(...)" with no location
+  info. A.8 improved name-resolution errors but left type/arity mismatches open
+  (QW3 covers the rest).
 
 **Goal:** Replace the tree-walking interpreter with a proper two-pass
 compiler that eliminates these problems while preserving the engine
@@ -43,51 +52,102 @@ preserve the FunctionBind/Function_Alias engine bridge untouched.
 
 ## Strategy: Quick Wins First, Then Full Rewrite
 
-Claude Code's review correctly identified that the Quick Wins section
-covers 8 of 10 user-reported pain points and can ship in ~2 weeks
-vs ~7 weeks for the full rewrite. The recommended sequence:
+Claude Code's review identified that the Quick Wins section covers most of the
+user-reported pain points and can ship in ~1 week vs ~9 weeks for the full rewrite.
+The recommended sequence:
 
-1. **Ship Quick Wins first** (Phase 0, ~2 weeks)
+1. **Ship Quick Wins first** (Phase 0, ~1 week) — QW2/QW3/QW5 mandatory; QW1/QW4
+   optional/deferred per §Corpus Findings
 2. **Use them for real content work** (2-4 weeks)
-3. **Decide whether the full rewrite is still justified** based on
-   whether ordering sensitivity and no forward references still hurt
-   after the other 8 problems are gone
-4. **If yes: full corpus audit** (Phase 0.5, ~1 week) — inventory
-   every LTSL construct in actual use, determine breaking-change
-   scope, scope the real parser work
+3. **Decide whether the full rewrite is still justified** based on whether
+   remaining pain points justify ~9 weeks of work (see §Corpus Findings — the
+   answer for "ordering sensitivity" is narrower than assumed)
+4. **If yes: full corpus audit** (Phase 0.5, ~1 week) — inventory every LTSL
+   construct in actual use, determine breaking-change scope, scope the real
+   parser work
 
 This is the right call because:
-- Several Quick Wins are literal subsets of Phase 1 (negation token,
-  line/column tracking). They're not wasted work if the full rewrite
-  happens — they're forced familiarity with Expression.cpp before
-  replacing it.
+- Several Quick Wins are literal subsets of Phase 1 (unary-minus token,
+  line/column tracking). They're not wasted work if the full rewrite happens —
+  they're forced familiarity with `Expression.cpp` before replacing it.
 - Landing them gives a real signal: does the pain actually go away?
-- The two remaining pain points (ordering sensitivity, no forward
-  references) genuinely require a symbol table — but we should verify
-  they still hurt in practice before spending 7 weeks on the solution.
+- **Ordering sensitivity** requires a symbol table *only* for intra-scope top-level
+  forward references (call `foo()` before `function foo()`). Cross-file forward
+  refs already work via lazy runtime load + dependency tracking; methods work
+  via type pre-registration (`Function.cpp:90-93`). No corpus script calls a
+  same-scope top-level function before declaring it. So this is a real but
+  **corpus-inert** gap — it should not alone justify the rewrite (see §Corpus
+  Findings). The `a.b` ordering confusion, by contrast, *is* worth fixing and
+  Phase 3's arity checker catches it for free.
+
 
 ---
 
-## Phase 0: Quick Wins (~2 weeks)
+## Corpus Findings (verified against all ~160 `.lts` files + engine source)
+
+These findings replace earlier estimates/assumptions with data gathered before the
+Phase-0.5 audit would have produced them:
+
+### Verified — keep as written
+- **`#` block-comment is a real, shipped mechanism** (`StringList.cpp:96-117`). A `#`
+  line comments to end of line *and* every deeper-indented line beneath it (e.g.
+  `# desc "X"` dead-blocks). Switching to single-line `#` would silently compile
+  disabled blocks — the plan's Phase 0.5 concern is valid and confirmed. Keep the
+  independent `##`-disambiguation migration track.
+- **Special forms are used:** `deref`=16, `address`=11, `desc`=11, `static`=11,
+  `call`=4 files (all confirmed present → all must be handled in the grammar).
+- **`ref`/`static` are local-scope-bound** (`Expression.cpp:170`, `Declare.cpp`) — the
+  resolver's Scope model must replicate this or ref aliasing breaks.
+- **`desc` vs `block` arity trap** is real: both route through `Expression_Block(list, env, N)`
+  but block=1 vs desc=2 (`Function.cpp:165`). Two-pass landmine — keep explicit handling.
+
+### Corrected / downgraded (were over-stated)
+- **Pain point #1 (`~` negation): no such bug.** `~` appears *only* in comments meaning
+  "approximately"; zero operator uses across all files. QW1 has nothing to fix — make it
+  optional for future-proofing only.
+- **QW4 (`for i in range a b` sugar): no corpus demand and no target.** No `range`
+  construct is used (every `in` match is prose) and no integer-range iterator function is
+  bound, so there is nothing to desugar into. Defer until the audit confirms real use.
+- **Pain point #4 / "order-dependent compilation":** real but corpus-inert (see Strategy).
+  It should not alone justify ~9 weeks of parser work — especially since the most expensive
+  phase fixes a case no existing script relies on, while introducing side-effect-reordering
+  risk under `-fno-exceptions`.
+
+### Confirmed unused / to drop from audit scope
+- `TOK_SIZEOF`, `TOK_TYPEOF` are declared but never used in the corpus — confirm whether to
+  remove them before writing the lexer.
+
+---
+
+## Phase 0: Quick Wins (~1 week)
 
 These fix the worst pain points in the current interpreter. Each is
 1-3 days, low-risk, and can ship independently.
 
-### QW1: Negation operator (1 day)
+### QW1: Negation operator (optional — 1 day)
 
-Add `-x` (unary minus) to the current parser. Currently `-x` works as
-a function call (`(- x)`) but not as an inline prefix in contexts like
-`(Vec3 (- x) 0 0)`.
+Add `-x` (unary minus) as an inline prefix in contexts like `(Vec3 (- x) 0 0)`.
+Currently `-x` only works wrapped as a function call (`(- x)`); the bare form is
+not recognized in nested argument slots.
 
-**Corpus grep result:** `~` only appears in comments (meaning
-"approximately"). Safe to leave unmapped; no need to repurpose.
+> **Optional, not required.** Corpus grep of all ~160 files shows `~` (the token
+> that would signal an inline-prefix negation) appearing *only* in comments — zero
+> operator uses. No content author hit this bug, so there is no pain to fix. Add
+> it for completeness / future-proofing only; see §Corpus Findings. If the full
+> rewrite happens, the unary-minus token lands there anyway (Phase 2 precedence
+> table, highest level).
 
 **Changes:**
-- `Expression.cpp`: recognize `-` as unary prefix when followed by
+- `Expression.cpp`: recognize `-` as a unary prefix when followed by an
   identifier/literal/operator
-- `Expression_UnaryMinus` new node (or reuse existing `(- x)` path)
+- `Expression_UnaryMinus` new node (or reuse the existing `(- x)` path)
 
 ### QW2: Silent statement drop warning (1-2 days)
+
+> **DONE (A.15, 2026-08-25) — verified already hardened.** Block.cpp aborts
+> blocks on failed statements with recorded errors (no silent drops), and
+> `ReportError` includes line numbers. The compile gate + regression tests
+> pin both behaviors; no code change was needed.
 
 When an arity check fails in `Expression_Block`, log a warning with
 line number instead of silently dropping the statement. This is the
@@ -99,19 +159,34 @@ single biggest debugging time-waster.
 - `FunctionCall.cpp` / `ExpressionCall.cpp`: on arity failure, log
   which argument count was expected vs received
 
-### QW3: Better error messages with line/column (2-3 days)
+### QW3: Type/arity error messages with line/column (2-3 days)
 
-Extend A.8's "did you mean?" work to all expression types. Currently
-suggestions exist only for name-resolution errors (Variable, Reference,
-Constructor, FunctionCall, Conversion). Extend to:
-- Type mismatches ("expected Vec3d, got Float at line N")
-- Arity mismatches ("SetPos expects 2 args, got 3 at line N")
+> **DONE (A.15, 2026-08-25) — trimmed per the scope guard below.** The one
+> real remaining defect was in `ExpressionCall.cpp`: argument-type-mismatch
+> diagnostics read `arguments.back()` (previous argument's type; UB on empty
+> vector when argument 1 failed). Fixed to capture the source type before the
+> conversion attempt and report at the failing sub-expression's line.
+> Arity messages and line-number plumbing were already shipped by A.8 +
+> ltsl-hardening work.
+
+A.8 already shipped "did you mean?" suggestions and `env.ReportError`
+for **name-resolution** errors (Variable, Reference, Constructor,
+FunctionCall, Conversion). This is the *remaining* coverage — type and
+arity mismatches, which A.8 did not address:
+- Type mismatch ("expected Vec3d, got Float at line N")
+- Arity mismatch ("SetPos expects 2 args, got 3 at line N")
 - Unknown member access ("Object has no field 'positon' — did you
   mean 'position'?")
 
 **Note:** The existing "did you mean?" suggestions use Levenshtein
 distance ≤ 3 via `BestMatch()` in `Environment.h:67-108`. This
-already works for name resolution; we're extending coverage.
+already works for name resolution; we're extending coverage to the two
+mismatch classes A.8 left open.
+
+> **Scope guard:** Do not re-implement A.8's name-resolution work — it
+> is complete (21 tests in `TestScriptCompile.cpp`). If QW3 feels like
+> re-doing shipped code, trim to just the arity messages; they're the
+> cheapest and highest-signal of the three.
 
 ### QW4: `for` loop syntax improvement (1 day)
 
@@ -123,11 +198,28 @@ steps):
 for i in range 0 512
   body
 ```
+
+> **Deferred pending Phase-0.5 audit.** Two blockers found against the corpus:
+> (1) there is *no* `range` construct used anywhere — every `in` occurrence is a
+> prose comment, not code; and (2) no integer-range iterator function is bound, so
+> this sugar has no natural target to desugar into. It would require either inventing
+> an iterator type or hand-rolling the loop body in the parser. Because nothing in
+> the ~160-file corpus exercises it, defer until the audit confirms real demand (it
+> currently does not).
+
 This is sugar only, not a language change — it desugars to the existing
 `for` form. The old form stays for loops that need non-linear iteration
 (arbitrary predicate, custom step, or non-integer ranges).
 
 ### QW5: Array literal syntax (1 day)
+
+> **DONE (A.15, 2026-08-25).** Implemented as `[a, b, c]` with type inferred
+> from the first element (NOT as `(Array 1 2 3)` sugar — that form stays the
+> explicit-typed empty-array constructor used by `var x (Array T)`).
+> Tokenizer marks bracket groups `(__bracket ...)`; new
+> `Expression/ArrayLiteral.cpp` node; helpers `Type_ArrayAlloc/Append/Size/Get`
+> in `Type/Array.cpp`. Commas split elements inside brackets; parens inside
+> keep space separation (`[(Vec2 1 2)]`).
 
 Add `[1, 2, 3]` as sugar for `(Array 1 2 3)`. The bracket syntax
 is standard across every other language.
@@ -146,6 +238,12 @@ switch
 This already works in LTSL (cases are inline pairs), but the error
 recovery is fragile. Improve it.
 
+> **Overlap guard.** A.8/A.9 already hardened `switch` error recovery —
+> previously-silenced `switch -- case` warnings now always report, and switch
+> is covered by existing tests in `TestScriptCompile.cpp`. Before spending time on
+> QW6, confirm it isn't re-doing shipped work; if so, trim to the multi-case
+> ergonomics only and point at the appendix regression suite.
+
 ---
 
 ## Phase 0 Gate: Ship, Test, Decide
@@ -154,8 +252,11 @@ After shipping Quick Wins:
 1. Run all ~160 `.lts` files through the improved interpreter
 2. Verify no regressions (same behavior as before for working scripts)
 3. Use the improved scripts for 2-4 weeks of real content work
-4. **Decision point:** Do ordering sensitivity and no forward references
-   still hurt enough to justify the full rewrite?
+4. **Decision point:** Do ordering sensitivity still hurt enough to justify the
+   full rewrite? (Per §Corpus Findings, this now means only *intra-scope top-level*
+   forward references — cross-file/method refs already work and no corpus script relied
+   on it. If real content authors start hitting that case in volume, proceed; otherwise
+   stay on the improved interpreter.)
 
 If yes → proceed to Phase 0.5. If no → stay on improved interpreter.
 
@@ -189,6 +290,7 @@ feeds three separate parts of the plan:
 | Deliverable | What | Feeds |
 |---|---|---|
 | Construct inventory | Every distinct LTSL construct (keywords, operators, special forms) used in any `.lts` file | Appendix B, Phase 2 grammar |
+| **Special-forms inventory** | Every engine special form (`@`, `block`, `desc`, `call`, `static`, `ref`, `deref`, `address`, ...) with corpus usage count; gate grammar completion on covering all non-zero forms | Phase 2 grammar (see §Phase 2) |
 | `#` block-comment audit | Every `#` occurrence classified: single-line (safe) vs block-disabling (breaking change) | `#` migration plan below |
 | `@` / `desc` / `block` / `call` / `static` / `ref` / `deref` / `address` usage | Which files use which, how they're used | Phase 1 token list, Phase 2 grammar |
 | Cross-file dependencies | Which scripts reference types/functions defined in other scripts | Phase 3 symbol resolver scope |
@@ -231,6 +333,18 @@ smaller version of the exact ambiguity problem (`self.x` vs bare `x`,
    `HUD.lts`/`SystemPopulate.lts` class of bugs at lex time.
 
 3. **Every token carries line/column** — Enables precise error messages.
+
+4. **Tab/space indents are equivalent.** A char-based lexer that counts only
+   spaces will fire spurious dedent errors on any file mixing tabs and spaces,
+   or mis-measure every tab-containing block. Decide up front: treat a tab as 8
+   (or N) spaces for measurement, OR require consistent indentation and report a
+   clear error otherwise. Either way it must be deterministic — not "whatever the
+   editor emitted."
+
+5. **Multi-line paren groups span newlines.** `(` / `)` may open on one line and
+   close on another (every multi-line expression in the corpus relies on this).
+   The lexer must defer INDENT/DEDENT measurement until a balanced-paren boundary,
+   or it will split expressions at every newline inside parens. Same for `[` / `]`.
 
 ```cpp
 enum TokenKind {
@@ -389,13 +503,70 @@ unaryExpr     = ('-' | '!') unaryExpr | postfixExpr
 postfixExpr   = primaryExpr ('.' IDENTIFIER ['(' argList ')'])*
 primaryExpr   = INT | FLOAT | STRING | BOOL | NULL
               | IDENTIFIER | '(' expr ')' | arrayLiteral
-              | typeConstructor | castExpr
+              | typeConstructor | castExpr | addressExpr | derefExpr
               | funcCall
 
 typeConstructor = typeName '(' argList ')'
 castExpr      = 'cast' typeName expr
+addressExpr   = 'address' expr
+derefExpr     = 'deref' expr
 arrayLiteral  = '[' [exprList] ']'
 funcCall      = IDENTIFIER '(' argList ')'
+
+> **Special-form atoms** — `@`, `block`, `desc`, `call`, `static` are also
+> primary expressions (they produce expression nodes, like `cast`). They are
+> NOT in the grammar above because they share the identifier-dispatch path;
+> list them explicitly so the parser does not silently drop them:
+>   specialFormAtom = '@' | 'block' | 'desc' | 'call' | 'static'
+
+### Special Forms Inventory (reference behind the Phase 0.5 deliverable)
+
+Before grammar completion is claimed, enumerate **every** engine special form
+and its corpus usage count. A script using an unlisted form cannot parse at all,
+so the Phase 2 checkpoint is meaningless until this is done:
+
+| Form | Node (`Expression.cpp`) | Corpus files (pre-audit grep) | Grammar status |
+|---|---|---|---|
+| `cast` | `Expression_Cast` | ~10+ | Covered above |
+| `address` | `Expression_Address` | **11** | Added above (was missing) — confirmed used |
+| `deref` | `Expression_DereferencePointer` | **16** | Added above (was missing) — confirmed used |
+| `@` print | `Expression_Print` | unverified — audit required | Optional; drop if unused. Grep is noisy (`@` in strings/emails); confirm real uses before deciding dead. |
+| `block` | `Expression_Block(...,1)` | many | Covered by INDENT/DEDENT blocks |
+| `desc` | `Expression_Block(...,2)` | **11** (confirmed) | **Arity trap** — see below |
+| `call` | `Expression_DynamicDispatch` | **4** (confirmed) | Used in 4 files — not dead; must be handled, audit for exact form |
+| `static` | `Expression_DeclareStatic` | **11** (confirmed) | Covered by symbol resolver |
+| `ref` | `Expression_DeclareReference` | many | Covered by symbol resolver |
+
+> **Corpus grounding.** The counts above are file-level greps across all ~160
+> `.lts` files, run before the Phase-0.5 audit. They replace earlier estimates:
+> `address`=11 and `deref`=16 (both "was missing" from the grammar),
+> `desc`=11, `static`=11, `call`=4 are **confirmed present**, so all must be
+> handled — not treated as optional. Tokens declared but unused in corpus:
+> `sizeof`, `typeof` (`TOK_SIZEOF`, `TOK_TYPEOF`) — audit should confirm whether to
+> drop them from the lexer.
+
+
+**`desc` vs `block` arity trap:** both route through `Expression_Block(list, env, N)`
+but with **different arg counts — block=1, desc=2**. If the new parser treats them
+as identical INDENT/DEDENT blocks and passes the wrong arity, it silently breaks one.
+The resolver must preserve this distinction explicitly (it is not a "quirk" to be
+discovered; it is a two-pass rewrite landmine).
+
+### Evaluation ordering model (Phase 3 design rule)
+
+Pin down the current evaluation semantics before building the symbol table:
+
+- **`ref` / `static` are local-scope-bound**, not global symbols — both take a
+  `locals` param (`Expression.cpp:170`, `DeclareStatic`/`DeclareReference` in
+  `Declare.cpp`). The resolver's `Scope` struct must replicate this local-binding
+  model, or ref aliasing (heavily used in `ltheory-main.lts`) breaks.
+- **Eager vs lazy init** — state the current var/ref/static initialization timing;
+  two-pass compilation changes declaration collection order and can reorder side
+  effects even for scripts that compile cleanly. Document any intentional change.
+
+> **Hard rule:** The engine builds with `-fno-exceptions` (zero `try`/`catch`/`throw`
+> anywhere). All error recovery in the resolver/parser is via struct + vector only —
+> never exceptions.
 
 binOp         = '+' | '-' | '*' | '/' | '==' | '!='
               | '<' | '>' | '<=' | '>=' | '&&' | '||'
@@ -525,7 +696,7 @@ just a curated test suite.
 
 | Suite | What | Count target |
 |---|---|---|
-| `tests/TestLexer.cpp` | Token stream correctness | 50+ tests |
+| `tests/TestLexer.cpp` | Token stream + indent stack: hard-error on mismatched dedent, tab/space equivalence, multi-line paren/bracket groups spanning newlines, single-line `#` comments | 50+ tests |
 | `tests/TestParser.cpp` | AST shape for known inputs | 30+ tests |
 | `tests/TestSymbolResolver.cpp` | Type checking, scoping | 30+ tests |
 | `tests/TestScriptCompile.cpp` | Existing 21 tests (must pass) | 21+ tests |
@@ -569,15 +740,17 @@ src/liblt/LTE/Compiler/
 
 ### Phase 0: Quick Wins (Sequential)
 
-| Item | Time | Dependencies |
-|------|------|--------------|
-| QW1: Negation operator | 1 day | None |
-| QW2: Silent-drop warnings | 1-2 days | None |
-| QW3: Better error messages | 2-3 days | None |
-| QW4: `for` sugar | 1 day | None |
-| QW5: Array literals | 1 day | None |
-| QW6: `switch` improvements | 1-2 days | None |
-| **Phase 0 total** | **~2 weeks** | |
+| Item | Time | Dependencies | Required? |
+|------|------|--------------|-----------|
+| QW1: Negation operator | 1 day | None | Optional (see §Corpus Findings) |
+| QW2: Silent-drop warnings | 1-2 days | None | ✅ Done (A.15 — already hardened) |
+| QW3: Better error messages | 2-3 days | None | ✅ Done (A.15 — arguments.back() fix) |
+| QW4: `for` sugar | 1 day | None | Deferred (see §Corpus Findings) |
+| QW5: Array literals | 1 day | None | ✅ Done (A.15) |
+| C.1a: Compile gate | 1 day | None | ✅ Done (A.15) |
+| QW6: `switch` improvements | 1-2 days | None | Optional (overlaps A.8/A.9) |
+| **Phase 0 total** | **~1 week** | | QW2/QW3/QW5 mandatory; others as time allows |
+
 
 ### Phase 1-4: Full Compiler (If Decided)
 
@@ -617,6 +790,16 @@ risk visible.
    for lexer/parser/resolver. Corpus-wide regression diff.
 
 4. **LSP integration** — Cross-language, not a duplicate parser.
+
+   > **Reframe (2026):** AGENTS.md §6.2 states the TypeScript LSP + ZED
+   > integration is already **complete** (highlighting, completion, hover,
+   > signature help, live diagnostics). Do **not** replace it with a C++ JSON-emitting
+   > server — that risks breaking a working tool for enormous cost and adds a second
+   > parser to maintain. Instead: have the existing TS LSP consume the new compiler's
+   > serialized AST + symbol table (spawn `ltsl_api_dump`/compiler as a persistent
+   > worker over stdio). Tokenization/parsing stay in C++; the TS layer drops its own
+   > grammar and becomes a thin adapter. Single source of truth, simpler LSP, no rewrite.
+
    The LSP spawns the C++ compiler as a persistent worker process
    (stdin/stdout, not per-request). The compiler emits a serialized
    AST + symbol table as JSON. The LSP reads that and serves
@@ -647,19 +830,32 @@ Wins already shipped — they're the fallback, not nothing.
 
 ## Success Criteria
 
-### Phase 0 (Quick Wins)
-- [ ] `-x` negation works everywhere
-- [ ] Failed statements log warnings with line numbers
-- [ ] All compile errors include line/column info
-- [ ] `[1, 2, 3]` array literal syntax works
-- [ ] `for` with multiple cases works reliably
+### Phase 0 (Quick Wins) — mandatory items only; QW1/QW4 are optional (see §Corpus Findings)
+- [ ] Failed statements log warnings with line numbers (QW2)
+- [ ] All compile errors include line/column info (QW3)
+- [ ] `[1, 2, 3]` array literal syntax works (QW5)
+- [x] `-x` inline-prefix negation works — **optional** (`~` is comment-only in the corpus; add only for completeness / future-proofing)
+- [ ] `for i in range a b` sugar works — **deferred pending audit** (no `range` construct or iterator function bound; nothing in corpus exercises it)
+
+### `#` comment disambiguation (standalone — track regardless of rewrite)
+
+The `#` block-comment ambiguity is the highest-risk latent bug: switching
+to single-line `#` would silently compile any block currently disabled by
+it. Confirmed shipped as a real mechanism (`StringList.cpp:96-117`). Migrate
+this **independently** of Phases 1-4, as soon as it's in scope:
+
+- [ ] Phase 0.5 audit classifies every `#` occurrence (single-line vs
+      block-disabling) across all 160 scripts
+- [ ] Mechanical rewrite of offending files to the `##` block-comment form
+- [ ] Drop `##` ambiguity — `#` = single-line only, going forward
 
 ### Full Migration (If Decided)
 - [ ] All 160 `.lts` files compile with new compiler
 - [ ] Behavioral equivalence confirmed for critical scripts
-- [ ] Forward references work (call function before declaration)
+- [ ] Forward references work (call function before declaration) — note: this is a real but **corpus-inert** capability; cross-file refs already work, only intra-scope top-level ordering is missing
 - [ ] Type mismatches caught at compile time
 - [ ] "Did you mean?" for misspelled identifiers
+- [ ] `this.Method` arity trap caught automatically (receiver fills implicit `this`, remaining args fill declared params)
 - [ ] LSP works in ZED with new compiler backend
 
 ---
@@ -668,19 +864,18 @@ Wins already shipped — they're the fallback, not nothing.
 
 | # | Pain point | Fixed by Phase 0? | Fixed by full rewrite? |
 |---|---|---|---|
-| 1 | `~ spawnR` silently does nothing | Yes (QW1: negation) | Yes |
-| 2 | Method call order confusion (`a.b` → `(b a)`) | No | Yes (parser handles directly) |
-| 3 | Silent statement drops when arity check fails | Yes (QW2: warnings) | Yes (error recovery) |
-| 4 | No forward references | No | Yes (two-pass symbol table) |
+| 1 | `~ spawnR` silently does nothing — **CORRECTED: no such bug.** Corpus grep shows `~` is comment-only ("approximately"); zero operator uses. No pain to fix; QW1 is optional (see §Corpus Findings). | Optional (QW1) | Yes |
+| 2 | Method call order confusion (`a.b` → `(b a)` — receiver fills implicit `this`, remaining args fill declared params; a one-arg `this.DoSave` fails arity and silently drops). **Real.** Phase-3 arity checker catches it automatically. | No (trap is silent) | Yes (arity check, free for all method calls) |
+| 3 | Silent statement drops when arity check fails (`Expression_Block` drops failed expressions; `Function.cpp:173-175`). **Real — biggest time-waster.** | Yes (QW2: warnings) | Yes (error recovery) |
+| 4 | No forward references to intra-scope top-level functions. **Real but corpus-inert** — cross-file refs already work via lazy load; methods via type pre-registration (`Function.cpp:90-93`); no corpus script calls a same-scope top-level fn before declaring it. Not enough alone to justify the rewrite (see §Corpus Findings). | No | Yes (two-pass symbol table) |
 | 5 | Hard to understand Josh's original code | No (code style issue) | No |
-| 6 | LSP not working in ZED | Separate task | Yes (new AST backend) |
+| 6 | LSP not working in ZED | Separate task | Resolved — TS LSP already complete; new compiler feeds it as AST backend (§Risk Mitigation). The "new AST backend" row is now a stretch goal, not the driver. |
 | 7 | Hard to prototype UI widgets | Partially (QW2-3) | Yes |
 | 8 | Hard to add in-game dev tools | Partially (QW2-3) | Yes |
 | 9 | Hard to create maps/worlds/levels quickly | Partially (QW2-3) | Yes |
-| 10 | Order-dependent compilation | No | Yes (two-pass) |
+| 10 | Order-dependent compilation | No | Depends — only intra-scope top-level ordering is missing; method/type-ordering already handled by pre-registration. |
 
-Phase 0 addresses 6/10 directly, partially addresses 2 more.
-Full rewrite addresses all 10 (except #5, which is code style).
+Phase 0 addresses #3 directly, partially #2/#7/#8/#9 (QW2-3), and leaves #4 as a real-but-inert capability gap. `~` (#1) has no pain to fix. Full rewrite adds compile-time type/arity checking (#3/#2 for free) plus forward references — but the ordering win is narrower than originally assumed, which should temper the ~9-week estimate (see §Corpus Findings).
 
 ---
 
@@ -720,5 +915,86 @@ before they can be scoped.
 | Any other special forms | Full inventory from Phase 0.5 | Unknown until audited |
 
 This list will grow during the Phase 0.5 audit. Budget 1 week for
-it — it feeds the grammar (Phase 2), the token list (Phase 1), and
-the estimate confidence.
+it — it feeds the grammar (Phase 2), the token list (Phase 1), and the
+estimate confidence.
+
+---
+
+## Appendix C: What This Plan Omits + Ease-of-Use / Troubleshooting Opportunities
+
+This appendix answers two questions: what should be added to this plan, and what
+can be done *now* — regardless of whether Phases 1–4 happen — to make the engine
+and LTSL easier to use and troubleshoot. Findings are grounded in the corpus and
+engine source reviewed for this update.
+
+### C.1 Things missing from the plan that should be covered
+
+**C.1a — A real compile gate (catches bugs the LSP smoke test cannot).**
+> **DONE (A.15, 2026-08-25)** — `tools/compile_gate.cpp` +
+> `Script_CompileCheck`; see AGENTS.md §6.2 "Compile gate" for commands.
+> First run found 5 broken files invisible to the LSP smoke test.
+
+AGENTS.md §A.14 #14 documents a class of bug the analyzer missed: `Button.lts`'s
+`CreateButton` passed an `enabled` arg positionally to an AutoClass-generated
+constructor that only accepts 4 args, so every SAVE/LOAD button silently failed to
+render — and the LSP smoke test caught nothing (its constructor-arity model differs
+from what the engine generates). A CLI that compiles *every* `.lts` with the real
+engine (`Expression_Compile` over all `resource/script/*.lts`, wired as a CI gate)
+would catch these at authoring time. This is the single highest-value "catch real
+bugs" tool and should be added to Phase 0 — it's cheap, independent of the rewrite,
+and directly addresses a known gap in the existing DX.
+
+**C.1b — The `this.Method` arity trap deserves an automatic check.**
+Documented in AGENTS.md §A.14: `a.b` rewrites to `(b a)`, so `this.DoSave` (no
+declared params) fills implicit `this`; but `this.DoSave self` with one declared
+param fails the arity check and silently drops the statement, surfacing only a
+console error mid-compile. Phase 3's resolver should treat method-call arity as an
+*error*, not a silent drop — this is the trap #C.2 fixes for free.
+
+**C.1c — The `#` block-comment migration is confirmed real but under-specified.**
+Verified in `StringList.cpp:96-117`. The plan's Phase 0.5 audit must specifically
+classify every `#` occurrence as single-line vs block-disabling (the latter = a line
++ all deeper-indented lines below it). This is the highest-risk latent bug and should
+be tracked independently of Phases 1–4.
+
+**C.1d — Special-form completeness.** The plan lists 9 forms; `@`/`call` were marked
+"audit to confirm." Corpus grep shows both are used (`@`=print, `call`=dynamic
+dispatch in 4 files) but their exact corpus form is unverified — the audit must pin
+down syntax/scope for each before grammar completion is claimed.
+
+**C.1e — Unused tokens.** `TOK_SIZEOF`/`TOK_TYPEOF` are declared but unused in the
+corpus; the lexer should drop them (audit to confirm no future-facing use).
+
+### C.2 Additional things we could do *now* (independent of the rewrite)
+
+These are DX/troubleshooting wins that need no two-pass compiler and can ship as
+Quick Wins or standalone tooling:
+
+1. **A headless LTSL REPL/runner.** A CLI (`ltsl <file>.lts --run Fn args...`) that
+   loads a script, invokes a function, and dumps its resulting state (variables,
+   widget tree shape, spawned objects). This is the fastest path to "what does this
+   script actually do?" — the most common troubleshooting question. Nothing in the
+   plan addresses it; high value for content authors debugging off-screen.
+
+2. **Compile every app at CI time** (see C.1a) — reuses `ltsl_api_dump`'s existing
+   byte-diff philosophy already trusted in AGENTS.md §6.2, applied to script source.
+   Turn "it works on my machine" into a red pipeline.
+
+3. **Document the calling conventions explicitly** (the two that bite hardest):
+   - **Receiver-first method calls:** `obj.Method(a b)` → `(Method obj a b)`; every
+     declared param follows implicit `this`. A one-page "Writing LTSL functions" note
+     covering this would cut the #C.1b class of bugs dramatically.
+   - **Widget factory pattern** (`Button:Create msg "TEXT" 20`) — already proven in
+     AGENTS.md §A.14; codify it as the canonical way to make widgets so field-order /
+     defaulted-field constructor-arity bugs can't recur.
+
+4. **`desc` vs `block` arity distinction** (already flagged in Phase 2) — worth a short
+   note now since it's a shipped landmine, not a theoretical one: an indented block is
+   `block(...)` with the *receiver* as arg 1; `desc(...)` adds a second arg.
+
+5. **Consistent-indentation enforcement** (Phase-1 lexer design decision #4) — bake
+   tab/space policy into the editor config now so mixed indentation can't produce
+   spurious dedent errors later.
+
+6. **`range`/iteration sugar — defer, but note it.** No corpus demand and no bound
+   iterator (see §Corpus Findings); revisit only if content authors ask for it.

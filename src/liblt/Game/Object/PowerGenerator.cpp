@@ -99,7 +99,9 @@ AutoClassDerived(PowerGenerator, PowerGeneratorBaseT,
       }
 
       double mult = output / totalRequest;
-      if (mult > 1)
+      if (!boost && mult > 1)
+        mult = 1.0;
+      else if (mult > 1)
         mult = Pow(mult, kEfficiencyFactor);
       double changeSpeed = 1.0 - Exp(-kChangeSpeed * state.dt);
       Allocate(parent.t, mult, changeSpeed);

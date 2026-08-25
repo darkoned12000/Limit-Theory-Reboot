@@ -274,12 +274,12 @@ type App
         passes.Append (RenderPass_Clear (Vec4 0.0))
         passes.Append (RenderPass_Camera camera)
         passes.Append (RenderPass_SMAA)
-        passes.Append (RenderPass_Interface ui)
         # Extra low-threshold bloom: the dust streaks (Object_DustFlecks) and
         # the nebula are pure additive and read as black without it. The
         # camera pass has its own bloom (128, 64); this second pass (64, 32)
         # is what the old client appended to make the galaxy glow.
         passes.Append (RenderPass_Bloom 64 32)
+        passes.Append (RenderPass_Interface ui)
         passes.Append (RenderPass_PostFilter "post/dither.jsl")
         gameView.Clear
         gameView.Add (Widget_Rendered passes)

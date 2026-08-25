@@ -15,6 +15,7 @@
 #include "LTE/LTSL.h"
 #include "LTE/Script.h"
 #include "LTE/StringList.h"
+#include "LTE/Types.h"
 
 using namespace LTE;
 
@@ -729,3 +730,228 @@ LTE_TEST(RewriteElse_LeavesIfWithoutElseUntouched) {
   LTE_CHECK_EQ(list->Get(2)->Get(0)->GetValue(), String("else"));
 }
 
+// ── Script_CompileCheck + compile-gate regressions (Phase 0) ───────────
+// The compile gate (tools/compile_gate.cpp) runs Script_CompileCheck over
+// every corpus .lts with the real engine. These tests pin its contract and
+// guard the two bug classes that motivated it (AGENTS.md A.14 #14):
+// silent statement drops and arity/type failures that never surfaced.
+
+#include <cstdio>
+
+namespace {
+  /* Name chosen to sort last in the gate corpus and to be obviously
+     synthetic if a crashed run ever leaks the temp file. */
+  char const* kGateTestScript = "ZZGateTest";
+
+  /* Write `source` as a corpus script, compile-check it through the real
+     pipeline (parse -> rewrites -> Expression_Compile), then delete it. */
+  bool GateCheck(String const& source, Vector<String>& errors) {
+    String path = Stringize() | "resource/script/" | kGateTestScript | ".lts";
+    FILE* f = fopen(path.c_str(), "w");
+    if (!f)
+      return false;
+    fwrite(source.c_str(), 1, source.size(), f);
+    fclose(f);
+
+    bool ok = Script_CompileCheck(kGateTestScript, errors);
+    std::remove(path.c_str());
+    return ok;
+  }
+}
+
+LTE_TEST(Script_CompileCheck_ValidScriptPasses) {
+  String const source =
+    "function Int Double (Int x)\n"
+    "  x * 2\n";
+
+  Vector<String> errors;
+  LTE_CHECK(GateCheck(source, errors));
+  LTE_CHECK_EQ(errors.size(), size_t(0));
+}
+
+LTE_TEST(Script_CompileCheck_MissingFileFails) {
+  Vector<String> errors;
+  LTE_CHECK(!Script_CompileCheck("ZZNoSuchScript", errors));
+  LTE_CHECK(errors.size() > 0);
+  LTE_CHECK(errors[0].find("file not found") != String::npos);
+}
+
+LTE_TEST(Script_CompileCheck_FailedStatementSurfacesWithLine) {
+  // QW2 regression: an unknown variable inside a function body must fail the
+  // whole check and report the LINE — never vanish as a dead statement while
+  // the script "compiles".
+  String const source =
+    "function Int F (Int x)\n"
+    "  x + undefinedThing\n";
+
+  Vector<String> errors;
+  LTE_CHECK(!GateCheck(source, errors));
+  LTE_CHECK(errors.size() > 0);
+
+  bool foundName = false;
+  bool foundLine = false;
+  for (size_t i = 0; i < errors.size(); ++i) {
+    if (errors[i].find("undefinedThing") != String::npos)
+      foundName = true;
+    if (errors[i].find("line 2:") != String::npos)
+      foundLine = true;
+  }
+  LTE_CHECK(foundName);
+  LTE_CHECK(foundLine);
+}
+
+LTE_TEST(Script_CompileCheck_ArgTypeMismatchNamesBothTypes) {
+  // QW3 regression: when an argument fails conversion to a script
+  // function's parameter type, the diagnostic must name the expected type
+  // and point at the failing line. It used to read arguments.back() — the
+  // PREVIOUS argument's type, and uninitialized memory when argument 1
+  // itself was the failure. (Native calls resolve through FunctionCall's
+  // overload resolution; this exercises the script-call path in
+  // ExpressionCall.)
+  String const source =
+    "function Bool F (Bool b)\n"
+    "  b\n"
+    "\n"
+    "(F \"oops\")\n";
+
+  Vector<String> errors;
+  LTE_CHECK(!GateCheck(source, errors));
+
+  bool foundMismatch = false;
+  bool foundLine = false;
+  for (size_t i = 0; i < errors.size(); ++i) {
+    if (errors[i].find("argument 1 to function 'F'") != String::npos)
+      foundMismatch = true;
+    if (errors[i].find("line 4:") != String::npos)
+      foundLine = true;
+  }
+  LTE_CHECK(foundMismatch);
+  LTE_CHECK(foundLine);
+}
+
+
+// ── array literals `[a, b, c]` (QW5) ───────────────────────────────────
+// Tokenizer marks bracket groups with a synthetic `__bracket` head; the
+// literal infers its element type from the first element and evaluates to
+// an engine array container (Type_Array) — the same representation as an
+// `(Array T)` local.
+
+LTE_TEST(StringList_BracketGroupBecomesMarkedList) {
+  // Structure: block list -> per-line statement list -> marked group.
+  StringList list = StringList_Create("[1, 2, 3]");
+  LTE_CHECK_EQ(list->GetSize(), size_t(1));
+
+  StringList stmt = list->Get(0);
+  LTE_CHECK(!stmt->IsAtom());
+  LTE_CHECK_EQ(stmt->GetSize(), size_t(1));
+
+  StringList group = stmt->Get(0);
+  LTE_CHECK(!group->IsAtom());
+  LTE_CHECK_EQ(group->GetSize(), size_t(4));
+  LTE_CHECK_EQ(group->Get(0)->GetValue(), String("__bracket"));
+  LTE_CHECK_EQ(group->Get(1)->GetValue(), String("1"));
+  LTE_CHECK_EQ(group->Get(2)->GetValue(), String("2"));
+  LTE_CHECK_EQ(group->Get(3)->GetValue(), String("3"));
+}
+
+LTE_TEST(StringList_BracketGroup_NestedParensKeepSpaces) {
+  // Parens inside brackets must stay space-separated: `[(Vec2 1 2)]`
+  // is (__bracket (Vec2 1 2)) — the inner space does NOT split elements.
+  StringList list = StringList_Create("[(Vec2 1 2), (Vec2 3 4)]");
+  StringList group = list->Get(0)->Get(0);
+  LTE_CHECK_EQ(group->GetSize(), size_t(3));
+  LTE_CHECK(!group->Get(1)->IsAtom());
+  LTE_CHECK_EQ(group->Get(1)->GetSize(), size_t(3));
+}
+
+namespace {
+  /* Compile a `(__bracket ...)` list and evaluate it into a fresh slot;
+     returns the container pointer. */
+  void* EvalArrayLiteral(StringList const& marked, Type& outArrayType) {
+    CompileEnvironment env;
+    env.script = new ScriptT;
+    env.script->name = "testScript";
+
+    Expression e = Expression_Compile(marked, env);
+    LTE_CHECK(e);
+    if (!e)
+      return nullptr;
+
+    outArrayType = e->GetType();
+
+    char slot[64];
+    Environment runtimeEnv;
+    e->Evaluate(slot, runtimeEnv);
+    return *(void**)slot;
+  }
+}
+
+LTE_TEST(ArrayLiteral_IntElementsEvaluate) {
+  StringList list = StringList_Create("[10, 20, 30]");
+  Type arrType;
+  void* arr = EvalArrayLiteral(list->Get(0), arrType);
+  LTE_CHECK(arr);
+
+  LTE_CHECK_EQ(Type_ArraySize(arr), size_t(3));
+  LTE_CHECK_EQ(*(int*)Type_ArrayGet(arr, 0), 10);
+  LTE_CHECK_EQ(*(int*)Type_ArrayGet(arr, 1), 20);
+  LTE_CHECK_EQ(*(int*)Type_ArrayGet(arr, 2), 30);
+}
+
+LTE_TEST(ArrayLiteral_MixedIntFloatConvertsToFloat) {
+  // The first element fixes Float; the Int literal converts.
+  StringList list = StringList_Create("[1.5, 2]");
+  Type arrType;
+  void* arr = EvalArrayLiteral(list->Get(0), arrType);
+  LTE_CHECK(arr);
+
+  LTE_CHECK_EQ(Type_ArraySize(arr), size_t(2));
+  LTE_CHECK_EQ(*(float*)Type_ArrayGet(arr, 0), 1.5f);
+  LTE_CHECK_EQ(*(float*)Type_ArrayGet(arr, 1), 2.0f);
+}
+
+LTE_TEST(ArrayLiteral_StringElementsEvaluate) {
+  StringList list = StringList_Create("[\"aa\", \"bb\"]");
+  Type arrType;
+  void* arr = EvalArrayLiteral(list->Get(0), arrType);
+  LTE_CHECK(arr);
+  LTE_CHECK_EQ(Type_ArraySize(arr), size_t(2));
+
+  // Get returns the element ADDRESS; elements are engine String objects.
+  LTE_CHECK_EQ(((String*)Type_ArrayGet(arr, 0))->size(), size_t(2));
+  LTE_CHECK_EQ(((String*)Type_ArrayGet(arr, 1))->size(), size_t(2));
+}
+
+LTE_TEST(ArrayLiteral_AssignToArrayLocal) {
+  // Full statement pipeline: `set a [7, 8]` where a is an (Array Int) local.
+  CompileEnvironment env;
+  env.script = new ScriptT;
+  env.script->name = "testScript";
+
+  Type arrT = Type_Array(Type_Get<int>());
+  env.Allocate("a", arrT, false, false);
+
+  Vector<StringList> bracket;
+  bracket.push(new StringListAtom("__bracket"));
+  bracket.push(new StringListAtom("7"));
+  bracket.push(new StringListAtom("8"));
+
+  Vector<StringList> stmt;
+  stmt.push(new StringListAtom("set"));
+  stmt.push(new StringListAtom("a"));
+  stmt.push(new StringListList(bracket));
+
+  Expression e = Expression_Compile(new StringListList(stmt), env);
+  LTE_CHECK(e);
+
+  Environment runtimeEnv;
+  void* regA = arrT->Allocate();
+  runtimeEnv.registers.push(regA);
+  e->Evaluate(0, runtimeEnv);
+
+  void* arr = *(void**)regA;
+  LTE_CHECK(arr);
+  LTE_CHECK_EQ(Type_ArraySize(arr), size_t(2));
+  LTE_CHECK_EQ(*(int*)Type_ArrayGet(arr, 0), 7);
+  LTE_CHECK_EQ(*(int*)Type_ArrayGet(arr, 1), 8);
+}

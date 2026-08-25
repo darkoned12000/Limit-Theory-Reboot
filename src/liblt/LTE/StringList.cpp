@@ -15,8 +15,20 @@ namespace {
   String const kDelim = " ";
   const char kScopeOpen = '(';
   const char kScopeClose = ')';
+  /* Bracket groups (`[a, b, c]`) tokenize like paren groups (one token,
+     recursed) but are marked with a synthetic `__bracket` head atom so the
+     compiler can tell them apart from calls. Inside a bracket group,
+     commas separate elements; parens reset that so `(Vec2 1 2)` stays
+     space-separated even inside `[...]`. */
+  const char kBracketOpen = '[';
+  const char kBracketClose = ']';
+  char const* const kBracketMarker = "__bracket";
 
-  StringList StringList_ParseLine(String const& line, uint32_t lineNum) {
+  StringList StringList_ParseLine(
+    String const& line,
+    uint32_t lineNum,
+    bool commasSplitElements = false)
+  {
     Vector<StringList> elements;
     size_t i = 0;
 
@@ -43,27 +55,44 @@ namespace {
           if (c == '\\')
             escaped = true;
         } else {
-          if (c == kScopeOpen)
+          if (c == kScopeOpen || c == kBracketOpen)
             level++;
-          if (c == kScopeClose) {
+          if (c == kScopeClose || c == kBracketClose) {
             level--;
             if (level == 0)
               break;
           }
 
-          if (level == 0 && kDelim.contains(c))
+          if (level == 0 &&
+              ((commasSplitElements && c == ',') || kDelim.contains(c)))
             break;
         }
 
         token += c;
       }
 
-      if (token.size()) {
-        if (token.front() == kScopeOpen) {
-          elements.push(StringList_ParseLine(token.substr(1), lineNum));
-        } else
-          elements.push(new StringListAtom(token, lineNum));
-      }
+      if (!token.size())
+        continue;
+
+      if (token.front() == kScopeOpen) {
+        elements.push(StringList_ParseLine(token.substr(1), lineNum));
+      } else if (token.front() == kBracketOpen) {
+        /* Mark the group: (__bracket e1 e2 ...). Tolerate an unclosed
+           bracket at end-of-line, matching paren behavior. */
+        String inner = token.substr(1);
+        if (inner.size() && inner.back() == kBracketClose)
+          inner = inner.substr(0, inner.size() - 1);
+        StringList parsed =
+          StringList_ParseLine(inner, lineNum, true);
+
+        Vector<StringList> marked;
+        marked.push(new StringListAtom(kBracketMarker, lineNum));
+        StringListList* pl = (StringListList*)parsed.t;
+        for (size_t e = 0; e < pl->elements.size(); ++e)
+          marked.push(pl->elements[e]);
+        elements.push(new StringListList(marked));
+      } else
+        elements.push(new StringListAtom(token, lineNum));
     }
 
     return new StringListList(elements);

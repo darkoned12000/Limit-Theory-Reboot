@@ -325,3 +325,19 @@ Type Type_Array(Type const& elemType) {
 
   return self;
 }
+
+void* Type_ArrayAlloc(Type const& arrayType) {
+  return arrayType->Allocate();
+}
+
+void Type_ArrayAppend(void* array, void const* element) {
+  ((ArrayCustom*)array)->Append((void*)element);
+}
+
+size_t Type_ArraySize(void* array) {
+  return ((ArrayCustom*)array)->Size();
+}
+
+void* Type_ArrayGet(void* array, size_t index) {
+  return ((ArrayCustom*)array)->Get(index);
+}

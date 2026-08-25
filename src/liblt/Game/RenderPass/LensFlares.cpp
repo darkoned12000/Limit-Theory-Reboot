@@ -224,9 +224,17 @@ namespace {
         resultBuffer->GetData(queryResultData.data());
 
         float factor = 1.0f - Exp(-kOcclusionSpeed * FrameTimer_Get());
-        for (size_t i = 0; i < flares.size() && i < kMaxFlares; ++i)
-          flares[i].light->visibility =
-            Mix(flares[i].light->visibility, queryResultData[i], factor);
+        float zFar = state->view->zFar;
+        for (size_t i = 0; i < flares.size() && i < kMaxFlares; ++i) {
+          /* Flares at or beyond the far plane cannot be meaningfully
+             occluded — the depth buffer has no data there, so the
+             compute query produces noisy results that cause flickering. */
+          if (flares[i].depth >= zFar * 0.99f)
+            flares[i].light->visibility = 1.0f;
+          else
+            flares[i].light->visibility =
+              Mix(flares[i].light->visibility, queryResultData[i], factor);
+        }
       }
     }
   };

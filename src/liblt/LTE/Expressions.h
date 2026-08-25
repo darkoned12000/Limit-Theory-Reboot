@@ -25,6 +25,13 @@ namespace LTE {
     StringList const& list,
     CompileEnvironment& env);
 
+  /* `[a, b, c]` array literal — parses to a `(__bracket ...)` group (see
+     StringList.cpp); infers the element type from the first element and
+     builds an engine array value (Type_Array). */
+  LT_API Expression Expression_ArrayLiteral(
+    StringList const& list,
+    CompileEnvironment& env);
+
   LT_API Expression Expression_Assign(
     Expression const& location,
     Expression const& value);

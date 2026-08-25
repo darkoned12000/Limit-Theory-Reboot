@@ -149,6 +149,8 @@ namespace LTE {
         return Expression_Print(list, env);
       if (value == "address")
         return Expression_Address(list, env);
+      if (value == "__bracket")
+        return Expression_ArrayLiteral(list, env);
       if (value == "block")
         return Expression_Block(list, env, 1);
       if (value == "break")

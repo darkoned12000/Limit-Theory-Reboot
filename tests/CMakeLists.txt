@@ -78,3 +78,26 @@ target_include_directories(ltsl_api_dump PRIVATE
   ${CMAKE_SOURCE_DIR}/include/FreeType)
 target_link_libraries(ltsl_api_dump lt ${LINK_LIBRARIES})
 configure_output_dir(ltsl_api_dump)
+
+# ---------------------------------------------------------------------------
+# ltsl_compile_gate: LTSL compile gate. Compiles every .lts under
+# resource/script with the real engine and fails on any compile error that is
+# not allowlisted in tools/compile_gate_allowlist.txt. Catches engine-level
+# compile breakage the LSP analyzer cannot model exactly (AGENTS.md A.14 #14).
+#   Build:  cmake --build ./build --target ltsl_compile_gate
+#   Run:    LD_LIBRARY_PATH=bin:extbin/linux64 bin/ltsl_compile_gate \
+#             [corpusRoot] [allowlistFile]
+add_executable(ltsl_compile_gate
+  ../tools/compile_gate.cpp)
+
+set_target_properties(ltsl_compile_gate PROPERTIES CXX_STANDARD 17)
+target_compile_options(ltsl_compile_gate PRIVATE
+  -fno-exceptions
+  -msse -msse2
+  -Wall -Wextra)
+target_include_directories(ltsl_compile_gate PRIVATE
+  ${CMAKE_SOURCE_DIR}/src/liblt
+  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/include/FreeType)
+target_link_libraries(ltsl_compile_gate lt ${LINK_LIBRARIES})
+configure_output_dir(ltsl_compile_gate)

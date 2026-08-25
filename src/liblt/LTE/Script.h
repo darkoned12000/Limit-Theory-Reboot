@@ -47,6 +47,13 @@ namespace LTE {
   LT_API Script Script_Load(
     String const& name);
 
+  /* Offline compile check — compiles like Reload() but returns structured
+     errors instead of printing, bypassing the script cache. See
+     Script_CompileCheck in Script.cpp for details. */
+  LT_API bool Script_CompileCheck(
+    String const& name,
+    Vector<String>& errors);
+
   LT_API void Script_Reload(
     String const& name);
 
