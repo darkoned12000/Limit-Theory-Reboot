@@ -34,7 +34,8 @@ set(TEST_SRC
   TestCrashHandler.cpp
   TestJsonDatabase.cpp
   TestPlanets.cpp
-  TestStars.cpp)
+  TestStars.cpp
+  TestLexer.cpp)
 
 add_executable(lte_tests ${TEST_SRC})
 

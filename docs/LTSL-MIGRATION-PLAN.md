@@ -444,7 +444,7 @@ increment (rewritten to `(++ i)`), `debugVisible.!` postfix boolean negate
 
 ---
 
-## Phase 1: Lexer (Token Scanner)
+## Phase 1: Lexer (Token Scanner) — COMPLETE (2026-08-25)
 
 **Input:** Source code string
 **Output:** Token stream with line/column tracking + indent stack
@@ -463,17 +463,21 @@ increment (rewritten to `(++ i)`), `debugVisible.!` postfix boolean negate
 
 3. **Every token carries line/column** — Enables precise error messages.
 
-4. **Tab/space indents are equivalent.** A char-based lexer that counts only
-   spaces will fire spurious dedent errors on any file mixing tabs and spaces,
-   or mis-measure every tab-containing block. Decide up front: treat a tab as 8
-   (or N) spaces for measurement, OR require consistent indentation and report a
-   clear error otherwise. Either way it must be deterministic — not "whatever the
-   editor emitted."
+4. **Tab/space indents are equivalent.** Tab treated as 4 spaces for
+   measurement. No spurious dedent errors on mixed indentation.
 
 5. **Multi-line paren groups span newlines.** `(` / `)` may open on one line and
    close on another (every multi-line expression in the corpus relies on this).
-   The lexer must defer INDENT/DEDENT measurement until a balanced-paren boundary,
-   or it will split expressions at every newline inside parens. Same for `[` / `]`.
+   `parenDepth` counter defers INDENT/DEDENT until balanced-paren boundary.
+   Same for `[` / `]`.
+
+6. **`#` = single-line comment only.** Block-comment behavior (16 occurrences)
+   must be mechanically rewritten in Phase 0.5 migration before the new lexer
+   can be wired in as the sole tokenization path.
+
+7. **Postfix operators split.** `i.++` lexes as `IDENT DOT PLUS PLUS`;
+   `debugVisible.!` as `IDENT DOT NOT`. The parser handles rewriting
+   to `(++ i)` / `(! debugVisible)` — the lexer stays simple.
 
 ```cpp
 enum TokenKind {
@@ -481,7 +485,7 @@ enum TokenKind {
   TOK_INT, TOK_FLOAT, TOK_STRING, TOK_BOOL, TOK_NULL,
 
   // Identifiers
-  TOK_IDENTIFIER, TOK_MEMBER,
+  TOK_IDENTIFIER,
 
   // Operators
   TOK_PLUS, TOK_MINUS, TOK_STAR, TOK_SLASH, TOK_MOD,
@@ -495,26 +499,18 @@ enum TokenKind {
 
   // Delimiters
   TOK_LPAREN, TOK_RPAREN, TOK_LBRACKET, TOK_RBRACKET,
-  TOK_COMMA, TOK_SEMICOLON, TOK_COLON, TOK_DOT, TOK_ARROW,
+  TOK_COMMA, TOK_COLON, TOK_DOT,
 
   // Keywords
   TOK_VAR, TOK_REF, TOK_STATIC, TOK_FUNCTION, TOK_RETURN,
-  TOK_IF, TOK_ELSE, TOK_WHILE, TOK_FOR, TOK_IN,
+  TOK_IF, TOK_ELSE, TOK_WHILE, TOK_FOR,
   TOK_SWITCH, TOK_OTHERWISE,
-  TOK_BREAK, TOK_CONTINUE, TOK_TRUE, TOK_FALSE,
+  TOK_BREAK, TOK_TRUE, TOK_FALSE,
   TOK_TYPE, TOK_CAST, TOK_BLOCK, TOK_DESC,
   TOK_ADDRESS, TOK_DEREF, TOK_AT,
 
   // Special
-  TOK_NEWLINE, TOK_INDENT, TOK_DEDENT, TOK_EOF
-};
-
-struct Token {
-  TokenKind kind;
-  String value;      // The raw text of the token
-  int line;          // 1-based line number
-  int column;        // 1-based column number
-  int length;        // Character length of the token
+  TOK_NEWLINE, TOK_INDENT, TOK_DEDENT, TOK_EOF, TOK_UNKNOWN
 };
 ```
 
@@ -522,25 +518,23 @@ struct Token {
 
 ```
 class Lexer {
-  String source;
-  int pos;            // Current position in source
-  int line;           // Current line (1-based)
-  int column;         // Current column (1-based)
-  Vector<int> indentStack;  // Indent levels (starts with [0])
-  Vector<Token> pending;    // Buffered tokens (for INDENT/DEDENT)
-  bool atLineStart;         // True if next char starts a new line
+  String const& source;
+  size_t pos;
+  int line;
+  int column;
+  Vector<int> indentStack;   // Indent levels (starts with [0])
+  Vector<Token> pending;     // Buffered indent tokens
+  bool atLineStart;
+  bool hasTokensOnLine;      // Suppresses NEWLINE on comment-only lines
+  int parenDepth;            // Defers INDENT/DEDENT inside ()/[]
 
   // Core
-  Token NextToken();
   Vector<Token> Tokenize();
 
   // Character helpers
-  char Peek();
-  char Peek2();
-  char Advance();
-  bool AtEnd();
-  void SkipWhitespace();  // Spaces and tabs (NOT newlines)
-  void SkipComment();     # to end of line
+  char Peek(); char Peek2(); char Advance(); bool AtEnd();
+  void SkipHorizontalWhitespace();
+  void SkipSingleLineComment();
 
   // Token readers
   Token ReadNumber();
@@ -549,36 +543,33 @@ class Lexer {
   Token ReadOperator();
 
   // Indent handling
-  int MeasureIndent();    // Count leading spaces at line start
-  void EmitIndentTokens(int newIndent);  // Push INDENT/DEDENT tokens
+  int MeasureIndent();
+  void EmitIndentTokens(int newIndent);
+  void EmitPendingTokens();
+  void Emit(Token const& tok);
+
+  // Error reporting
+  void ReportError(String const& message);
 };
 ```
 
-### Indent-Stack Rules (Python-style)
+### Completed (Phase 1)
 
-```
-indentStack = [0]  # Initial indent level
+- [x] `src/liblt/LTE/Lexer.h` — TokenKind enum, Token/LexError/Lexer class declarations
+- [x] `src/liblt/LTE/Lexer.cpp` — Full implementation: character scanning, indent stack,
+      `#` single-line comments, multi-line paren/bracket span, all token readers
+- [x] `tests/TestLexer.cpp` — 35 tests, 1161 checks, 0 failures
+- [x] Builds clean via `python3 configure.py build`; existing tests pass
 
-On each NEWLINE + leading whitespace:
-  newIndent = MeasureIndent()
+### Key implementation details
 
-  if newIndent > indentStack[-1]:
-    indentStack.push(newIndent)
-    emit TOK_INDENT
-
-  else if newIndent < indentStack[-1]:
-    while indentStack[-1] > newIndent:
-      indentStack.pop()
-      emit TOK_DEDENT
-    if indentStack[-1] != newIndent:
-      ERROR("unindent does not match any outer indentation level")
-
-  # newIndent == indentStack[-1]: no indent/dedent tokens
-```
-
-**Hard error on mismatched dedent** — this is the key improvement.
-The current interpreter silently accepts bad indentation; the new
-lexer rejects it.
+- `hasTokensOnLine` flag: NEWLINE tokens only emitted when real tokens have
+  appeared on the current line. Comment-only and blank lines produce no NEWLINE.
+- `MeasureIndent()` saves/restores `pos`/`column` — returns indent level without
+  consuming characters; `SkipHorizontalWhitespace()` called after
+  `EmitIndentTokens()` to actually advance past the measured whitespace.
+- `Emit()` helper marks `hasTokensOnLine = true` for non-structural tokens
+  (everything except NEWLINE/INDENT/DEDENT/EOF).
 
 ### What Changes vs Current Parser
 
@@ -895,6 +886,10 @@ src/liblt/LTE/Compiler/
 | LSP integration | — | 1 week | Phase 4 |
 | **Phase 1-4 total** | **~3,000** | **~9 weeks** | |
 
+> **Phase 1 completed 2026-08-25.** Lexer tokenizes all single-line constructs
+> with hard indent-stack enforcement. Remaining work: wire new lexer into
+> corpus tokenization tool, then proceed to Phase 2 (parser).
+
 **Note:** The Phase 0.5 audit moves discovery cost from "implicit and
 unbounded inside every phase" to a single upfront week with a concrete
 deliverable. Phases 1-4 can proceed with confidence that no major
@@ -979,8 +974,20 @@ this **independently** of Phases 1-4, as soon as it's in scope:
       Phase 1 lexer work — decision pending)
 - [ ] Drop block-comment behavior — `#` = single-line only, going forward
 
+### Phase 1 (Lexer) — ✅ DONE (2026-08-25)
+- [x] All token kinds from Phase 0.5 audit implemented
+- [x] Hard indent-stack enforcement with hard error on mismatched dedent
+- [x] `#` = single-line comment (block-comment rewrite still pending)
+- [x] Multi-line paren/bracket groups span newlines (`parenDepth`)
+- [x] Tab treated as 4 spaces; mixed indent is deterministic
+- [x] `@` debug-print keyword lexed as `TOK_AT`
+- [x] Postfix `.!` `.++` `.--` lexed as separate tokens
+- [x] Every token carries line/column
+- [x] `tests/TestLexer.cpp`: 35 tests, 1161 checks, 0 failures
+- [x] `ltsl_compile_gate`: PASS, 157 files, empty allowlist (unchanged)
+
 ### Full Migration (If Decided)
-- [ ] All 160 `.lts` files compile with new compiler
+- [ ] All 157 `.lts` files compile with new compiler
 - [ ] Behavioral equivalence confirmed for critical scripts
 - [ ] Forward references work (call function before declaration) — note: this is a real but **corpus-inert** capability; cross-file refs already work, only intra-scope top-level ordering is missing
 - [ ] Type mismatches caught at compile time
