@@ -342,6 +342,7 @@ ASTNode Parser::ParseStatement() {
   if (tok.kind == TOK_DESC)    return ParseDesc();
   if (tok.kind == TOK_BLOCK) {
     Advance();
+    SkipNewlines();
     return ParseBlock();
   }
 

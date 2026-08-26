@@ -631,3 +631,355 @@ LTE_TEST(Parser_MultilineIf) {
   LTE_CHECK(body != nullptr);
   LTE_CHECK(body->statements.size() == 3);
 }
+
+// ── Comparison operators ───────────────────────────────────────────────
+
+LTE_TEST(Parser_Comparison) {
+  ASTNode mod = Parse("1 < 2");
+  ASTExprStmtNodeT const* es = AsExprStmt(ModuleStmt(mod, 0));
+  ASTBinaryOpNodeT const* op = AsBinOp(es->expression);
+  LTE_CHECK(op != nullptr);
+  LTE_CHECK_EQ(op->op, String("<"));
+  LTE_CHECK(op->left != nullptr);
+  LTE_CHECK(op->right != nullptr);
+}
+
+LTE_TEST(Parser_ComparisonEqual) {
+  ASTNode mod = Parse("x == 5");
+  ASTExprStmtNodeT const* es = AsExprStmt(ModuleStmt(mod, 0));
+  ASTBinaryOpNodeT const* op = AsBinOp(es->expression);
+  LTE_CHECK(op != nullptr);
+  LTE_CHECK_EQ(op->op, String("=="));
+}
+
+LTE_TEST(Parser_ComparisonNotEqual) {
+  ASTNode mod = Parse("x != 5");
+  ASTExprStmtNodeT const* es = AsExprStmt(ModuleStmt(mod, 0));
+  ASTBinaryOpNodeT const* op = AsBinOp(es->expression);
+  LTE_CHECK(op != nullptr);
+  LTE_CHECK_EQ(op->op, String("!="));
+}
+
+LTE_TEST(Parser_ComparisonGreaterEqual) {
+  ASTNode mod = Parse("x >= 5");
+  ASTExprStmtNodeT const* es = AsExprStmt(ModuleStmt(mod, 0));
+  ASTBinaryOpNodeT const* op = AsBinOp(es->expression);
+  LTE_CHECK(op != nullptr);
+  LTE_CHECK_EQ(op->op, String(">="));
+}
+
+LTE_TEST(Parser_ComparisonLessEqual) {
+  ASTNode mod = Parse("x <= 5");
+  ASTExprStmtNodeT const* es = AsExprStmt(ModuleStmt(mod, 0));
+  ASTBinaryOpNodeT const* op = AsBinOp(es->expression);
+  LTE_CHECK(op != nullptr);
+  LTE_CHECK_EQ(op->op, String("<="));
+}
+
+// ── Logical operators ──────────────────────────────────────────────────
+
+LTE_TEST(Parser_LogicalAnd) {
+  ASTNode mod = Parse("true && false");
+  ASTExprStmtNodeT const* es = AsExprStmt(ModuleStmt(mod, 0));
+  ASTBinaryOpNodeT const* op = AsBinOp(es->expression);
+  LTE_CHECK(op != nullptr);
+  LTE_CHECK_EQ(op->op, String("&&"));
+  ASTBoolLiteralNodeT const* l = AsBoolLit(op->left);
+  ASTBoolLiteralNodeT const* r = AsBoolLit(op->right);
+  LTE_CHECK(l != nullptr);
+  LTE_CHECK(r != nullptr);
+}
+
+LTE_TEST(Parser_LogicalOr) {
+  ASTNode mod = Parse("true || false");
+  ASTExprStmtNodeT const* es = AsExprStmt(ModuleStmt(mod, 0));
+  ASTBinaryOpNodeT const* op = AsBinOp(es->expression);
+  LTE_CHECK(op != nullptr);
+  LTE_CHECK_EQ(op->op, String("||"));
+}
+
+LTE_TEST(Parser_LogicalPrecedence) {
+  // && binds tighter than ||: a || b && c  ==  a || (b && c)
+  ASTNode mod = Parse("a || b && c");
+  ASTExprStmtNodeT const* es = AsExprStmt(ModuleStmt(mod, 0));
+  ASTBinaryOpNodeT const* orOp = AsBinOp(es->expression);
+  LTE_CHECK(orOp != nullptr);
+  LTE_CHECK_EQ(orOp->op, String("||"));
+  ASTBinaryOpNodeT const* andOp = AsBinOp(orOp->right);
+  LTE_CHECK(andOp != nullptr);
+  LTE_CHECK_EQ(andOp->op, String("&&"));
+}
+
+// ── Modulo operator ────────────────────────────────────────────────────
+
+LTE_TEST(Parser_Modulo) {
+  ASTNode mod = Parse("5 % 3");
+  ASTExprStmtNodeT const* es = AsExprStmt(ModuleStmt(mod, 0));
+  ASTBinaryOpNodeT const* op = AsBinOp(es->expression);
+  LTE_CHECK(op != nullptr);
+  LTE_CHECK_EQ(op->op, String("%"));
+  ASTIntLiteralNodeT const* l = AsIntLit(op->left);
+  ASTIntLiteralNodeT const* r = AsIntLit(op->right);
+  LTE_CHECK(l != nullptr);
+  LTE_CHECK_EQ(l->value, (long long)5);
+  LTE_CHECK(r != nullptr);
+  LTE_CHECK_EQ(r->value, (long long)3);
+}
+
+// ── Compound assignments ───────────────────────────────────────────────
+
+LTE_TEST(Parser_MinusAssign) {
+  ASTNode mod = Parse("x -= 1");
+  ASTAssignNodeT const* a = AsAssign(ModuleStmt(mod, 0));
+  LTE_CHECK(a != nullptr);
+  LTE_CHECK_EQ(a->op, String("-="));
+}
+
+LTE_TEST(Parser_MultiplyAssign) {
+  ASTNode mod = Parse("x *= 2");
+  ASTAssignNodeT const* a = AsAssign(ModuleStmt(mod, 0));
+  LTE_CHECK(a != nullptr);
+  LTE_CHECK_EQ(a->op, String("*="));
+}
+
+LTE_TEST(Parser_DivideAssign) {
+  ASTNode mod = Parse("x /= 3");
+  ASTAssignNodeT const* a = AsAssign(ModuleStmt(mod, 0));
+  LTE_CHECK(a != nullptr);
+  LTE_CHECK_EQ(a->op, String("/="));
+}
+
+// ── Method call with paren args ────────────────────────────────────────
+
+LTE_TEST(MethodCallParenArgs) {
+  ASTNode mod = Parse("obj.Method(1, 2)");
+  ASTExprStmtNodeT const* es = AsExprStmt(ModuleStmt(mod, 0));
+  ASTMethodCallNodeT const* mc = AsMethodCall(es->expression);
+  LTE_CHECK(mc != nullptr);
+  LTE_CHECK_EQ(mc->methodName, String("Method"));
+  LTE_CHECK(mc->args.size() == 2);
+}
+
+LTE_TEST(MethodCallParenSingleArg) {
+  ASTNode mod = Parse("obj.Run(x)");
+  ASTExprStmtNodeT const* es = AsExprStmt(ModuleStmt(mod, 0));
+  ASTMethodCallNodeT const* mc = AsMethodCall(es->expression);
+  LTE_CHECK(mc != nullptr);
+  LTE_CHECK_EQ(mc->methodName, String("Run"));
+  LTE_CHECK(mc->args.size() == 1);
+}
+
+// ── Type declarations ──────────────────────────────────────────────────
+
+LTE_TEST(Parser_TypeDecl) {
+  String src =
+    "type Vec3\n"
+    "  Float x\n"
+    "  Float y\n"
+    "  Float z";
+  ASTNode mod = Parse(src);
+  ASTModuleNodeT const* m = AsModule(mod);
+  LTE_CHECK(m != nullptr);
+  LTE_CHECK(m->statements.size() == 1);
+  LTE_CHECK(m->statements[0]->kind == AST_TYPE_DECL);
+}
+
+LTE_TEST(Parser_TypeDeclEmpty) {
+  ASTNode mod = Parse("type Empty");
+  ASTModuleNodeT const* m = AsModule(mod);
+  LTE_CHECK(m != nullptr);
+  LTE_CHECK(m->statements.size() == 1);
+  LTE_CHECK(m->statements[0]->kind == AST_TYPE_DECL);
+}
+
+// ── desc block ─────────────────────────────────────────────────────────
+
+LTE_TEST(Parser_DescBlock) {
+  String src =
+    "desc \"label\"\n"
+    "  1\n"
+    "  2";
+  ASTNode mod = Parse(src);
+  ASTBlockNodeT const* blk = AsBlock(ModuleStmt(mod, 0));
+  LTE_CHECK(blk != nullptr);
+  LTE_CHECK(blk->isDesc == true);
+  LTE_CHECK_EQ(blk->label, String("label"));
+  LTE_CHECK(blk->statements.size() == 2);
+}
+
+LTE_TEST(Parser_DescNoLabel) {
+  String src =
+    "desc\n"
+    "  1";
+  ASTNode mod = Parse(src);
+  ASTBlockNodeT const* blk = AsBlock(ModuleStmt(mod, 0));
+  LTE_CHECK(blk != nullptr);
+  LTE_CHECK(blk->isDesc == true);
+  LTE_CHECK(blk->label.size() == 0);
+}
+
+// ── block keyword ──────────────────────────────────────────────────────
+
+LTE_TEST(Parser_BlockKeyword) {
+  String src =
+    "block\n"
+    "  1\n"
+    "  2";
+  ASTNode mod = Parse(src);
+  ASTBlockNodeT const* blk = AsBlock(ModuleStmt(mod, 0));
+  LTE_CHECK(blk != nullptr);
+  LTE_CHECK(blk->isDesc == false);
+  LTE_CHECK(blk->statements.size() == 2);
+}
+
+// ── Switch with multiple cases ─────────────────────────────────────────
+
+LTE_TEST(Parser_SwitchMultiCase) {
+  String src =
+    "switch\n"
+    "  x == 1\n"
+    "    10\n"
+    "  x == 2\n"
+    "    20\n"
+    "  otherwise\n"
+    "    30";
+  ASTNode mod = Parse(src);
+  ASTSwitchNodeT const* sw = AsSwitch(ModuleStmt(mod, 0));
+  LTE_CHECK(sw != nullptr);
+  LTE_CHECK(sw->cases.size() == 2);
+  LTE_CHECK(sw->otherwise != nullptr);
+  ASTBlockNodeT const* blk = AsBlock(sw->cases[0].body);
+  LTE_CHECK(blk != nullptr);
+  LTE_CHECK(blk->statements.size() == 1);
+}
+
+// ── else-if chains ─────────────────────────────────────────────────────
+
+LTE_TEST(Parser_ElseIfChain) {
+  String src =
+    "if true\n"
+    "  1\n"
+    "else if false\n"
+    "  2\n"
+    "else\n"
+    "  3";
+  ASTNode mod = Parse(src);
+  ASTIfNodeT const* ifn = AsIf(ModuleStmt(mod, 0));
+  LTE_CHECK(ifn != nullptr);
+  LTE_CHECK(ifn->thenBlock != nullptr);
+  LTE_CHECK(ifn->elseBlock != nullptr);
+  ASTIfNodeT const* elseIf = AsIf(ifn->elseBlock);
+  LTE_CHECK(elseIf != nullptr);
+  LTE_CHECK(elseIf->thenBlock != nullptr);
+  LTE_CHECK(elseIf->elseBlock != nullptr);
+}
+
+// ── Nested parentheses ────────────────────────────────────────────────
+
+LTE_TEST(Parser_NestedParens) {
+  ASTNode mod = Parse("(1 + (2 * 3))");
+  ASTExprStmtNodeT const* es = AsExprStmt(ModuleStmt(mod, 0));
+  ASTBinaryOpNodeT const* add = AsBinOp(es->expression);
+  LTE_CHECK(add != nullptr);
+  LTE_CHECK_EQ(add->op, String("+"));
+  ASTIntLiteralNodeT const* l = AsIntLit(add->left);
+  LTE_CHECK(l != nullptr);
+  LTE_CHECK_EQ(l->value, (long long)1);
+  ASTBinaryOpNodeT const* mul = AsBinOp(add->right);
+  LTE_CHECK(mul != nullptr);
+  LTE_CHECK_EQ(mul->op, String("*"));
+}
+
+// ── Method chain with args ─────────────────────────────────────────────
+
+LTE_TEST(Parser_MethodChainWithArgs) {
+  ASTNode mod = Parse("obj.Filter(x).Map(y)");
+  ASTExprStmtNodeT const* es = AsExprStmt(ModuleStmt(mod, 0));
+  ASTMethodCallNodeT const* outer = AsMethodCall(es->expression);
+  LTE_CHECK(outer != nullptr);
+  LTE_CHECK_EQ(outer->methodName, String("Map"));
+  LTE_CHECK(outer->args.size() == 1);
+  ASTMethodCallNodeT const* inner = AsMethodCall(outer->object);
+  LTE_CHECK(inner != nullptr);
+  LTE_CHECK_EQ(inner->methodName, String("Filter"));
+  LTE_CHECK(inner->args.size() == 1);
+}
+
+// ── Declarations without initializer ───────────────────────────────────
+
+LTE_TEST(Parser_VarDeclNoInit) {
+  ASTNode mod = Parse("var x");
+  ASTDeclNodeT const* d = AsDecl(ModuleStmt(mod, 0));
+  LTE_CHECK(d != nullptr);
+  LTE_CHECK_EQ(d->kind, AST_VAR_DECL);
+  LTE_CHECK_EQ(d->name, String("x"));
+  LTE_CHECK(d->initializer == nullptr);
+}
+
+// ── Expression precedence deep ─────────────────────────────────────────
+
+LTE_TEST(Parser_OperatorPrecedenceDeep) {
+  ASTNode mod = Parse("a + b * c - d / e");
+  ASTExprStmtNodeT const* es = AsExprStmt(ModuleStmt(mod, 0));
+  ASTBinaryOpNodeT const* sub = AsBinOp(es->expression);
+  LTE_CHECK(sub != nullptr);
+  LTE_CHECK_EQ(sub->op, String("-"));
+  ASTBinaryOpNodeT const* add = AsBinOp(sub->left);
+  LTE_CHECK(add != nullptr);
+  LTE_CHECK_EQ(add->op, String("+"));
+  ASTBinaryOpNodeT const* div = AsBinOp(sub->right);
+  LTE_CHECK(div != nullptr);
+  LTE_CHECK_EQ(div->op, String("/"));
+}
+
+// ── Comment lines ──────────────────────────────────────────────────────
+
+LTE_TEST(Parser_CommentOnly) {
+  ASTNode mod = Parse("# this is a comment");
+  ASTModuleNodeT const* m = AsModule(mod);
+  LTE_CHECK(m != nullptr);
+  LTE_CHECK(m->statements.size() == 0);
+}
+
+LTE_TEST(Parser_CommentBeforeStatement) {
+  ASTNode mod = Parse("# comment\n42");
+  ASTModuleNodeT const* m = AsModule(mod);
+  LTE_CHECK(m != nullptr);
+  LTE_CHECK(m->statements.size() == 1);
+  ASTExprStmtNodeT const* es = AsExprStmt(m->statements[0]);
+  ASTIntLiteralNodeT const* lit = AsIntLit(es->expression);
+  LTE_CHECK(lit != nullptr);
+  LTE_CHECK_EQ(lit->value, (long long)42);
+}
+
+// ── Large block ────────────────────────────────────────────────────────
+
+LTE_TEST(Parser_LargeBlock) {
+  String src =
+    "if true\n"
+    "  1\n"
+    "  2\n"
+    "  3\n"
+    "  4\n"
+    "  5";
+  ASTNode mod = Parse(src);
+  ASTIfNodeT const* ifn = AsIf(ModuleStmt(mod, 0));
+  LTE_CHECK(ifn != nullptr);
+  ASTBlockNodeT const* blk = AsBlock(ifn->thenBlock);
+  LTE_CHECK(blk != nullptr);
+  LTE_CHECK(blk->statements.size() == 5);
+}
+
+// ── While with complex condition ───────────────────────────────────────
+
+LTE_TEST(Parser_WhileComplexCond) {
+  String src =
+    "while x > 0 && y < 10\n"
+    "  x = x - 1";
+  ASTNode mod = Parse(src);
+  ASTWhileNodeT const* w = AsWhile(ModuleStmt(mod, 0));
+  LTE_CHECK(w != nullptr);
+  ASTBinaryOpNodeT const* andOp = AsBinOp(w->condition);
+  LTE_CHECK(andOp != nullptr);
+  LTE_CHECK_EQ(andOp->op, String("&&"));
+}
