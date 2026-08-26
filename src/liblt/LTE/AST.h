@@ -174,6 +174,7 @@ struct ASTSwitchCase {
 };
 
 struct ASTSwitchNodeT : public ASTNodeT {
+  ASTNode expression;              // The value being switched on
   Vector<ASTSwitchCase> cases;
   ASTNode otherwise;  // Default branch, may be nullptr
 

@@ -614,6 +614,8 @@ ASTNode Parser::ParseSwitch() {
   node->loc = SourceLocation(switchTok.line, switchTok.column);
 
   SkipNewlines();
+  node->expression = ParseExpression();
+  SkipNewlines();
   if (!Match(TOK_INDENT)) {
     ReportError("expected indented switch body");
     return node;
@@ -787,10 +789,44 @@ ASTNode Parser::ParsePrimary() {
     return node;
   }
 
-  // --- Parenthesized expression ---
+  // --- Parenthesized expression or function call ---
   if (tok.kind == TOK_LPAREN) {
     Advance();
     SkipNewlines();
+
+    // Check for function call: (name arg1 arg2 ...)
+    // If first expression is an identifier and more tokens follow before ')',
+    // treat as space-separated function call.
+    Token const& firstTok = Peek();
+    if (firstTok.kind == TOK_IDENTIFIER) {
+      Token saved = firstTok;
+      Advance();
+      SkipNewlines();
+
+      if (!Check(TOK_RPAREN)) {
+        // This is a function call — parse space-separated arguments
+        ASTFuncCallNodeT* call = new ASTFuncCallNodeT();
+        call->loc = SourceLocation(saved.line, saved.column);
+        call->name = saved.value;
+
+        do {
+          SkipNewlines();
+          call->args.push(ParseExpression());
+          SkipNewlines();
+        } while (!Check(TOK_RPAREN) && !Check(TOK_EOF));
+
+        Expect(TOK_RPAREN, "expected ')' after function arguments");
+        return call;
+      }
+
+      // No args — bare (name) is a function call with zero args
+      ASTFuncCallNodeT* call = new ASTFuncCallNodeT();
+      call->loc = SourceLocation(saved.line, saved.column);
+      call->name = saved.value;
+      Expect(TOK_RPAREN, "expected ')'");
+      return call;
+    }
+
     ASTNode expr = ParseExpression();
     SkipNewlines();
     Expect(TOK_RPAREN, "expected ')'");
@@ -849,15 +885,35 @@ ASTNode Parser::ParsePrimary() {
 
   // --- Identifier: variable, function call, constructor, or type name ---
   if (tok.kind == TOK_IDENTIFIER) {
-    // Check for type constructor: TypeName(args)
-    // Heuristic: if identifier is followed by '(' and the identifier starts
-    // with uppercase, it's likely a constructor. But we can't be sure without
-    // a symbol table. For now, treat all Identifier '(' as function calls —
-    // the resolver (Phase 3) will distinguish constructors from functions.
     Advance();
 
+    ASTNode ident = ParseIdentifier(tok);
+
+    // Check for function/constructor call: name(args)
+    if (Check(TOK_LPAREN)) {
+      Advance();  // consume '('
+      SkipNewlines();
+
+      ASTFuncCallNodeT* call = new ASTFuncCallNodeT();
+      call->loc = ident->loc;
+      call->name = tok.value;
+
+      if (!Check(TOK_RPAREN)) {
+        do {
+          SkipNewlines();
+          call->args.push(ParseExpression());
+          SkipNewlines();
+        } while (Match(TOK_COMMA));
+      }
+
+      SkipNewlines();
+      Expect(TOK_RPAREN, "expected ')' after function arguments");
+      ASTNode result = ParsePostfix(call);
+      return result;
+    }
+
     // Check for dotted access / method call: identifier[.identifier...] [(args)]
-    ASTNode result = ParsePostfix(ParseIdentifier(tok));
+    ASTNode result = ParsePostfix(ident);
 
     return result;
   }

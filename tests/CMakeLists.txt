@@ -36,7 +36,8 @@ set(TEST_SRC
   TestPlanets.cpp
   TestStars.cpp
   TestLexer.cpp
-  TestParser.cpp)
+  TestParser.cpp
+  TestSymbolResolver.cpp)
 
 add_executable(lte_tests ${TEST_SRC})
 

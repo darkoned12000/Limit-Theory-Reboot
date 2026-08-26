@@ -726,7 +726,7 @@ paramList     = [typeName IDENTIFIER (',' typeName IDENTIFIER)*]
 
 ---
 
-## Phase 3: Symbol Resolver + Type Checker
+## Phase 3: Symbol Resolver + Type Checker ✅ COMPLETE
 
 **Input:** Raw AST from Phase 2
 **Output:** Typed AST with resolved references
@@ -889,6 +889,9 @@ src/liblt/LTE/Compiler/
 > **Phase 1 completed 2026-08-25.** Lexer tokenizes all single-line constructs
 > with hard indent-stack enforcement. Remaining work: wire new lexer into
 > corpus tokenization tool, then proceed to Phase 2 (parser).
+>
+> **Phase 2 completed 2026-08-25.** Pratt parser handles all LTSL grammar forms.
+> Phase 3 completed 2026-08-25. Symbol resolver with single-pass declare+resolve.
 
 **Note:** The Phase 0.5 audit moves discovery cost from "implicit and
 unbounded inside every phase" to a single upfront week with a concrete
@@ -985,6 +988,22 @@ this **independently** of Phases 1-4, as soon as it's in scope:
 - [x] Every token carries line/column
 - [x] `tests/TestLexer.cpp`: 35 tests, 1161 checks, 0 failures
 - [x] `ltsl_compile_gate`: PASS, 157 files, empty allowlist (unchanged)
+
+### Phase 2 (Parser) — ✅ DONE (2026-08-25)
+- [x] Full Pratt parser: 980 LOC, all LTSL grammar forms
+- [x] `tests/TestParser.cpp`: 45+ tests, 246 checks, 0 failures
+- [x] INDENT/DEDENT-based block structure
+- [x] LTSL space-separated function params and method args
+- [x] Function call parsing `(name arg1 arg2)` via paren detection in `ParsePrimary`
+
+### Phase 3 (Symbol Resolver) — ✅ DONE (2026-08-25)
+- [x] `PreScanDeclarations` — file-level forward references (functions + types)
+- [x] `ResolveAndDeclare` — single-pass declare+resolve (eliminated broken two-pass design)
+- [x] `tests/TestSymbolResolver.cpp`: 41 tests, 53 checks, 0 failures
+- [x] `ltsl_compile_gate`: PASS, 157 files, empty allowlist (unchanged)
+- [x] Fixed use-after-free in `PopScope`/`LookupSymbol`/`AllSymbolNames`
+- [x] Type inference: int/float/string literals, binary/comparison/logical ops
+- [x] Dot-chain rewriting, arity checking, scope isolation, "did you mean?"
 
 ### Full Migration (If Decided)
 - [ ] All 157 `.lts` files compile with new compiler

@@ -484,8 +484,9 @@ correctness/tooling passes, NOT a ground-up rewrite.
 - **Reflection:** macro system — `AutoClass`/`AutoClassDerived` (arities 0..32),
   `FIELDS`/`MAPFIELD`, `AUTOMATIC_REFLECTION_PARAMETRIC1/2`, `METADATA`/`REGISTER_TYPE`.
 - **LTSL:** tree-walking interpreter (25 node types, 2,854 LOC). No bytecode/VM/JIT.
-  Phase 1 lexer complete (`Lexer.h`/`Lexer.cpp`) — token scanner with hard
-  indent-stack enforcement, ready for Phase 2 parser.
+   Phase 1 lexer + Phase 2 parser complete (`Lexer.h`/`Lexer.cpp`, `AST.h`,
+   `Parser.h`/`Parser.cpp`) — Pratt parser producing typed AST with 72 tests
+   / 246 checks. Ready for Phase 3 symbol resolver.
 - **Graphics:** GLAD 2.0.8 + OpenGL 4.6 context. Programmable pipeline: FBOs, MRT,
   VBOs, single global VAO. Fixed-function (`glBegin`) **removed**.
 - **GLSL:** All `.jsl` shaders forced to `#version 460 core`. `JSLPreprocess`
@@ -1292,6 +1293,61 @@ exactly 6 diagnostics (known fixtures).**
   - `Expect` returns the current token (not advanced) on failure to prevent null
     dereference — callers get an error but can continue parsing.
   - EOF auto-emits DEDENT for all remaining indent levels (Python behavior).
+
+### A.18 Phase 3 Symbol Resolver (2026-08-25)
+
+Implements Phase 3 of `docs/LTSL-MIGRATION-PLAN.md`. **Suite: 1460 checks /
+0 failures. Compile gate = PASS, 157 files, empty allowlist.**
+
+- [x] **`src/liblt/LTE/SymbolResolver.h`** — Symbol, Scope, CompileError,
+  SymbolResolver class declarations (~180 lines). Scope is `RefCounted` for
+  `Reference<Scope>` ownership. `Symbol` stores `name`, `kind` (Var/Func/Type/Param),
+  `declaredType`, `arity`. `CompileError` stores `message`, `line`, `column`,
+  `hint`. `EditDistance`/`BestMatch` for "did you mean?" suggestions (copied from
+  old interpreter's `Environment.h` as static methods).
+- [x] **`src/liblt/LTE/SymbolResolver.cpp`** — Single-pass resolver (~500 lines):
+  - **PreScanDeclarations** — registers file-level functions and types only
+    (no scope management, no nested functions), enabling forward references.
+  - **ResolveAndDeclare** — combined single pass that declares and resolves in
+    one walk, so the same scope objects hold symbols and are queried. Handles:
+    `var`/`ref`/`static` declarations, `function` declarations with parameter
+    scoping, `type` declarations (members skipped — they're type-name + field-name
+    pairs), method calls (dot-chain rewriting: `a.b(args)` → call `b` with `a`
+    as first arg), plain function calls `(f args)`, binary/unary ops (type inference
+    from `+`/`-`/`*`/`/`/`==`/`!=`/`&&`/`||`), cast/address/deref, `if`/`while`
+    (condition + body in new scope), `for` (iterator + body in new scope),
+    `switch` (expression + cases + otherwise), `block`/`desc` (new scope),
+    `return`, `break`, assignments, `desc` string argument, `@` print, array
+    literals, constructors, debug-print.
+  - **Fix: `Reference<Scope>::Release` use-after-free** — `PopScope()`,
+    `LookupSymbol()`, and `AllSymbolNames()` all had `scope = scope->parent`
+    which released the current scope before reading `ref.t` from the destroyed
+    object. Fixed by caching parent in a local `Reference<Scope>` first.
+  - **Fix: Two-pass scope mismatch** — Original CollectDeclarations/ResolveReferences
+    two-pass design was fundamentally broken: Pass 1 created scopes, pushed/popped
+    them, declared symbols, then destroyed them; Pass 2 created NEW empty scopes
+    with no symbols. Restructured to PreScanDeclarations (register only) +
+    single-pass ResolveAndDeclare (declare+resolve in one walk).
+  - **Fix: ASTSwitchNodeT missing `expression` field** — Added `ASTNode expression`
+    member to hold the switched-on value; resolver resolves it.
+  - **Fix: AST_TYPE_DECL resolver** — Type members (`Int x`) are type-name +
+    field-name pairs, not expressions. Resolver skips resolving them.
+- [x] **`tests/TestSymbolResolver.cpp`** — 41 tests, 53 checks covering:
+  - Empty/null input, variable use (defined + undefined), "did you mean?"
+    suggestions, nested scopes, sibling scope isolation
+  - Function declarations, forward references, parameter scoping, parameter
+    shadowing, duplicate declarations
+  - Function call arity (ok, too few, too many, undefined, zero-arg)
+  - For-loop iterator scoping, while-loop body scoping, if-then scoping
+  - Type inference (int literals, binary ops, comparisons, logical ops)
+  - Switch cases + otherwise, multiple functions, block/desc scoping
+  - Return in function, type declarations, assignments
+- [x] **Parser fixes (discovered during resolver testing)**:
+  - Added `(name arg1 arg2)` function-call parsing in `ParsePrimary`'s
+    `TOK_LPAREN` case, producing `ASTFuncCallNodeT` nodes.
+  - Added switch-expression parsing in `ParseSwitch()` (was missing — consumed
+    `switch`, skipped newlines, immediately expected INDENT without parsing
+    the expression).
 
 ---
 
