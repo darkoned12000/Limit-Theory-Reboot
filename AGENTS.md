@@ -1237,6 +1237,64 @@ Implements Phase 1 of `docs/LTSL-MIGRATION-PLAN.md`. **Suite: 1161 checks /
 
 ---
 
+### A.17 Phase 2 Parser — AST Builder (2026-08-25)
+
+Implements Phase 2 of `docs/LTSL-MIGRATION-PLAN.md`. **Suite: 1306 checks /
+0 failures. Compile gate = PASS, 157 files, empty allowlist. LSP smoke =
+exactly 6 diagnostics (known fixtures).**
+
+- [x] **`src/liblt/LTE/AST.h`** — AST node type definitions:
+  - `SourceLocation` struct, `ASTNodeKind` enum (31 kinds), `ASTNodeT` base class.
+  - Concrete node types: `ASTDeclNodeT`, `ASTFuncDeclNodeT`, `ASTTypeDeclNodeT`,
+    `ASTReturnNodeT`, `ASTIfNodeT`, `ASTWhileNodeT`, `ASTForNodeT`,
+    `ASTSwitchNodeT`/`ASTSwitchCase`, `ASTAssignNodeT`, `ASTExprStmtNodeT`,
+    all literal types, `ASTIdentifierNodeT`, `ASTBinaryOpNodeT`, `ASTUnaryOpNodeT`,
+    `ASTMethodCallNodeT`, `ASTFuncCallNodeT`, `ASTCastNodeT`, `ASTAddressNodeT`,
+    `ASTDerefNodeT`, `ASTArrayLiteralNodeT`, `ASTConstructorNodeT`,
+    `ASTPrintNodeT`, `ASTBlockNodeT`, `ASTModuleNodeT`.
+  - `ASTNodeAs<T>()` downcast helper, `AST_MakeNoop()` factory.
+- [x] **`src/liblt/LTE/Parser.h`** — Parser class declaration:
+  - `ParseError` struct, `Parser` class, `ParseLTSL()` convenience function.
+  - Pratt precedence table: unary=8, `*`/`/`/`%`=7, `+`/`-`=6, comparison=5,
+    `==`/`!=`=4, `&&`=3, `||`=2, assignment handled by `ParseStatement` not Pratt.
+- [x] **`src/liblt/LTE/Parser.cpp`** — Full Pratt parser implementation (~980 lines):
+  - Module/block/function/type parsing with INDENT/DEDENT-based block structure.
+  - All expression types: literals, identifiers, binary/unary ops, method calls
+    (with LTSL space-separated args: `.name arg1 arg2`), function calls, cast,
+    address/deref, array literals, constructors, debug print.
+  - All statement types: var/ref/static decl, assignment, return, if/else,
+    while, for, switch/otherwise, break, desc/block.
+  - Error recovery: `ParseStatement` advances past unrecognized tokens to prevent
+    infinite loops when `ParseExpression` returns nullptr.
+- [x] **`tests/TestParser.cpp`** — 45 tests, 151 checks covering:
+  - All literal types (int, float, string, single-quoted, bool, null)
+  - Identifiers, binary ops with precedence/parentheses, unary ops
+  - Dot access, method calls (zero-arg, with args, chained), space-separated args
+  - Declarations (var/ref/static), assignments (simple and compound)
+  - Break, return (with value and bare)
+  - Blocks (simple, nested, if/else, while, for, switch/otherwise)
+  - Function declarations with params and body
+  - Cast, array literals (populated and empty), debug print, address/deref
+  - Multiple statements, source locations, real-world-ish code
+  - Error cases (missing expression, unterminated block, unexpected token)
+- [x] **Lexer fixes (discovered during parser testing)**:
+  - Added `"null"` keyword to keyword lookup in `Lexer.cpp`.
+  - Fixed INDENT/DEDENT placement: `EmitPendingTokens()` now called immediately
+    after `EmitIndentTokens()` so indent tokens appear before indented content.
+  - Auto-flush remaining DEDENTs at EOF (Python-like implicit block closure).
+  - Removed spurious `atLineStart = true` from close-paren handler (fixed
+    INDENT/DEDENT in expressions like `(1 + 2) * 3`).
+- [x] **Parser design decisions**:
+  - Assignments are statement-level, not expression-level — `ParsePratt` breaks
+    on `=`/`+=`/etc. instead of consuming them; `ParseStatement` handles them.
+  - LTSL space-separated method args: `.name arg1 arg2` without parens.
+  - LTSL function params are space-separated (no commas): `(Int a Int b)`.
+  - `Expect` returns the current token (not advanced) on failure to prevent null
+    dereference — callers get an error but can continue parsing.
+  - EOF auto-emits DEDENT for all remaining indent levels (Python behavior).
+
+---
+
 ## Index of Cross-references
 
 | Old § | New Location |

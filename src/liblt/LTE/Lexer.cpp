@@ -48,6 +48,7 @@ TokenKind Lexer::LookupKeyword(String const& value) {
   if (value == "continue")  return TOK_CONTINUE;
   if (value == "true")      return TOK_TRUE;
   if (value == "false")     return TOK_FALSE;
+  if (value == "null")      return TOK_NULL;
   if (value == "type")      return TOK_TYPE;
   if (value == "cast")      return TOK_CAST;
   if (value == "block")     return TOK_BLOCK;
@@ -339,6 +340,7 @@ Vector<Token> Lexer::Tokenize() {
       }
 
       EmitIndentTokens(indent);
+      EmitPendingTokens();
       atLineStart = false;
 
       // Now skip the horizontal whitespace that MeasureIndent measured
@@ -396,10 +398,10 @@ Vector<Token> Lexer::Tokenize() {
       if (parenDepth > 0)
         parenDepth--;
 
-      // If we just closed the outermost paren/bracket group,
-      // the next newline should trigger indent re-evaluation
-      if (parenDepth == 0)
-        atLineStart = true;
+      // Do NOT set atLineStart here — the close-paren may be mid-line
+      // (e.g. "(1 + 2) * 3"). Indent tracking resumes naturally on the
+      // next newline.  Setting atLineStart caused spurious INDENT/DEDENT
+      // when whitespace after the close-paren was misread as indentation.
       continue;
     }
 
