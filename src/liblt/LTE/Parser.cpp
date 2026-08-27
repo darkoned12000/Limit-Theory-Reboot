@@ -364,6 +364,42 @@ ASTNode Parser::ParseStatement() {
     return nullptr;
   }
 
+  // --- Bare function call bridge (temporary migration aid) ---
+  // If expression is an identifier and more tokens follow on the same line
+  // before NEWLINE/DEDENT/EOF, treat as a bare function call: `fn arg1 arg2`
+  // This makes all 157 corpus scripts work under the new parser with zero
+  // script changes. Will be removed after corpus conversion to parens-only.
+  if (expr->kind == AST_IDENTIFIER && bareCallDepth == 0) {
+    ASTIdentifierNodeT* ident = ASTNodeAs<ASTIdentifierNodeT>(expr);
+    Token const& next = Peek();
+    // Don't trigger for assignments — `x = 10` must parse as assignment, not bare call
+    bool isAssignment = (next.kind == TOK_ASSIGN || next.kind == TOK_PLUS_ASSIGN ||
+                         next.kind == TOK_MINUS_ASSIGN || next.kind == TOK_MULTIPLY_ASSIGN ||
+                         next.kind == TOK_DIVIDE_ASSIGN);
+    if (!isAssignment && next.kind != TOK_NEWLINE && next.kind != TOK_DEDENT &&
+        next.kind != TOK_EOF && next.line == ident->loc.line) {
+      // Same line, more tokens → bare function call
+      ASTFuncCallNodeT* call = new ASTFuncCallNodeT();
+      call->loc = ident->loc;
+      call->name = ident->name;
+      bareCallDepth++;
+      // Parse space-separated arguments until end of line
+      while (!AtEnd() && Peek().kind != TOK_NEWLINE &&
+             Peek().kind != TOK_DEDENT && Peek().line == ident->loc.line) {
+        size_t savedPos = pos;
+        ASTNode arg = ParseExpression();
+        if (!arg) {
+          // Can't parse this token as an expression — restore and stop
+          pos = savedPos;
+          break;
+        }
+        call->args.push(arg);
+      }
+      bareCallDepth--;
+      return call;
+    }
+  }
+
   // Check for assignment: expr = expr, expr += expr, etc.
   if (Check(TOK_ASSIGN) || Check(TOK_PLUS_ASSIGN) ||
       Check(TOK_MINUS_ASSIGN) || Check(TOK_MULTIPLY_ASSIGN) ||
@@ -990,7 +1026,7 @@ ASTNode Parser::ParseIdentifier(Token const& tok) {
 // Top-level parse
 // ============================================================================
 
-Parser::Parser(Vector<Token> const& tokens) : tokens(tokens), pos(0) {}
+Parser::Parser(Vector<Token> const& tokens) : tokens(tokens), pos(0), bareCallDepth(0) {}
 
 ASTNode Parser::Parse() {
   ASTModuleNodeT* module = new ASTModuleNodeT();

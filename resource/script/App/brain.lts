@@ -93,12 +93,6 @@ type App
         var factor (ExpDecay dist 16)
         node.energy *= 1.0 + 500.0 * factor
 
-    # Add synch node
-      if Mouse_RightPressed
-        var cursor Cursor_Get
-        var center self.Center
-        var s 0.5 * (Vec2 (Min self.size.x self.size.y))
-
     for j 0 j < steps j.++
       # Energy transfer
       for i 0 i < edges.Size i.++

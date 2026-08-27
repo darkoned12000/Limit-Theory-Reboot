@@ -287,13 +287,6 @@ type RenderablePreview
 
   function List CreateChildren (Widget self)
     var l List
-    # l +=
-      Components:Margin 8 8
-        Components:ExpandX
-          Components:AlignBottomCenter
-            Custom
-              Widget
-              SignatureWidget object (Object_GetSignature object 128)
     l
 
   function Void PreDraw (Widget self)

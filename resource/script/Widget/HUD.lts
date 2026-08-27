@@ -51,12 +51,6 @@ type HUDGroup
             HUD/HUDWidget:Create (Vec2 512 128)
               HUD/Targets:Create player player.GetPiloting
 
-      # l += 
-        Components:AlignBottomCenter
-          Components:Margin 32 32
-            HUD/HUDWidget:Create (Vec2 256 64)
-              HUD/PilotingBadge:Create player player.GetPiloting
-
       l +=
         Components:FocusFade 1.0
           Components:AlignTopCenter

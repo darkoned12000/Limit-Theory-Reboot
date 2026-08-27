@@ -88,13 +88,6 @@ type HandlingScript
           var dir look + r * t.right
           dir = (Normalize dir)
 
-          #
-            var offset 4.0 * (target.GetLook - look)
-            var offsetLength offset.Length
-            offset = 0.25 * (1.0 - (ExpDecay offsetLength 0.5)) * offset.Normalize
-            pos -= radius * (Mix target.GetLook look (1.0 - (ExpDecay offsetLength 1.0)))
-            pos -= radius * offset
-
           pos -= radius * look
           pos += 0.2 * radius * up
 

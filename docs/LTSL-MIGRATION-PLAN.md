@@ -803,9 +803,12 @@ class SymbolResolver {
 
 ### Steps (pre-Phase 4)
 
-1. **Add bare-call detection to `ParseStatement`** (~15 lines) — after `ParseExpression` returns an identifier, peek ahead: if more tokens exist on the same line (before NEWLINE/DEDENT), parse them as function arguments → `ASTFuncCallNodeT`. This makes all 157 scripts work under the new parser with zero script changes.
+1. **Add bare-call detection to `ParseStatement`** (~15 lines) — ✅ **DONE (2026-08-26)**: after `ParseExpression` returns an identifier, peek ahead: if more tokens exist on the same line (before NEWLINE/DEDENT), parse them as function arguments → `ASTFuncCallNodeT`. This makes all 157 scripts work under the new parser with zero script changes. Added `bareCallDepth` flag to prevent recursive bare calls, nullptr guard to prevent infinite loops, and assignment operator exclusion.
 
-2. **Rewrite 16 block-comment `#` occurrences** — the new lexer treats `#` as single-line only. The 16 block-disabling occurrences (Phase 0.5 §A) must be mechanically rewritten: uncomment dead code, delete it, or convert to explicit form. Each file is a case-by-case decision.
+2. **Rewrite 16 block-comment `#` occurrences** — the new lexer treats `#` as single-line only. The 16 block-disabling occurrences (Phase 0.5 §A) must be mechanically rewritten: uncomment dead code, delete it, or convert to explicit form. Each file is a case-by-case decision. **✅ DONE (2026-08-26)**: All 16 rewrites completed. Decision summary:
+   - **Uncommented (functional code):** `App/widget.lts:31` (F4 settings toggle), `Widget/RadialList.lts:9` and `:43` (function signatures)
+   - **Deleted (incomplete/disabled code):** `App/brain.lts:96` (incomplete synapse handler), `Widget/Handling.lts:91` (camera offset), `Widget/HUD.lts:54` (PilotingBadge), `Widget/GridList.lts:41` + `:77` (grid layout + GreedyY), `Widget/Object/Overview.lts:290` (SignatureWidget), `Widget/DevPanel/Clock.lts:45` + `:50` (clock icon + date), `Widget/Reticle/Default.lts:16` (2-arc reticle), `App/observatory.lts:57` (miner ships), `Widget/Spacer.lts:6` + `:19` (debug dots)
+   - **Simplified (already disabled):** `Widget/ImageEditor.lts:51` (removed `#`, kept `if false`)
 
 ### Steps (post-Phase 4 verification)
 
@@ -819,15 +822,50 @@ class SymbolResolver {
 
 ---
 
-## Phase 4: Evaluator (Runtime) — NEXT
+## Phase 4: Evaluator (Runtime) — ✅ COMPLETE (2026-08-26)
 
 Keep the tree-walking evaluator. The same C++ engine functions are
 called via `FunctionBind`/`Function_Alias`. No changes to the engine
 bridge.
 
 ### Prerequisites (before Phase 4)
-- [ ] Bare-call bridge in parser (~15 lines in `ParseStatement`)
-- [ ] 16 block-comment `#` rewrites in corpus scripts
+- [x] Bare-call bridge in parser (~15 lines in `ParseStatement`)
+- [x] 16 block-comment `#` rewrites in corpus scripts
+
+### Implementation — ✅ DONE
+
+**Files created:**
+- `src/liblt/LTE/Evaluator.h` — Value type (tagged union), Evaluator class declaration
+- `src/liblt/LTE/Evaluator.cpp` — Full implementation (~500 LOC)
+
+**Value type** — discriminated union for all LTSL values:
+- Primitives: INT, FLOAT, BOOL (stored in union, no heap)
+- Strings: STRING (heap-allocated `String*`, owned)
+- Engine types: CUSTOM (void* + Type tag, owned)
+- References: PTR (void* + Type tag, not owned)
+- Special: NONE, TYPE_REF, FUNC_REF, ARRAY
+
+**Evaluator class** — walks the AST and produces runtime values:
+- Scope chain via `Reference<Scope>` (parent pointers, `Map<String, Value>`)
+- Control flow via `FlowSignal` enum (FLOW_NONE, FLOW_RETURN, FLOW_BREAK)
+- Engine dispatch via `Function_Find(name)` → try overloads by arity
+- Script functions via `ASTFuncDeclNodeT*` stored in scope as `FUNC_REF`
+
+**Supported operations:**
+- All literals (int, float, string, bool, null)
+- Variable declarations (var, ref, static)
+- Function and type declarations
+- Control flow: if/else, while, for, switch/otherwise, return, break
+- Assignments (=, +=, -=, *=, /=)
+- Binary ops (+, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||)
+- Unary ops (-, !)
+- Engine function calls (via Function_Find)
+- Script function calls (recursive evaluation)
+- Method calls (receiver as first arg)
+- Casts (int/float/bool conversions)
+- Address/deref (pointer operations)
+- Debug print (@)
+- Constructors (type name as function)
 
 ### Implementation
 
@@ -898,12 +936,12 @@ class Evaluator {
 | Suite | What | Actual Count |
 |---|---|---|
 | `tests/TestLexer.cpp` | Token stream + indent stack: hard-error on mismatched dedent, tab/space equivalence, multi-line paren/bracket groups spanning newlines, single-line `#` comments | 35 tests, 1161 checks, 0 failures |
-| `tests/TestParser.cpp` | AST shape for known inputs: all literal types, binary/unary ops, method calls, declarations, blocks, functions, switch, array literals | 72 tests, 246 checks, 0 failures |
+| `tests/TestParser.cpp` | AST shape for known inputs: all literal types, binary/unary ops, method calls, declarations, blocks, functions, switch, array literals | 77 tests, 263+ checks, 0 failures |
 | `tests/TestSymbolResolver.cpp` | Type checking, scoping, forward references, arity checking, "did you mean?" suggestions | 41 tests, 53 checks, 0 failures |
 | `tests/TestScriptCompile.cpp` | Existing engine compile checks (must pass) | 21 tests, 95+ checks |
 | `ltsl_compile_gate` | All 157 `.lts` files compile with real engine | PASS, 157 files, empty allowlist |
 
-**Total:** 169 new tests, 1,555+ checks, 0 failures
+**Total:** 174 new tests, 1,572+ checks, 0 failures
 
 ### Regression Gate (Mandatory)
 
@@ -943,12 +981,12 @@ src/liblt/LTE/
   Lexer.h / Lexer.cpp          — Tokenizer (~800 LOC)
   Parser.h / Parser.cpp        — AST builder (~1,000 LOC)
   SymbolResolver.h / .cpp      — Semantic analysis (~700 LOC)
-  Evaluator.h / Evaluator.cpp  — Runtime evaluation (~500 LOC, new)
+  Evaluator.h / .cpp           — Runtime evaluation (~500 LOC) ✅ DONE
   Script.h / Script.cpp        — Compile gate integration (existing)
 
 tests/
   TestLexer.cpp                — 35 tests, 1161 checks
-  TestParser.cpp               — 72 tests, 246 checks
+  TestParser.cpp               — 77 tests, 263+ checks
   TestSymbolResolver.cpp       — 41 tests, 53 checks
 ```
 
@@ -956,10 +994,10 @@ tests/
 - Lexer: ~800 LOC
 - Parser: ~1,000 LOC
 - SymbolResolver: ~700 LOC
-- **Total completed:** ~2,500 LOC (new compiler infrastructure)
+- Evaluator: ~500 LOC
+- **Total completed:** ~3,000 LOC (new compiler infrastructure)
 
 **Remaining:**
-- Evaluator: ~500 LOC (new, adapting existing interpreter logic)
 - Old interpreter deletion: ~2,854 LOC removed (`Expression.cpp`, `LTSL.cpp`, `StringList.cpp`)
 
 **Net change after full migration:** ~+3,000 LOC added, ~2,854 LOC removed
@@ -990,10 +1028,10 @@ tests/
 | Phase 1: Lexer | ~800 | 1 week | ✅ COMPLETE (2026-08-25) |
 | Phase 2: Parser | ~1,000 | 1 week | ✅ COMPLETE (2026-08-25) |
 | Phase 3: SymbolResolver | ~700 | 1 week | ✅ COMPLETE (2026-08-26) |
-| Phase 4: Evaluator | ~500 | 1 week | NEXT |
-| Post-Phase 4 cleanup | — | 1 week | PENDING |
-| **Total completed** | **~2,500** | **4 weeks** | |
-| **Remaining** | **~500** | **2 weeks** | |
+| Phase 4: Evaluator | ~500 | 1 week | ✅ COMPLETE (2026-08-26) |
+| Post-Phase 4 cleanup | — | 1 week | NEXT |
+| **Total completed** | **~3,000** | **5 weeks** | |
+| **Remaining** | **—** | **1 week** | |
 
 > **Phase 1 completed 2026-08-25.** Lexer tokenizes all single-line constructs
 > with hard indent-stack enforcement.
@@ -1002,13 +1040,17 @@ tests/
 >
 > **Phase 3 completed 2026-08-26.** Symbol resolver with single-pass declare+resolve.
 > 41 tests, 53 checks, 0 failures. Fixed use-after-free and two-pass scope mismatch.
+>
+> **Phase 4 completed 2026-08-26.** Tree-walking evaluator with Value type, scope chains,
+> control flow signals, engine function dispatch via Function_Find, and script function
+> recursion. ~500 LOC.
 
 ### Post-Phase 4 Migration Steps (7 steps)
 
-1. **Add bare-call bridge to parser** (~15 lines in `ParseStatement`)
-2. **Rewrite 16 block-comment `#` occurrences** in corpus scripts
-3. **Phase 4 evaluator implementation** (~500 LOC)
-4. **Corpus regression diff** — run both old and new on all 157 scripts, diff observable behavior
+1. **Add bare-call bridge to parser** (~15 lines in `ParseStatement`) — ✅ DONE
+2. **Rewrite 16 block-comment `#` occurrences** in corpus scripts — ✅ DONE
+3. **Phase 4 evaluator implementation** (~500 LOC) — ✅ DONE
+4. **Corpus regression diff** — run both old and new on all 157 scripts, diff observable behavior — NEXT
 5. **One-shot script conversion** — bare calls → parens across corpus (~1,155 lines)
 6. **Remove bare-call support from parser** (~15 lines deleted)
 7. **Delete old interpreter** — remove `Expression.cpp`, `LTSL.cpp`, `StringList.cpp` (~2,854 LOC)
@@ -1084,10 +1126,23 @@ Wins already shipped — they're the fallback, not nothing.
 - [x] `-x` inline-prefix negation works — **optional** (QW1 — `~` is comment-only in corpus)
 - [x] `for i in range a b` sugar works — **deferred** (QW4 — no corpus demand)
 
-### `#` comment disambiguation — IN PROGRESS
+### Phase 4 (Evaluator) — ✅ DONE (2026-08-26)
+- [x] `Value` type with tagged union for all LTSL values
+- [x] Scope chain management (Push/Pop/Declare/Lookup)
+- [x] Control flow signals (return, break)
+- [x] Engine function dispatch via `Function_Find`
+- [x] Script function recursion (store `ASTFuncDeclNodeT*` in scope)
+- [x] All literals, binary/unary ops, assignments
+- [x] if/else, while, for, switch/otherwise
+- [x] Method calls (receiver as first arg)
+- [x] Cast, address/deref, constructors, debug print
+- [x] `src/liblt/LTE/Evaluator.h` + `Evaluator.cpp` (~500 LOC)
+- [x] Builds clean, existing tests pass (1477 checks, 0 failures)
+
+### `#` comment disambiguation — ✅ COMPLETE (2026-08-26)
 - [x] Phase 0.5 audit classifies every `#` occurrence — **DONE (2026-08-25)**: 495 total, 16 block-disabling, 478 single-line
-- [ ] Mechanical rewrite of the 16 offending files — **PENDING (pre-Phase 4)**
-- [ ] Drop block-comment behavior — `#` = single-line only, going forward
+- [x] Mechanical rewrite of the 16 offending files — **DONE (2026-08-26)**: 3 uncommented, 12 deleted, 1 simplified
+- [x] Drop block-comment behavior — `#` = single-line only, going forward
 
 ### Phase 1 (Lexer) — ✅ DONE (2026-08-25)
 - [x] All token kinds from Phase 0.5 audit implemented

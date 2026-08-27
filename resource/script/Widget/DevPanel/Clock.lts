@@ -42,16 +42,6 @@ type Clock
               Components:AlignCenter
                 Widgets:Text Fonts:Medium time.year 14 1
 
-    # l +=
-      Components:AlignCenter
-        Components:MinSize size + 6
-          Widgets:Icon Icons:Clock 0.5 * Colors:Primary
-
-    # Components:Expand
-      Widgets:ListH2 2
-        Widget
-        Components:AlignBottomCenter
-          Widgets:Text Fonts:Medium time.month + " . " + time.day + " . " + time.year 20 0.2
     l
 
   function Void PreUpdate (Widget self)

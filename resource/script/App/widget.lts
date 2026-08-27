@@ -28,20 +28,19 @@ type App
     if Key_T.Pressed
       Shader_RecompileAll
 
-    #
-      if Key_F4.Pressed
-        settingsVisible = settingsVisible.!
-        switch
-          settingsVisible
-            settings = 
-              Layer
-                Compositor_Basic 0.1 0.1 (Vec3 0.4 0.5 0.75)
-                Mesh_Quad
-                1
-                Widget/Settings:Create
-            ui.Add settings
-          otherwise
-            settings.Delete
+    if Key_F4.Pressed
+      settingsVisible = settingsVisible.!
+      switch
+        settingsVisible
+          settings = 
+            Layer
+              Compositor_Basic 0.1 0.1 (Vec3 0.4 0.5 0.75)
+              Mesh_Quad
+              1
+              Widget/Settings:Create
+          ui.Add settings
+        otherwise
+          settings.Delete
 
     ui.Update
     ui.Draw

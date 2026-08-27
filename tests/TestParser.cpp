@@ -983,3 +983,57 @@ LTE_TEST(Parser_WhileComplexCond) {
   LTE_CHECK(andOp != nullptr);
   LTE_CHECK_EQ(andOp->op, String("&&"));
 }
+
+// ── Bare function call bridge (temporary migration aid) ─────────────────
+
+LTE_TEST(Parser_BareCallSimple) {
+  // `foo bar` should parse as function call `foo(bar)`
+  ASTNode mod = Parse("foo bar");
+  ASTFuncCallNodeT const* call = AsFuncCall(ModuleStmt(mod, 0));
+  LTE_CHECK(call != nullptr);
+  LTE_CHECK_EQ(call->name, String("foo"));
+  LTE_CHECK(call->args.size() == 1);
+  ASTIdentifierNodeT const* arg0 = AsIdent(call->args[0]);
+  LTE_CHECK(arg0 != nullptr);
+  LTE_CHECK_EQ(arg0->name, String("bar"));
+}
+
+LTE_TEST(Parser_BareCallMultipleArgs) {
+  // `foo a b c` should parse as function call `foo(a, b, c)`
+  ASTNode mod = Parse("foo a b c");
+  ASTFuncCallNodeT const* call = AsFuncCall(ModuleStmt(mod, 0));
+  LTE_CHECK(call != nullptr);
+  LTE_CHECK_EQ(call->name, String("foo"));
+  LTE_CHECK(call->args.size() == 3);
+}
+
+LTE_TEST(Parser_BareCallWithLiterals) {
+  // `Vec3 1.0 2.0 3.0` should parse as function call with float args
+  ASTNode mod = Parse("Vec3 1.0 2.0 3.0");
+  ASTFuncCallNodeT const* call = AsFuncCall(ModuleStmt(mod, 0));
+  LTE_CHECK(call != nullptr);
+  LTE_CHECK_EQ(call->name, String("Vec3"));
+  LTE_CHECK(call->args.size() == 3);
+}
+
+LTE_TEST(Parser_BareCallAssignment) {
+  // `x = 10` should parse as assignment, NOT bare call
+  ASTNode mod = Parse("x = 10");
+  ASTAssignNodeT const* a = AsAssign(ModuleStmt(mod, 0));
+  LTE_CHECK(a != nullptr);
+  ASTIdentifierNodeT const* target = AsIdent(a->target);
+  LTE_CHECK(target != nullptr);
+  LTE_CHECK_EQ(target->name, String("x"));
+}
+
+LTE_TEST(Parser_BareCallInsideVarDecl) {
+  // `var x foo` — bare-call bridge only works at statement level.
+  // Inside var initializers, ParseExpression is used directly.
+  // This test verifies the initializer is just the identifier `foo`.
+  ASTNode mod = Parse("var x foo");
+  ASTDeclNodeT const* d = AsDecl(ModuleStmt(mod, 0));
+  LTE_CHECK(d != nullptr);
+  ASTIdentifierNodeT const* init = AsIdent(d->initializer);
+  LTE_CHECK(init != nullptr);
+  LTE_CHECK_EQ(init->name, String("foo"));
+}

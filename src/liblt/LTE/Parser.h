@@ -42,6 +42,7 @@ private:
   Vector<Token> const& tokens;
   size_t pos;
   Vector<ParseError> errors;
+  int bareCallDepth;  // Prevents recursive bare-call detection
 
   // --- Token access ---
   Token const& Peek() const;

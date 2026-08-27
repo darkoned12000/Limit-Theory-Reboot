@@ -13,12 +13,6 @@ type Reticle
     var offset 0.5 * (Vec2 (Max 0.0 self.size.x - self.size.y) 0)
     var opacity 0.5 * self.alpha
 
-    # desc "Center Reticle"
-      var k 2
-      for i 0 i < k i.++
-        Draw (Glyph_Arc 0 1 0.20 1 1 i / k 0.001) pos 36 color self.alpha
-      Draw circle pos 24 color self.alpha
-
     desc "Center 2"
       var k 3
       for i 0 i < k i.++

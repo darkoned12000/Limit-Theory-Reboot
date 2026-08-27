@@ -48,7 +48,7 @@ type ImageEditor
 
 
     if false
-      # image =
+      image =
         Texture/Filters:Median 3
           Texture/Filters:Resample 3 image
 
