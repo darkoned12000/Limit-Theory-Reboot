@@ -129,8 +129,7 @@ function Void Init (Object self)
 
   desc "Zones"
     for zoneIndex 0 zoneIndex < zoneCount zoneIndex.++
-      var angle
-        switch
+      var angle switch
           zoneIndex == 0 2Pi * 0.950
           otherwise 2Pi * 0.675
 

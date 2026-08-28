@@ -59,12 +59,10 @@ type Details
           Widgets:Text Fonts:Default player.GetCredits + " LTC" 16.0 1.0
 
     block
-      var newCredits
-        switch
+      var newCredits switch
           buying player.GetCredits - price
           otherwise player.GetCredits + price
-      var c
-        switch
+      var c switch
           buying Colors:Bad
           otherwise Colors:Good
 

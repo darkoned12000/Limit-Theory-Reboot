@@ -43,6 +43,7 @@ enum ASTNodeKind {
   AST_WHILE,
   AST_FOR,
   AST_SWITCH,
+  AST_SWITCH_EXPR,
   AST_ASSIGN,
   AST_EXPR_STMT,
 
@@ -291,6 +292,14 @@ struct ASTDerefNodeT : public ASTNodeT {
 struct ASTArrayLiteralNodeT : public ASTNodeT {
   Vector<ASTNode> elements;
   ASTArrayLiteralNodeT() : ASTNodeT(AST_ARRAY_LITERAL) {}
+};
+
+// (? pred1 body1 pred2 body2 ... (otherwise def)) — if/switch expression.
+struct ASTSwitchExprNodeT : public ASTNodeT {
+  Vector<ASTNode> cases;     // alternating [pred, body, pred, body, ...]
+  ASTNode defaultExpr;       // May be nullptr
+
+  ASTSwitchExprNodeT() : ASTNodeT(AST_SWITCH_EXPR) {}
 };
 
 // TypeName(args) — type constructor

@@ -36,8 +36,7 @@ type HUDWidget
 
   function Void PostDraw (Widget self)
     if locked.!
-      var c
-        switch
+      var c switch
           self.focusMouse Colors:Secondary
           otherwise Colors:Primary
       DrawPanel self.pos self.size 0.1 0.95 1 0

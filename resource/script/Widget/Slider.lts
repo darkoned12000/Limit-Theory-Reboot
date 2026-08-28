@@ -17,8 +17,7 @@ type SliderBar
     var sx (Max 8.0 self.size.x / (Float (maxValue - minValue + 1)))
     var s (Vec2 self.size.x * t 1.0)
     var p self.pos + (Vec2 0 0.5 * self.size.y)
-    var c
-      switch
+    var c switch
         self.focusMouse Colors:Secondary
         otherwise Colors:Primary
 

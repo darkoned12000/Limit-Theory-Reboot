@@ -134,7 +134,8 @@ type App
     camera.SetTarget player.GetPiloting
     var dt FrameTimer_Get
     dt = (Min dt 0.1)
-    if Key_H.Down dt *= 20.0
+    if Key_H.Down
+      dt *= 20.0
 
     static paused false
     if Key_P.Pressed paused = paused.!

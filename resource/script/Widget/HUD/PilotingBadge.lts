@@ -21,8 +21,7 @@ type PowerRouting
       Draw (Glyph_Circle 0 1 1 1) p0 16 Colors:Primary 1.0
       Draw (Glyph_Circle 0 1 1 1) p1 16 Colors:Primary 1.0
 
-      var value
-        switch
+      var value switch
           i == 0
             object.GetHealthNormalized
           i == 1
@@ -36,8 +35,7 @@ type PowerRouting
 
       var res 8
 
-      var label
-        switch
+      var label switch
           i == 0 "ARMS"
           i == 1 "PROP"
           i == 2 "SHLD"

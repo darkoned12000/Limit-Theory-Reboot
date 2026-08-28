@@ -87,7 +87,8 @@ type App
 
     var dt FrameTimer_Get
     dt = (Min dt 0.1)
-    if Key_H.Down dt *= 20.0
+    if Key_H.Down
+      dt *= 20.0
 
     system.Update dt
     ui.Update

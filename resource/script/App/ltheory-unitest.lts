@@ -328,7 +328,8 @@ type App
             debugWidget.Delete
 
     var container player.GetPiloting.GetContainer
-    if Key_H.Down dt *= 20.0
+    if Key_H.Down
+      dt *= 20.0
     container.Update dt
 
     ui.Update

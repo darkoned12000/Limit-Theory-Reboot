@@ -13,6 +13,7 @@
 #include "AST.h"
 #include "Lexer.h"
 #include "Vector.h"
+#include <vector>
 
 namespace LTE {
 
@@ -27,7 +28,7 @@ struct ParseError {
 
 class Parser {
 public:
-  Parser(Vector<Token> const& tokens);
+  Parser(std::vector<Token> const& tokens) : tokens(tokens), pos(0), bareCallDepth(0), prattCalls(0), curDepth(0), maxDepth(0) {}
 
   // Parse the full token stream into an AST module.
   ASTNode Parse();
@@ -37,12 +38,18 @@ public:
 
   Vector<ParseError> const& GetErrors() const;
 
+  size_t GetPrattCalls() const { return prattCalls; }
+  int GetMaxDepth() const { return maxDepth; }
+
 private:
   // Token stream
-  Vector<Token> const& tokens;
+  std::vector<Token> tokens;
   size_t pos;
   Vector<ParseError> errors;
   int bareCallDepth;  // Prevents recursive bare-call detection
+  size_t prattCalls;
+  int curDepth;
+  int maxDepth;
 
   // --- Token access ---
   Token const& Peek() const;
@@ -65,6 +72,7 @@ private:
   ASTNode ParseStaticDecl();
   ASTNode ParseFuncDecl();
   ASTNode ParseTypeDecl();
+  ASTNode ParseTypeMember();
   ASTNode ParseReturn();
   ASTNode ParseIf();
   ASTNode ParseWhile();
@@ -93,6 +101,9 @@ private:
   // --- Type name parsing ---
   // Parses: IDENTIFIER ['/' IDENTIFIER]*
   String ParseTypeName();
+  // Parses a type that may be parenthesized '(Array T)' / '(Pointer T)'
+  // or a plain identifier path. Consumes exactly one type token group.
+  String ParseFieldType();
 
   // --- Parameter list parsing ---
   void ParseParamList(Vector<String>& paramTypes, Vector<String>& paramNames);
@@ -109,7 +120,7 @@ private:
 };
 
 // Top-level parse function: tokenizes then parses.
-ASTNode ParseLTSL(String const& source, Vector<ParseError>* errors = nullptr);
+ASTNode ParseLTSL(String const& source, std::vector<ParseError>* errors = nullptr);
 
 } // namespace LTE
 

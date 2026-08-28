@@ -15,13 +15,13 @@ using namespace LTE;
 
 // Parse source and return the AST module node (ignoring errors for convenience).
 static ASTNode Parse(String const& src) {
-  Vector<ParseError> errors;
+  std::vector<ParseError> errors;
   return ParseLTSL(src, &errors);
 }
 
 // Count parse errors.
 static int ErrorCount(String const& src) {
-  Vector<ParseError> errors;
+  std::vector<ParseError> errors;
   ParseLTSL(src, &errors);
   return (int)errors.size();
 }

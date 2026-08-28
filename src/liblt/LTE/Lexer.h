@@ -2,7 +2,9 @@
 #define LTE_Lexer_h__
 
 #include "String.h"
+#include <string>
 #include "Vector.h"
+#include <vector>
 
 namespace LTE {
 
@@ -32,6 +34,7 @@ enum TokenKind {
   TOK_AND,
   TOK_OR,
   TOK_NOT,
+  TOK_CARET,
 
   // Assignment
   TOK_ASSIGN,
@@ -73,6 +76,7 @@ enum TokenKind {
   TOK_ADDRESS,
   TOK_DEREF,
   TOK_AT,
+  TOK_QUESTION,
 
   // Special
   TOK_NEWLINE,
@@ -85,7 +89,7 @@ enum TokenKind {
 
 struct Token {
   TokenKind kind;
-  String value;
+  std::string value;
   int line;
   int column;
   int length;
@@ -96,31 +100,64 @@ struct Token {
     column(0),
     length(0) {}
 
-  Token(TokenKind kind, String const& value, int line, int column, int length) :
+  Token(TokenKind kind, std::string const& value, int line, int column, int length) :
     kind(kind),
     value(value),
     line(line),
     column(column),
     length(length) {}
+
+  Token(Token const& other) :
+    kind(other.kind),
+    value(other.value),
+    line(other.line),
+    column(other.column),
+    length(other.length) {}
+
+  Token& operator=(Token const& other) {
+    kind = other.kind;
+    value = other.value;
+    line = other.line;
+    column = other.column;
+    length = other.length;
+    return *this;
+  }
 };
 
 struct LexError {
-  String message;
+  std::string message;
   int line;
   int column;
 
-  LexError(String const& message, int line, int column) :
+  LexError(std::string const& message, int line, int column) :
     message(message),
     line(line),
     column(column) {}
+
+  LexError(String const& message, int line, int column) :
+    message(std::string(message.c_str())),
+    line(line),
+    column(column) {}
+
+  LexError(LexError const& other) :
+    message(other.message),
+    line(other.line),
+    column(other.column) {}
+
+  LexError& operator=(LexError const& other) {
+    message = other.message;
+    line = other.line;
+    column = other.column;
+    return *this;
+  }
 };
 
 class Lexer {
 public:
   Lexer(String const& source);
 
-  Vector<Token> Tokenize();
-  Vector<LexError> const& GetErrors() const;
+  std::vector<Token> Tokenize();
+  std::vector<LexError> const& GetErrors() const;
 
 private:
   // Source state
@@ -136,11 +173,11 @@ private:
   int parenDepth;
 
   // Output
-  Vector<Token> tokens;
-  Vector<LexError> errors;
+  std::vector<Token> tokens;
+  std::vector<LexError> errors;
 
   // Buffered indent tokens
-  Vector<Token> pending;
+  std::vector<Token> pending;
 
   // Character access
   char Peek() const;

@@ -56,7 +56,8 @@ type HUDApp
 
     var container player.GetPiloting.GetContainer
     var dt (Min 0.1 FrameTimer_Get)
-    if Key_H.Down dt *= 20.0
+    if Key_H.Down
+      dt *= 20.0
     container.Update dt
 
   function Void PreDraw (Widget self)

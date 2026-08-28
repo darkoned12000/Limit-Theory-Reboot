@@ -14,8 +14,7 @@ type Miniscanner
   function Void PostDraw (Widget self)
     var dy 0.5 * self.size.y
     var y self.pos.y + 0.5 * self.size.y
-    var color
-      switch
+    var color switch
         self.focusMouse 2.0 * Colors:Secondary
         otherwise 2.0 * Colors:Primary
 

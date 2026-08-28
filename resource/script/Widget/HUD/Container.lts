@@ -16,8 +16,7 @@ type WidgetContainer
           Widgets:Text font "SYSTEM" 12 Colors:Primary
 
     var zone player.GetPiloting.GetZone
-    var zoneName
-      switch
+    var zoneName switch
         zone.IsNotNull zone.GetName
         otherwise "Open Space"
 

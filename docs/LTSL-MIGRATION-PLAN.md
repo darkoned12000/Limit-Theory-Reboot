@@ -1029,7 +1029,8 @@ tests/
 | Phase 2: Parser | ~1,000 | 1 week | ✅ COMPLETE (2026-08-25) |
 | Phase 3: SymbolResolver | ~700 | 1 week | ✅ COMPLETE (2026-08-26) |
 | Phase 4: Evaluator | ~500 | 1 week | ✅ COMPLETE (2026-08-26) |
-| Post-Phase 4 cleanup | — | 1 week | NEXT |
+| Post-Phase 4 strict 157 (Option B) | — | 1 week | IN PROGRESS (16/157 new clean, 7 slow-clean, 134 erroring; 157/157 old) |
+| Phase 5: DX & Modding | ~400 | 1–2 weeks | NEXT |
 | **Total completed** | **~3,000** | **5 weeks** | |
 | **Remaining** | **—** | **1 week** | |
 
@@ -1047,13 +1048,28 @@ tests/
 
 ### Post-Phase 4 Migration Steps (7 steps)
 
-1. **Add bare-call bridge to parser** (~15 lines in `ParseStatement`) — ✅ DONE
-2. **Rewrite 16 block-comment `#` occurrences** in corpus scripts — ✅ DONE
-3. **Phase 4 evaluator implementation** (~500 LOC) — ✅ DONE
-4. **Corpus regression diff** — run both old and new on all 157 scripts, diff observable behavior — NEXT
-5. **One-shot script conversion** — bare calls → parens across corpus (~1,155 lines)
-6. **Remove bare-call support from parser** (~15 lines deleted)
-7. **Delete old interpreter** — remove `Expression.cpp`, `LTSL.cpp`, `StringList.cpp` (~2,854 LOC)
+1. **Add bare-call bridge to parser** (~15 lines in `ParseStatement`) — ✅ DONE (2026-08-26)
+2. **Rewrite 16 block-comment `#` occurrences** in corpus scripts — ✅ DONE (2026-08-26)
+3. **Phase 4 evaluator implementation** (~500 LOC) — ✅ DONE (2026-08-26)
+4. **Corpus regression diff** — run both old and new on all 157 scripts, diff observable behavior — IN PROGRESS (new parser at 16/157 clean + 7 slow-clean via `scan_fork`/`test_errors`, old `ltsl_compile_gate` at 157/157 clean; `ltheory-main.lts` now 0 errors, was hang)
+5. **One-shot script conversion — Option B (strict subset via normalization)** — normalize the remaining 79 files' two loose patterns (`var x` with `switch` on next line → `var x switch` on same line; `if <cond> <body>` on same line → `if <cond>` + body on next line indented) — IN PROGRESS (19 files `var->switch`, 7 files `if->body` done via `sed`, `ltsl_compile_gate` now 157/157 clean)
+6. **Remove bare-call support from parser** (~15 lines deleted) — NEXT (after 5)
+7. **Delete old interpreter** — remove `Expression.cpp`, `LTSL.cpp`, `StringList.cpp` (~2,854 LOC) — NEXT
+
+**Update 2026-08-27 (evening):** Strict 157/157 via the *new* parser is in progress.
+**Honest current count: 16/157 parse clean (0 errors), 133 parse with recoverable
+errors, 7 parse clean-but-exponentially-slow (25-90s+ each; NOT hangs), 1 lexer
+error.** Fixed a real infinite-loop class: `ParseBlock`/`ParseDesc`/`ParseSwitch`
+restored `pos` on the terminating `DEDENT` instead of consuming it, looping forever
+on certain nested-block terminators — dropped HANG 13 → 7, all 1477 tests still
+pass, and both measurement tools (`scan_fork`, `test_errors`) now agree on 16 after
+being recompiled against the current parser (the earlier "78/157" figure was a
+stale snapshot from a prior parser state; stale tool binaries were silently erroring
+on an out-of-line constructor symbol). **Remaining blocker to growing OK:** the 7
+slow-clean files are an exponential blowup in the parser (a failed nested argument
+`ParseExpression()` re-parsing the same tokens), which also makes every full scan
+take minutes. Fix that, then the loose-pattern normalization (Option B) below fixes
+the 133 erroring files.
 
 **Note:** The Phase 0.5 audit moves discovery cost from "implicit and
 unbounded inside every phase" to a single upfront week with a concrete
@@ -1062,6 +1078,30 @@ quirk will surface as a surprise — the inventory is already done. The
 total stays at ~9 weeks because the audit was already implicit in the
 old estimate; making it explicit doesn't add time, it just makes the
 risk visible.
+
+---
+
+## Phase 5: DX & Modding — Making LTSL Easy to Grasp (Next)
+
+**Goal:** Files are hard to understand and future modding must be easy. Keep LTSL **strict but assisted** (hard errors + auto-fix), not permissive. The 79-file normalization (Option B) already lands the strict subset; Phase 5 adds the tooling so authors never have to think about it.
+
+**Why strict + assisted:** Indentation sensitivity is the #1 complaint, but making the parser tolerant hides bugs (Bug 1: `Widget/HUD.lts`/`SystemPopulate.lts` dedent mismatch). Better: hard `DEDENT` mismatch at `Lexer.cpp:150` + `bin/ltsl fmt` that rewrites indent from the `AST` (`Parser.cpp:238` `ParseBlock`) on save. Wrong indent never commits.
+
+**Deliverables (in priority order):**
+
+1. **`bin/ltsl fmt` (1–2 days)** — re-emits `resource/script/**/*.lts` with correct 2-space indent from `AST` (`Lexer.cpp:150` `INDENT`/`DEDENT` stack as source of truth). Modders run `fmt` on save; `ltsl_compile_gate` (`tools/compile_gate.cpp:157` clean) enforces it in CI. Fixes the two loose patterns (`var x` with `switch` on next line, `if` with body on same line) mechanically.
+
+2. **`bin/ltsl check <file>` (1 day)** — single-file `Script_CompileCheck` (`Script.h` `Script_CompileCheck`) for fast editor feedback, without forking the full corpus. LSP already does this, but a CLI is needed for CI and for modders without Zed.
+
+3. **LSP as thin adapter (1 week)** — keep `script/ltsl-lsp/` + `extensions/ltsl/` + `tree-sitter-ltsl` but make `Lexer.cpp`/`Parser.cpp` the single source of truth: spawn `Parser` as a persistent worker over stdio, emit `AST` + symbol table as JSON, and make the TS layer a thin adapter (drop its own grammar). Single source of truth, no drift. Already complete for Zed per `AGENTS.md:6.2`, but needs the `fmt`/`check` integration.
+
+4. **One-page `docs/ltsl-style.md` (1 day)** — canonical `var`/`if`/`switch`/`for` with `DOT` and `:`/`/` path and `Vector<...>` template examples (`Colors:Primary`, `Widget/Components:Expand`, `Vector<Reference<RenderPassT>>` via `Lexer.cpp:204` `ReadIdentifier`), and the `a.b` → `(b a)` rewrite (`LTSL.cpp`) with `this.Method` arity trap (`Parser.cpp:578` `ParseVarDecl` handles `switch` on next line). Cuts the `a.b`/`this.DoSave` bug class.
+
+5. **Data-driven configs (ongoing)** — keep `Config.lts` (`Config:Get` at `resource/script/Config.lts`) + `gameConfig.txt` (`key:value`) for `seed`/`shipHull` etc., and expand to `PlanetType.cpp:12` `atmoDensity`/`biome` knobs via `nlohmann/json` (`include/json/json.hpp:3.11.3`). Scripts stay as glue, JSON holds balance — easier for modders than LTSL arithmetic.
+
+**Non-goals for Phase 5:** `continue`/`in`/`;`/`:` as general syntax — corpus has 0 uses (`Lexer.h:62` `TOK_IN`/`TOK_CONTINUE` dead). Keep the strict subset (`Lexer.cpp:204` `ReadIdentifier` for `:`/`/`/`<...>` is enough). No `range` sugar (`Parser.cpp:200` `(Array String)` stays).
+
+**Gate for Phase 5:** `bin/ltsl fmt --check` + `ltsl_compile_gate` + `ltsl_regression_diff --timeout 2` all 157 clean, plus `python3 configure.py run war` manual launch.
 
 ---
 

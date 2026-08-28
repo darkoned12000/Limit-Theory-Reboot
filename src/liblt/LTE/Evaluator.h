@@ -106,7 +106,7 @@ public:
   Value EvaluateModule(ASTModuleNodeT* module);
 
   // Evaluate a single expression.
-  Value Evaluate(ASTNode* node);
+  Value Evaluate(ASTNode node);
 
   // Error state
   bool HasErrors() const { return !errors.empty(); }
@@ -134,11 +134,11 @@ private:
   Value EvalExprStmt(ASTExprStmtNodeT* node);
 
   // Expression evaluation
-  Value EvalInt(ASTIntNodeT* node);
-  Value EvalFloat(ASTFloatNodeT* node);
-  Value EvalString(ASTStringNodeT* node);
-  Value EvalBool(ASTBoolNodeT* node);
-  Value EvalNull(ASTNullNodeT* node);
+  Value EvalInt(ASTIntLiteralNodeT* node);
+  Value EvalFloat(ASTFloatLiteralNodeT* node);
+  Value EvalString(ASTStringLiteralNodeT* node);
+  Value EvalBool(ASTBoolLiteralNodeT* node);
+  Value EvalNull(ASTNullLiteralNodeT* node);
   Value EvalIdentifier(ASTIdentifierNodeT* node);
   Value EvalBinaryOp(ASTBinaryOpNodeT* node);
   Value EvalUnaryOp(ASTUnaryOpNodeT* node);
@@ -146,7 +146,7 @@ private:
   Value EvalFuncCall(ASTFuncCallNodeT* node);
   Value EvalCast(ASTCastNodeT* node);
   Value EvalAddress(ASTAddressNodeT* node);
-  Value EvalDeref(AASTDerefNodeT* node);
+  Value EvalDeref(ASTDerefNodeT* node);
   Value EvalArrayLiteral(ASTArrayLiteralNodeT* node);
   Value EvalConstructor(ASTConstructorNodeT* node);
   Value EvalPrint(ASTPrintNodeT* node);

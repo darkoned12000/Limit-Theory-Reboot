@@ -9,8 +9,7 @@ type Minimap
   function String GetName () "Mini-Map"
 
   function Void PreDraw (Widget self)
-    var color
-      switch
+    var color switch
         self.focusMouse Colors:Secondary
         otherwise Colors:Primary
 
@@ -37,8 +36,7 @@ type Minimap
             dir.y *= -1.0
             dir = (1.0 - (ExpDecay dir.Length distanceScale)) * dir.Normalize
             dir = (Vec2 0.5) + 0.5 * dir
-            var color
-              switch
+            var color switch
                 (player.GetPiloting.HasTarget object)
                   Colors:Secondary
                 otherwise

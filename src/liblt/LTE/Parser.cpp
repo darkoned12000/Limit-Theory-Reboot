@@ -115,6 +115,8 @@ int Parser::GetPrefixPrec(TokenKind kind) {
 
 int Parser::GetInfixPrec(TokenKind kind) {
   switch (kind) {
+    case TOK_CARET:
+      return 8;
     case TOK_STAR:
     case TOK_SLASH:
     case TOK_MOD:
@@ -146,10 +148,11 @@ int Parser::GetInfixPrec(TokenKind kind) {
 }
 
 bool Parser::IsInfixRightAssoc(TokenKind kind) {
-  // Assignment operators are right-associative; everything else is left
+  // Assignment operators and the exponent '^' are right-associative;
+  // everything else is left.
   return kind == TOK_ASSIGN || kind == TOK_PLUS_ASSIGN ||
          kind == TOK_MINUS_ASSIGN || kind == TOK_MULTIPLY_ASSIGN ||
-         kind == TOK_DIVIDE_ASSIGN;
+         kind == TOK_DIVIDE_ASSIGN || kind == TOK_CARET;
 }
 
 String Parser::TokenKindToOp(TokenKind kind) {
@@ -159,6 +162,7 @@ String Parser::TokenKindToOp(TokenKind kind) {
     case TOK_STAR:             return "*";
     case TOK_SLASH:            return "/";
     case TOK_MOD:              return "%";
+    case TOK_CARET:            return "^";
     case TOK_EQUALS:           return "==";
     case TOK_NOT_EQUALS:       return "!=";
     case TOK_LESS:             return "<";
@@ -197,6 +201,35 @@ String Parser::ParseTypeName() {
   return result;
 }
 
+// Parses a type name that may be a parenthesized generic '(Array T)' or
+// '(Pointer T)', or a plain identifier path. Returns the type string and
+// consumes exactly one type group from the token stream.
+String Parser::ParseFieldType() {
+  if (Check(TOK_LPAREN)) {
+    Advance();  // '('
+    SkipNewlines();
+    Token const& base = Expect(TOK_IDENTIFIER, "expected generic type name");
+    String result = base.value;
+    if (Check(TOK_IDENTIFIER)) {
+      Token const& inner = Peek();
+      Advance();
+      result += String("<") + inner.value + String(">");
+    }
+    SkipNewlines();
+    Expect(TOK_RPAREN, "expected ')' after generic type");
+    return result;
+  }
+
+  // Plain identifier, possibly a ':' path
+  Token const& t0 = Expect(TOK_IDENTIFIER, "expected type name");
+  String result = t0.value;
+  while (Match(TOK_COLON)) {
+    Token const& part = Expect(TOK_IDENTIFIER, "expected name after ':'");
+    result += String(":") + part.value;
+  }
+  return result;
+}
+
 // ============================================================================
 // Parameter list parsing
 // ============================================================================
@@ -207,11 +240,16 @@ void Parser::ParseParamList(
   Vector<String>& paramTypes, Vector<String>& paramNames)
 {
   while (!Check(TOK_RPAREN) && !AtEnd()) {
-    // Type name
-    Token const& typeName = Expect(TOK_IDENTIFIER, "expected parameter type");
+    size_t before = pos;
+    String typeName = ParseFieldType();
+    // Parameter name follows the type.
     Token const& paramName = Expect(TOK_IDENTIFIER, "expected parameter name");
-    paramTypes.push(typeName.value);
+    paramTypes.push(typeName);
     paramNames.push(paramName.value);
+    if (pos == before) {
+      ReportError(Peek(), "malformed parameter in list");
+      Advance();
+    }
   }
 }
 
@@ -250,10 +288,34 @@ ASTNode Parser::ParseBlock() {
   block->isDesc = false;
 
   SkipNewlines();
-  while (!AtEnd() && !Check(TOK_DEDENT)) {
+  size_t maxIter = tokens.size() * 10 + 1000;
+  size_t iter = 0;
+  while (!AtEnd() && Peek().kind != TOK_EOF && !Check(TOK_DEDENT)) {
+    if (++iter > maxIter) {
+      ReportError("block loop limit exceeded — stuck at token");
+      break;
+    }
+    // Handle nested indent
+    if (Check(TOK_INDENT)) {
+      ASTNode nested = ParseBlock();
+      if (nested && nested->kind == AST_BLOCK) {
+        auto nb = ASTNodeAs<ASTBlockNodeT>(nested);
+        for (size_t i = 0; i < nb->statements.size(); ++i)
+          block->statements.push(nb->statements[i]);
+      } else if (nested) {
+        block->statements.push(nested);
+      }
+      SkipNewlines();
+      continue;
+    }
+    size_t before = pos;
     ASTNode stmt = ParseStatement();
     if (stmt)
       block->statements.push(stmt);
+    else if (pos == before) {
+      ReportError(Peek(), "unexpected token in block");
+      Advance();
+    }
     SkipNewlines();
   }
 
@@ -291,10 +353,34 @@ ASTNode Parser::ParseDesc() {
   }
 
   SkipNewlines();
-  while (!AtEnd() && !Check(TOK_DEDENT)) {
+  size_t maxIter = tokens.size() * 10 + 1000;
+  size_t iter = 0;
+  while (!AtEnd() && Peek().kind != TOK_EOF && !Check(TOK_DEDENT)) {
+    if (++iter > maxIter) {
+      ReportError("block loop limit exceeded — stuck at token");
+      break;
+    }
+    // Handle nested indent
+    if (Check(TOK_INDENT)) {
+      ASTNode nested = ParseBlock();
+      if (nested && nested->kind == AST_BLOCK) {
+        auto nb = ASTNodeAs<ASTBlockNodeT>(nested);
+        for (size_t i = 0; i < nb->statements.size(); ++i)
+          block->statements.push(nb->statements[i]);
+      } else if (nested) {
+        block->statements.push(nested);
+      }
+      SkipNewlines();
+      continue;
+    }
+    size_t before = pos;
     ASTNode stmt = ParseStatement();
     if (stmt)
       block->statements.push(stmt);
+    else if (pos == before) {
+      ReportError(Peek(), "unexpected token in block");
+      Advance();
+    }
     SkipNewlines();
   }
 
@@ -386,14 +472,16 @@ ASTNode Parser::ParseStatement() {
       // Parse space-separated arguments until end of line
       while (!AtEnd() && Peek().kind != TOK_NEWLINE &&
              Peek().kind != TOK_DEDENT && Peek().line == ident->loc.line) {
-        size_t savedPos = pos;
+        size_t before = pos;
         ASTNode arg = ParseExpression();
-        if (!arg) {
-          // Can't parse this token as an expression — restore and stop
-          pos = savedPos;
+        if (arg && pos > before) {
+          call->args.push(arg);
+        } else if (pos == before) {
+          ReportError(Peek(), "expected expression as bare-call argument");
+          Advance();
+        } else {
           break;
         }
-        call->args.push(arg);
       }
       bareCallDepth--;
       return call;
@@ -481,8 +569,8 @@ ASTNode Parser::ParseFuncDecl() {
   ASTFuncDeclNodeT* node = new ASTFuncDeclNodeT();
   node->loc = SourceLocation(funcTok.line, funcTok.column);
 
-  // Return type
-  node->returnType = ParseTypeName();
+  // Return type (may be parenthesized generic: '(Array Widget)')
+  node->returnType = ParseFieldType();
 
   // Function name
   Token const& name = Expect(TOK_IDENTIFIER, "expected function name");
@@ -522,10 +610,15 @@ ASTNode Parser::ParseTypeDecl() {
   }
 
   SkipNewlines();
-  while (!AtEnd() && !Check(TOK_DEDENT)) {
-    ASTNode member = ParseStatement();
+  while (!AtEnd() && Peek().kind != TOK_EOF && !Check(TOK_DEDENT)) {
+    size_t before = pos;
+    ASTNode member = ParseTypeMember();
     if (member)
       node->members.push(member);
+    else if (pos == before) {
+      ReportError(Peek(), "unexpected token in type member");
+      Advance();
+    }
     SkipNewlines();
   }
 
@@ -536,7 +629,39 @@ ASTNode Parser::ParseTypeDecl() {
   return node;
 }
 
-// return [expr]
+// typeMember = function-sig body
+//            | fieldType fieldName [defaultExpr]
+//   fieldType = IDENTIFIER [':' IDENTIFIER]* | '(' IDENTIFIER TYPE ')'
+// Produces ASTFuncDeclNodeT (methods) or ASTDeclNodeT (fields).
+ASTNode Parser::ParseTypeMember() {
+  // Method
+  if (Check(TOK_FUNCTION)) {
+    return ParseFuncDecl();
+  }
+
+  // Field. Parse the type, which may be a parenthesized generic '(Array T)'.
+  String fieldType = ParseFieldType();
+
+  // Field name
+  Token const& fName = Expect(TOK_IDENTIFIER, "expected field name");
+  String fname = fName.value;
+
+  ASTDeclNodeT* field = new ASTDeclNodeT();
+  field->loc = SourceLocation(fName.line, fName.column);
+  field->name = fname;
+
+  // Optional default expression (rest of the same logical line).
+  // Only treat a default as present when the token immediately after the field
+  // name is on the same line (i.e. it is not a NEWLINE / DEDENT / INDENT).
+  if (!Check(TOK_NEWLINE) && !Check(TOK_DEDENT) && !Check(TOK_EOF) &&
+      !Check(TOK_FUNCTION) && Peek().kind != TOK_INDENT) {
+    field->initializer = ParseExpression();
+  }
+
+  return field;
+}
+
+
 ASTNode Parser::ParseReturn() {
   Token const& retTok = Advance();  // consume 'return'
 
@@ -650,28 +775,87 @@ ASTNode Parser::ParseSwitch() {
   node->loc = SourceLocation(switchTok.line, switchTok.column);
 
   SkipNewlines();
-  node->expression = ParseExpression();
-  SkipNewlines();
-  if (!Match(TOK_INDENT)) {
-    ReportError("expected indented switch body");
-    return node;
+  // Handle `switch` with no expression on next line vs with expression on same line
+  // e.g. `switch` at col5 with `choice < 0.9` at col7 on next line -> no expression
+  // e.g. `switch x` at col5 with `x` at col7 on same line -> expression `x`
+  if (Check(TOK_INDENT)) {
+    node->expression = nullptr;
+    if (!Match(TOK_INDENT)) {
+      ReportError("expected indented switch body");
+      return node;
+    }
+  } else {
+    // Check if next token is on same line as `switch` — if so, it's the switch expression
+    // If next is on next line, it's a case, not the switch expression
+    if (!AtEnd() && Peek().line == switchTok.line) {
+      node->expression = ParseExpression();
+      SkipNewlines();
+      if (!Match(TOK_INDENT)) {
+        ReportError("expected indented switch body");
+        return node;
+      }
+    } else {
+      node->expression = nullptr;
+      if (!Match(TOK_INDENT)) {
+        ReportError("expected indented switch body");
+        return node;
+      }
+    }
   }
 
   SkipNewlines();
-  while (!AtEnd() && !Check(TOK_DEDENT)) {
-    // Check for 'otherwise' — the default case
+  while (!AtEnd() && Peek().kind != TOK_EOF && !Check(TOK_DEDENT)) {
+    // Check for 'otherwise' — the default case, handle same-line body like `otherwise 2` at col7 and col17
     if (Match(TOK_OTHERWISE)) {
       SkipNewlines();
-      node->otherwise = ParseBlock();
+      // If next token is on same line as `otherwise`, body is on same line
+      if (!Check(TOK_INDENT) && !AtEnd() && Peek().line == switchTok.line + 2) {
+        // For `otherwise 2` at col7 and col17 on same line as otherwise at col7 (line 5 col7)
+        // The otherwise at col7 is on next line after switch at col5, but 2 at col17 is on same line as otherwise at col7
+        // So Check(INDENT) will be false (since next is 2 at col17 on same line as otherwise at col7, not INDENT)
+        // So we need to handle 2 on same line as otherwise
+        ASTNode bodyExpr = ParseExpression();
+        if (bodyExpr) {
+          ASTBlockNodeT* blk = new ASTBlockNodeT();
+          blk->loc = bodyExpr->loc;
+          blk->isDesc = false;
+          ASTExprStmtNodeT* stmt = new ASTExprStmtNodeT();
+          stmt->loc = bodyExpr->loc;
+          stmt->expression = bodyExpr;
+          blk->statements.push(stmt);
+          node->otherwise = blk;
+        } else {
+          node->otherwise = ParseBlock();
+        }
+      } else {
+        node->otherwise = ParseBlock();
+      }
       SkipNewlines();
       continue;
     }
 
-    // Regular case: expr block
+    // Regular case: expr block — handle same-line body like `1 == 1 1` at col7 and col14
     ASTSwitchCase sc;
     sc.condition = ParseExpression();
     SkipNewlines();
-    sc.body = ParseBlock();
+    // If next token is on same line as condition, body is on same line
+    if (!Check(TOK_INDENT) && !AtEnd() && sc.condition && Peek().line == sc.condition->loc.line) {
+      ASTNode bodyExpr = ParseExpression();
+      if (bodyExpr) {
+        ASTBlockNodeT* blk = new ASTBlockNodeT();
+        blk->loc = bodyExpr->loc;
+        blk->isDesc = false;
+        ASTExprStmtNodeT* stmt = new ASTExprStmtNodeT();
+        stmt->loc = bodyExpr->loc;
+        stmt->expression = bodyExpr;
+        blk->statements.push(stmt);
+        sc.body = blk;
+      } else {
+        sc.body = ParseBlock();
+      }
+    } else {
+      sc.body = ParseBlock();
+    }
     node->cases.push(sc);
     SkipNewlines();
   }
@@ -710,9 +894,14 @@ ASTNode Parser::ParseExpression() {
 }
 
 ASTNode Parser::ParsePratt(int minPrec) {
+  prattCalls++;
+  curDepth++;
+  if (curDepth > maxDepth) maxDepth = curDepth;
   ASTNode left = ParseUnary();
-  if (!left)
+  if (!left) {
+    curDepth--;
     return nullptr;
+  }
 
   for (;;) {
     Token const& tok = Peek();
@@ -746,6 +935,7 @@ ASTNode Parser::ParsePratt(int minPrec) {
     ASTNode right = ParsePratt(nextPrec);
     if (!right) {
       ReportError("expected expression after operator");
+      curDepth--;
       return left;
     }
 
@@ -757,6 +947,7 @@ ASTNode Parser::ParsePratt(int minPrec) {
     left = binop;
   }
 
+  curDepth--;
   return left;
 }
 
@@ -830,6 +1021,60 @@ ASTNode Parser::ParsePrimary() {
     Advance();
     SkipNewlines();
 
+    // (? pred1 body1 ... (otherwise def)) — switch expression with ?
+    if (Check(TOK_QUESTION)) {
+      Advance(); // '?'
+      SkipNewlines();
+      ASTSwitchExprNodeT* sw = new ASTSwitchExprNodeT();
+      sw->loc = SourceLocation(tok.line, tok.column);
+      while (!Check(TOK_RPAREN) && !Check(TOK_EOF)) {
+        SkipNewlines();
+        if (Check(TOK_RPAREN) || Check(TOK_EOF)) break;
+        if (!Check(TOK_LPAREN)) {
+          ReportError("expected '(' for '?' case");
+          break;
+        }
+        Advance(); // '('
+        SkipNewlines();
+        if (Check(TOK_OTHERWISE)) {
+          Advance();
+          SkipNewlines();
+          ASTNode def = ParseExpression();
+          if (def) sw->defaultExpr = def;
+          SkipNewlines();
+          Expect(TOK_RPAREN, "expected ')' after 'otherwise' clause");
+        } else if (Check(TOK_IDENTIFIER) && Peek().value == "otherwise") {
+          Advance();
+          SkipNewlines();
+          ASTNode def = ParseExpression();
+          if (def) sw->defaultExpr = def;
+          SkipNewlines();
+          Expect(TOK_RPAREN, "expected ')' after 'otherwise' clause");
+        } else {
+          ASTNode pred = ParseExpression();
+          if (!pred) {
+            ReportError("expected predicate in '?' case");
+            while (!Check(TOK_RPAREN) && !Check(TOK_EOF)) Advance();
+            if (Check(TOK_RPAREN)) Advance();
+            continue;
+          }
+          SkipNewlines();
+          ASTNode body = nullptr;
+          if (!Check(TOK_RPAREN) && !Check(TOK_EOF)) {
+            body = ParseExpression();
+            SkipNewlines();
+          }
+          Expect(TOK_RPAREN, "expected ')' after '?' case");
+          sw->cases.push(pred);
+          if (body) sw->cases.push(body);
+          else sw->cases.push(pred);
+        }
+        SkipNewlines();
+      }
+      Expect(TOK_RPAREN, "expected ')' after '?' switch");
+      return sw;
+    }
+
     // Check for function call: (name arg1 arg2 ...)
     // If first expression is an identifier and more tokens follow before ')',
     // treat as space-separated function call.
@@ -847,7 +1092,16 @@ ASTNode Parser::ParsePrimary() {
 
         do {
           SkipNewlines();
-          call->args.push(ParseExpression());
+          size_t before = pos;
+          ASTNode arg = ParseExpression();
+          if (arg) {
+            call->args.push(arg);
+          } else if (pos == before) {
+            ReportError(Peek(), "expected function argument");
+            Advance();
+          } else {
+            break;
+          }
           SkipNewlines();
         } while (!Check(TOK_RPAREN) && !Check(TOK_EOF));
 
@@ -1026,8 +1280,6 @@ ASTNode Parser::ParseIdentifier(Token const& tok) {
 // Top-level parse
 // ============================================================================
 
-Parser::Parser(Vector<Token> const& tokens) : tokens(tokens), pos(0), bareCallDepth(0) {}
-
 ASTNode Parser::Parse() {
   ASTModuleNodeT* module = new ASTModuleNodeT();
   module->loc = CurrentLoc();
@@ -1051,16 +1303,16 @@ Vector<ParseError> const& Parser::GetErrors() const {
 // Top-level convenience function
 // ============================================================================
 
-ASTNode ParseLTSL(String const& source, Vector<ParseError>* errors) {
+ASTNode ParseLTSL(String const& source, std::vector<ParseError>* errors) {
   // Lex
   Lexer lexer(source);
-  Vector<Token> tokens = lexer.Tokenize();
+  std::vector<Token> tokens = lexer.Tokenize();
 
   // Forward lexer errors as parse errors
   if (errors) {
-    Vector<LexError> const& lexErrors = lexer.GetErrors();
+    std::vector<LexError> const& lexErrors = lexer.GetErrors();
     for (size_t i = 0; i < lexErrors.size(); ++i) {
-      errors->push(ParseError(lexErrors[i].message, lexErrors[i].line, lexErrors[i].column));
+      errors->push_back(ParseError(lexErrors[i].message, lexErrors[i].line, lexErrors[i].column));
     }
   }
 
@@ -1071,7 +1323,7 @@ ASTNode ParseLTSL(String const& source, Vector<ParseError>* errors) {
   if (errors) {
     Vector<ParseError> const& parseErrors = parser.GetErrors();
     for (size_t i = 0; i < parseErrors.size(); ++i) {
-      errors->push(parseErrors[i]);
+      errors->push_back(parseErrors[i]);
     }
   }
 

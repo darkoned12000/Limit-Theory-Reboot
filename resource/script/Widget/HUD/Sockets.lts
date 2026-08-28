@@ -7,8 +7,7 @@ type Socket
   function String GetName () object.GetName
 
   function Void PreDraw (Widget self)
-    var color
-      switch
+    var color switch
         active Colors:Primary
         otherwise (Vec3 0.2)
 

@@ -141,8 +141,7 @@ type ContentPanel
   function List CreateChildren (Widget self)
     var l List
     currentTab = (deref activeTab)
-    var widget
-      switch
+    var widget switch
         currentTab == "Overview"
           opacity = 1.0
           Widget/Object/Overview:Create player object

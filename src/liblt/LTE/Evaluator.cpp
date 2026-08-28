@@ -144,48 +144,48 @@ Value Evaluator::EvaluateModule(ASTModuleNodeT* module) {
 
   Value last = Value::MakeNone();
   for (size_t i = 0; i < module->statements.size(); ++i) {
-    last = Evaluate(module->statements[i].t);
+    last = Evaluate(module->statements[i]);
     if (flowSignal != FLOW_NONE)
       break;
   }
   return last;
 }
 
-Value Evaluator::Evaluate(ASTNode* node) {
+Value Evaluator::Evaluate(ASTNode node) {
   if (!node)
     return Value::MakeNone();
 
   switch (node->kind) {
-    case AST_MODULE:       return EvalBlock(static_cast<ASTBlockNodeT*>(node));
-    case AST_BLOCK:        return EvalBlock(static_cast<ASTBlockNodeT*>(node));
-    case AST_FUNC_DECL:    return EvalFuncDecl(static_cast<ASTFuncDeclNodeT*>(node));
-    case AST_TYPE_DECL:    return EvalTypeDecl(static_cast<ASTTypeDeclNodeT*>(node));
-    case AST_RETURN:       return EvalReturn(static_cast<ASTReturnNodeT*>(node));
-    case AST_IF:           return EvalIf(static_cast<ASTIfNodeT*>(node));
-    case AST_WHILE:        return EvalWhile(static_cast<ASTWhileNodeT*>(node));
-    case AST_FOR:          return EvalFor(static_cast<ASTForNodeT*>(node));
-    case AST_SWITCH:       return EvalSwitch(static_cast<ASTSwitchNodeT*>(node));
+    case AST_MODULE:       return EvalBlock(static_cast<ASTBlockNodeT*>(node.t));
+    case AST_BLOCK:        return EvalBlock(static_cast<ASTBlockNodeT*>(node.t));
+    case AST_FUNC_DECL:    return EvalFuncDecl(static_cast<ASTFuncDeclNodeT*>(node.t));
+    case AST_TYPE_DECL:    return EvalTypeDecl(static_cast<ASTTypeDeclNodeT*>(node.t));
+    case AST_RETURN:       return EvalReturn(static_cast<ASTReturnNodeT*>(node.t));
+    case AST_IF:           return EvalIf(static_cast<ASTIfNodeT*>(node.t));
+    case AST_WHILE:        return EvalWhile(static_cast<ASTWhileNodeT*>(node.t));
+    case AST_FOR:          return EvalFor(static_cast<ASTForNodeT*>(node.t));
+    case AST_SWITCH:       return EvalSwitch(static_cast<ASTSwitchNodeT*>(node.t));
     case AST_VAR_DECL:
     case AST_REF_DECL:
-    case AST_STATIC_DECL:  return EvalVarDecl(static_cast<ASTDeclNodeT*>(node));
-    case AST_ASSIGN:       return EvalAssign(static_cast<ASTAssignNodeT*>(node));
-    case AST_EXPR_STMT:    return EvalExprStmt(static_cast<ASTExprStmtNodeT*>(node));
-    case AST_INT:          return EvalInt(static_cast<ASTIntNodeT*>(node));
-    case AST_FLOAT:        return EvalFloat(static_cast<ASTFloatNodeT*>(node));
-    case AST_STRING:       return EvalString(static_cast<ASTStringNodeT*>(node));
-    case AST_BOOL:         return EvalBool(static_cast<ASTBoolNodeT*>(node));
-    case AST_NULL:         return EvalNull(static_cast<ASTNullNodeT*>(node));
-    case AST_IDENTIFIER:   return EvalIdentifier(static_cast<ASTIdentifierNodeT*>(node));
-    case AST_BINARY_OP:    return EvalBinaryOp(static_cast<ASTBinaryOpNodeT*>(node));
-    case AST_UNARY_OP:     return EvalUnaryOp(static_cast<ASTUnaryOpNodeT*>(node));
-    case AST_METHOD_CALL:  return EvalMethodCall(static_cast<ASTMethodCallNodeT*>(node));
-    case AST_FUNC_CALL:    return EvalFuncCall(static_cast<ASTFuncCallNodeT*>(node));
-    case AST_CAST:         return EvalCast(static_cast<ASTCastNodeT*>(node));
-    case AST_ADDRESS:      return EvalAddress(static_cast<ASTAddressNodeT*>(node));
-    case AST_DEREF:        return EvalDeref(static_cast<ASTDerefNodeT*>(node));
-    case AST_ARRAY_LITERAL:return EvalArrayLiteral(static_cast<ASTArrayLiteralNodeT*>(node));
-    case AST_CONSTRUCTOR:  return EvalConstructor(static_cast<ASTConstructorNodeT*>(node));
-    case AST_PRINT:        return EvalPrint(static_cast<ASTPrintNodeT*>(node));
+    case AST_STATIC_DECL:  return EvalVarDecl(static_cast<ASTDeclNodeT*>(node.t));
+    case AST_ASSIGN:       return EvalAssign(static_cast<ASTAssignNodeT*>(node.t));
+    case AST_EXPR_STMT:    return EvalExprStmt(static_cast<ASTExprStmtNodeT*>(node.t));
+    case AST_INT_LITERAL:          return EvalInt(static_cast<ASTIntLiteralNodeT*>(node.t));
+    case AST_FLOAT_LITERAL:        return EvalFloat(static_cast<ASTFloatLiteralNodeT*>(node.t));
+    case AST_STRING_LITERAL:       return EvalString(static_cast<ASTStringLiteralNodeT*>(node.t));
+    case AST_BOOL_LITERAL:         return EvalBool(static_cast<ASTBoolLiteralNodeT*>(node.t));
+    case AST_NULL_LITERAL:         return EvalNull(static_cast<ASTNullLiteralNodeT*>(node.t));
+    case AST_IDENTIFIER:   return EvalIdentifier(static_cast<ASTIdentifierNodeT*>(node.t));
+    case AST_BINARY_OP:    return EvalBinaryOp(static_cast<ASTBinaryOpNodeT*>(node.t));
+    case AST_UNARY_OP:     return EvalUnaryOp(static_cast<ASTUnaryOpNodeT*>(node.t));
+    case AST_METHOD_CALL:  return EvalMethodCall(static_cast<ASTMethodCallNodeT*>(node.t));
+    case AST_FUNC_CALL:    return EvalFuncCall(static_cast<ASTFuncCallNodeT*>(node.t));
+    case AST_CAST:         return EvalCast(static_cast<ASTCastNodeT*>(node.t));
+    case AST_ADDRESS:      return EvalAddress(static_cast<ASTAddressNodeT*>(node.t));
+    case AST_DEREF:        return EvalDeref(static_cast<ASTDerefNodeT*>(node.t));
+    case AST_ARRAY_LITERAL:return EvalArrayLiteral(static_cast<ASTArrayLiteralNodeT*>(node.t));
+    case AST_CONSTRUCTOR:  return EvalConstructor(static_cast<ASTConstructorNodeT*>(node.t));
+    case AST_PRINT:        return EvalPrint(static_cast<ASTPrintNodeT*>(node.t));
     case AST_BREAK:
       flowSignal = FLOW_BREAK;
       return Value::MakeNone();
@@ -237,7 +237,7 @@ Value Evaluator::EvalBlock(ASTBlockNodeT* block) {
   PushScope();
   Value last = Value::MakeNone();
   for (size_t i = 0; i < block->statements.size(); ++i) {
-    last = Evaluate(block->statements[i].t);
+    last = Evaluate(block->statements[i]);
     if (flowSignal != FLOW_NONE)
       break;
   }
@@ -251,7 +251,7 @@ Value Evaluator::EvalVarDecl(ASTDeclNodeT* decl) {
 
   Value init = Value::MakeNone();
   if (decl->initializer.t)
-    init = Evaluate(decl->initializer.t);
+    init = Evaluate(decl->initializer);
 
   Declare(decl->name, init, decl->kind == AST_REF_DECL);
   return init;
@@ -263,7 +263,7 @@ Value Evaluator::EvalFuncDecl(ASTFuncDeclNodeT* decl) {
 
   // Store function reference in scope
   Value fnVal;
-  fnVal.kind = FUNC_REF;
+  fnVal.kind = Value::FUNC_REF;
   fnVal.data = decl;
   fnVal.owned = false;
   Declare(decl->name, fnVal);
@@ -277,7 +277,7 @@ Value Evaluator::EvalTypeDecl(ASTTypeDeclNodeT* decl) {
   // Type declarations are handled by the script system
   // For now, just store the type name
   Value tv;
-  tv.kind = TYPE_REF;
+  tv.kind = Value::TYPE_REF;
   tv.data = decl;
   tv.owned = false;
   Declare(decl->name, tv);
@@ -288,11 +288,11 @@ Value Evaluator::EvalIf(ASTIfNodeT* node) {
   if (!node)
     return Value::MakeNone();
 
-  Value cond = Evaluate(node->condition.t);
+  Value cond = Evaluate(node->condition);
   if (cond.IsBool() && cond.AsBool()) {
-    return Evaluate(node->thenBlock.t);
+    return Evaluate(node->thenBlock);
   } else if (node->elseBlock.t) {
-    return Evaluate(node->elseBlock.t);
+    return Evaluate(node->elseBlock);
   }
   return Value::MakeNone();
 }
@@ -303,11 +303,11 @@ Value Evaluator::EvalWhile(ASTWhileNodeT* node) {
 
   Value last = Value::MakeNone();
   while (true) {
-    Value cond = Evaluate(node->condition.t);
+    Value cond = Evaluate(node->condition);
     if (!cond.IsBool() || !cond.AsBool())
       break;
 
-    last = Evaluate(node->body.t);
+    last = Evaluate(node->body);
     if (flowSignal == FLOW_BREAK) {
       flowSignal = FLOW_NONE;
       break;
@@ -323,15 +323,15 @@ Value Evaluator::EvalFor(ASTForNodeT* node) {
     return Value::MakeNone();
 
   PushScope();
-  Value init = Evaluate(node->init.t);
+  Value init = Evaluate(node->init);
   Value last = Value::MakeNone();
 
   while (true) {
-    Value cond = Evaluate(node->condition.t);
+    Value cond = Evaluate(node->condition);
     if (!cond.IsBool() || !cond.AsBool())
       break;
 
-    last = Evaluate(node->body.t);
+    last = Evaluate(node->body);
     if (flowSignal == FLOW_BREAK) {
       flowSignal = FLOW_NONE;
       break;
@@ -339,7 +339,7 @@ Value Evaluator::EvalFor(ASTForNodeT* node) {
     if (flowSignal == FLOW_RETURN)
       break;
 
-    Evaluate(node->update.t);
+    Evaluate(node->step);
   }
   PopScope();
   return last;
@@ -349,9 +349,9 @@ Value Evaluator::EvalSwitch(ASTSwitchNodeT* node) {
   if (!node)
     return Value::MakeNone();
 
-  Value expr = Evaluate(node->expression.t);
+  Value expr = Evaluate(node->expression);
   for (size_t i = 0; i < node->cases.size(); ++i) {
-    Value caseVal = Evaluate(node->cases[i].condition.t);
+    Value caseVal = Evaluate(node->cases[i].condition);
     // Simple equality check (works for int/float/string)
     bool match = false;
     if (expr.IsInt() && caseVal.IsInt())
@@ -362,10 +362,10 @@ Value Evaluator::EvalSwitch(ASTSwitchNodeT* node) {
       match = expr.AsBool() == caseVal.AsBool();
 
     if (match)
-      return Evaluate(node->cases[i].body.t);
+      return Evaluate(node->cases[i].body);
   }
   if (node->otherwise.t)
-    return Evaluate(node->otherwise.t);
+    return Evaluate(node->otherwise);
   return Value::MakeNone();
 }
 
@@ -373,8 +373,25 @@ Value Evaluator::EvalAssign(ASTAssignNodeT* node) {
   if (!node)
     return Value::MakeNone();
 
-  Value rhs = Evaluate(node->rhs.t);
-  Value* target = &Lookup(node->name);
+  Value rhs = Evaluate(node->value);
+  // node->target is an ASTNode (usually an identifier) for `x` in `x = 1`
+  // We need to get the identifier name for Lookup
+  String targetName;
+  if (node->target && node->target->kind == AST_IDENTIFIER) {
+    targetName = static_cast<ASTIdentifierNodeT*>(node->target.t)->name;
+  } else if (node->target) {
+    // For complex lvalues like `a.b`, use the full target as string (fallback)
+    // For now, just try to evaluate the target as identifier
+    // This handles `x` in `x = 1`, but for `a.b = 1`, it would need more handling
+    // For simplicity, assume target is identifier
+    if (node->target->kind == AST_IDENTIFIER) {
+      targetName = static_cast<ASTIdentifierNodeT*>(node->target.t)->name;
+    } else {
+      fprintf(stderr, "unsupported assignment target\n");
+      return Value::MakeNone();
+    }
+  }
+  Value* target = &Lookup(targetName);
 
   if (node->op == "=") {
     *target = rhs;
@@ -409,7 +426,7 @@ Value Evaluator::EvalReturn(ASTReturnNodeT* node) {
 
   flowSignal = FLOW_RETURN;
   if (node->value.t)
-    flowValue = Evaluate(node->value.t);
+    flowValue = Evaluate(node->value);
   else
     flowValue = Value::MakeNone();
   return flowValue;
@@ -418,28 +435,28 @@ Value Evaluator::EvalReturn(ASTReturnNodeT* node) {
 Value Evaluator::EvalExprStmt(ASTExprStmtNodeT* node) {
   if (!node)
     return Value::MakeNone();
-  return Evaluate(node->expression.t);
+  return Evaluate(node->expression);
 }
 
 // ─── Expression evaluation ─────────────────────────────────────────
 
-Value Evaluator::EvalInt(ASTIntNodeT* node) {
+Value Evaluator::EvalInt(ASTIntLiteralNodeT* node) {
   return node ? Value::MakeInt(node->value) : Value::MakeNone();
 }
 
-Value Evaluator::EvalFloat(ASTFloatNodeT* node) {
+Value Evaluator::EvalFloat(ASTFloatLiteralNodeT* node) {
   return node ? Value::MakeFloat(node->value) : Value::MakeNone();
 }
 
-Value Evaluator::EvalString(ASTStringNodeT* node) {
+Value Evaluator::EvalString(ASTStringLiteralNodeT* node) {
   return node ? Value::MakeString(node->value) : Value::MakeNone();
 }
 
-Value Evaluator::EvalBool(ASTBoolNodeT* node) {
+Value Evaluator::EvalBool(ASTBoolLiteralNodeT* node) {
   return node ? Value::MakeBool(node->value) : Value::MakeNone();
 }
 
-Value Evaluator::EvalNull(ASTNullNodeT*) {
+Value Evaluator::EvalNull(ASTNullLiteralNodeT*) {
   return Value::MakeNone();
 }
 
@@ -455,22 +472,22 @@ Value Evaluator::EvalBinaryOp(ASTBinaryOpNodeT* node) {
 
   // Short-circuit for logical operators
   if (node->op == "&&") {
-    Value left = Evaluate(node->left.t);
+    Value left = Evaluate(node->left);
     if (left.IsBool() && !left.AsBool())
       return Value::MakeBool(false);
-    Value right = Evaluate(node->right.t);
+    Value right = Evaluate(node->right);
     return Value::MakeBool(right.IsBool() && right.AsBool());
   }
   if (node->op == "||") {
-    Value left = Evaluate(node->left.t);
+    Value left = Evaluate(node->left);
     if (left.IsBool() && left.AsBool())
       return Value::MakeBool(true);
-    Value right = Evaluate(node->right.t);
+    Value right = Evaluate(node->right);
     return Value::MakeBool(right.IsBool() && right.AsBool());
   }
 
-  Value left = Evaluate(node->left.t);
-  Value right = Evaluate(node->right.t);
+  Value left = Evaluate(node->left);
+  Value right = Evaluate(node->right);
 
   // Integer operations
   if (left.IsInt() && right.IsInt()) {
@@ -518,7 +535,7 @@ Value Evaluator::EvalUnaryOp(ASTUnaryOpNodeT* node) {
   if (!node)
     return Value::MakeNone();
 
-  Value operand = Evaluate(node->operand.t);
+  Value operand = Evaluate(node->operand);
 
   if (node->op == "-") {
     if (operand.IsInt())  return Value::MakeInt(-operand.AsInt());
@@ -538,11 +555,11 @@ Value Evaluator::EvalMethodCall(ASTMethodCallNodeT* node) {
     return Value::MakeNone();
 
   // Evaluate receiver and arguments
-  Value receiver = Evaluate(node->receiver.t);
+  Value receiver = Evaluate(node->object);
   Vector<Value> args;
   args.push(receiver);
-  for (size_t i = 0; i < node->arguments.size(); ++i)
-    args.push(Evaluate(node->arguments[i].t));
+  for (size_t i = 0; i < node->args.size(); ++i)
+    args.push(Evaluate(node->args[i]));
 
   return CallEngineFunction(node->methodName, args);
 }
@@ -552,8 +569,8 @@ Value Evaluator::EvalFuncCall(ASTFuncCallNodeT* node) {
     return Value::MakeNone();
 
   Vector<Value> args;
-  for (size_t i = 0; i < node->arguments.size(); ++i)
-    args.push(Evaluate(node->arguments[i].t));
+  for (size_t i = 0; i < node->args.size(); ++i)
+    args.push(Evaluate(node->args[i]));
 
   // Check for built-in functions first
   if (node->name == "if" || node->name == "while" || node->name == "for") {
@@ -569,7 +586,7 @@ Value Evaluator::EvalCast(ASTCastNodeT* node) {
   if (!node)
     return Value::MakeNone();
 
-  Value val = Evaluate(node->expression.t);
+  Value val = Evaluate(node->operand);
 
   // Type casting — for now handle int/float and string conversions
   if (node->typeName == "Int") {
@@ -594,7 +611,7 @@ Value Evaluator::EvalAddress(ASTAddressNodeT* node) {
   if (!node)
     return Value::MakeNone();
 
-  Value val = Evaluate(node->expression.t);
+  Value val = Evaluate(node->operand);
   // Address-of: return a pointer to the value
   return Value::MakePtr(nullptr, val.data, false);
 }
@@ -603,7 +620,7 @@ Value Evaluator::EvalDeref(ASTDerefNodeT* node) {
   if (!node)
     return Value::MakeNone();
 
-  Value val = Evaluate(node->expression.t);
+  Value val = Evaluate(node->operand);
   if (val.kind == Value::PTR && val.data)
     return Value::MakeEngine(val.type, val.data);
   return Value::MakeNone();
@@ -623,8 +640,8 @@ Value Evaluator::EvalConstructor(ASTConstructorNodeT* node) {
     return Value::MakeNone();
 
   Vector<Value> args;
-  for (size_t i = 0; i < node->arguments.size(); ++i)
-    args.push(Evaluate(node->arguments[i].t));
+  for (size_t i = 0; i < node->args.size(); ++i)
+    args.push(Evaluate(node->args[i]));
 
   // Try engine type constructors
   return CallEngineFunction(node->typeName, args);
@@ -634,7 +651,7 @@ Value Evaluator::EvalPrint(ASTPrintNodeT* node) {
   if (!node)
     return Value::MakeNone();
 
-  Value val = Evaluate(node->expression.t);
+  Value val = Evaluate(node->operand);
   if (val.IsInt())      std::cout << val.AsInt() << std::endl;
   else if (val.IsFloat()) std::cout << val.AsFloat() << std::endl;
   else if (val.IsBool())  std::cout << (val.AsBool() ? "true" : "false") << std::endl;
@@ -699,8 +716,8 @@ Value Evaluator::CallScriptFunction(String const& name, Vector<Value> const& arg
   PushScope();
 
   // Bind parameters
-  for (size_t i = 0; i < fn->params.size() && i < args.size(); ++i)
-    Declare(fn->params[i].name, args[i]);
+  for (size_t i = 0; i < fn->paramNames.size() && i < args.size(); ++i)
+    Declare(fn->paramNames[i], args[i]);
 
   // Evaluate body
   Value result = EvalBlock(static_cast<ASTBlockNodeT*>(fn->body.t));

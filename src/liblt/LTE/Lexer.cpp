@@ -28,7 +28,8 @@ bool Lexer::IsIdentChar(char c) {
 
 bool Lexer::IsOpChar(char c) {
   return c == '+' || c == '-' || c == '*' || c == '/' || c == '%' ||
-         c == '=' || c == '!' || c == '<' || c == '>' || c == '&' || c == '|';
+         c == '=' || c == '!' || c == '<' || c == '>' || c == '&' || c == '|' ||
+         c == '^' || c == '?';
 }
 
 TokenKind Lexer::LookupKeyword(String const& value) {
@@ -147,11 +148,11 @@ void Lexer::EmitIndentTokens(int newIndent) {
 
   if (newIndent > current) {
     indentStack.push(newIndent);
-    pending.push(Token(TOK_INDENT, "", line, 1, 0));
+    pending.push_back(Token(TOK_INDENT, "", line, 1, 0));
   } else if (newIndent < current) {
     while (indentStack.back() > newIndent) {
       indentStack.pop();
-      pending.push(Token(TOK_DEDENT, "", line, 1, 0));
+      pending.push_back(Token(TOK_DEDENT, "", line, 1, 0));
     }
     if (indentStack.back() != newIndent) {
       ReportError("unindent does not match any outer indentation level");
@@ -161,7 +162,7 @@ void Lexer::EmitIndentTokens(int newIndent) {
 
 void Lexer::EmitPendingTokens() {
   for (size_t i = 0; i < pending.size(); i++)
-    tokens.push(pending[i]);
+    tokens.push_back(pending[i]);
   pending.clear();
 }
 
@@ -170,11 +171,11 @@ void Lexer::EmitPendingTokens() {
 // ============================================================================
 
 void Lexer::ReportError(String const& message) {
-  errors.push(LexError(message, line, column));
+  errors.push_back(LexError(message, line, column));
 }
 
 void Lexer::Emit(Token const& tok) {
-  tokens.push(tok);
+  tokens.push_back(tok);
   if (tok.kind != TOK_NEWLINE && tok.kind != TOK_INDENT &&
       tok.kind != TOK_DEDENT && tok.kind != TOK_EOF)
     hasTokensOnLine = true;
@@ -274,6 +275,10 @@ Token Lexer::ReadOperator() {
       return Token(TOK_SLASH, "/", startLine, startCol, 1);
     case '%':
       return Token(TOK_MOD, "%", startLine, startCol, 1);
+    case '^':
+      return Token(TOK_CARET, "^", startLine, startCol, 1);
+    case '?':
+      return Token(TOK_QUESTION, "?", startLine, startCol, 1);
     case '=':
       if (next == '=') { Advance(); return Token(TOK_EQUALS, "==", startLine, startCol, 2); }
       return Token(TOK_ASSIGN, "=", startLine, startCol, 1);
@@ -314,7 +319,7 @@ Lexer::Lexer(String const& source) :
   indentStack.push(0);
 }
 
-Vector<LexError> const& Lexer::GetErrors() const {
+std::vector<LexError> const& Lexer::GetErrors() const {
   return errors;
 }
 
@@ -322,7 +327,7 @@ Vector<LexError> const& Lexer::GetErrors() const {
 // Main tokenize loop
 // ============================================================================
 
-Vector<Token> Lexer::Tokenize() {
+std::vector<Token> Lexer::Tokenize() {
   while (!AtEnd()) {
     // === Line-start indent processing ===
     if (atLineStart && parenDepth == 0) {
@@ -359,7 +364,7 @@ Vector<Token> Lexer::Tokenize() {
       if (parenDepth == 0) {
         // Only emit NEWLINE if real tokens were on this line
         if (hasTokensOnLine) {
-          tokens.push(Token(TOK_NEWLINE, "\\n", line - 1, 0, 1));
+          tokens.push_back(Token(TOK_NEWLINE, "\\n", line - 1, 0, 1));
           hasTokensOnLine = false;
         }
         atLineStart = true;
@@ -468,11 +473,11 @@ Vector<Token> Lexer::Tokenize() {
   // Flush any remaining indent stack (implicit dedents at EOF)
   while (indentStack.size() > 1) {
     indentStack.pop();
-    tokens.push(Token(TOK_DEDENT, "", line, 1, 0));
+    tokens.push_back(Token(TOK_DEDENT, "", line, 1, 0));
   }
 
   // Emit EOF
-  tokens.push(Token(TOK_EOF, "", line, column, 0));
+  tokens.push_back(Token(TOK_EOF, "", line, column, 0));
 
   return tokens;
 }

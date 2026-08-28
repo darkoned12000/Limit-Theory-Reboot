@@ -33,8 +33,7 @@ type App
       var shipType4 (Item_ShipType 100000000 333 1 1 1)
       var ships (Array Object)
       for i 0 i < 32 i.++
-        var ship
-          switch
+        var ship switch
             rng.Float < 0.5
               shipType1.Instantiate
             rng.Float < 0.5
@@ -65,7 +64,8 @@ type App
   function Void PreUpdate (Widget self)
     var dt FrameTimer_Get
     dt = (Min dt 0.1)
-    if Key_H.Down dt *= 20.0
+    if Key_H.Down
+      dt *= 20.0
 
     static paused false
     if Key_P.Pressed paused = paused.!

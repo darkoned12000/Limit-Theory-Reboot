@@ -38,8 +38,7 @@ type DrawApp
     if Mouse_RightDown
       var rng (RNG_MTG Int_Random)
       var index (rng.Int lines.Size)
-      var p1
-        switch
+      var p1 switch
           rng.Float < 0.5
             p1 (Line (lines.Get index))
           otherwise

@@ -149,8 +149,7 @@ type HNNScreen
         var vec node.GetVector
         var p1 node.pos
         var p2 node.pos + 128.0 * vec.x * node.normal
-        var color
-          switch
+        var color switch
             i == selected Colors:Secondary
             otherwise Colors:Primary
 

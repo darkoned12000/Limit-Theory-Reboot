@@ -8,8 +8,7 @@ type WidgetLogEntry
       Components:AlignCenter
         Widgets:Text Fonts:Heading "[" + (192 + index) + ".30.10]" 14 Colors:Primary
 
-    var icon
-      switch
+    var icon switch
         (contents.Contains "order")
           Icons:Credits
         (contents.Contains "message")

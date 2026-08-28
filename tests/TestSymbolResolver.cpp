@@ -16,7 +16,7 @@ using namespace LTE;
 
 // Parse source, resolve, and return error count.
 static int Resolve(String const& src) {
-  Vector<ParseError> parseErrors;
+  std::vector<ParseError> parseErrors;
   ASTNode ast = ParseLTSL(src, &parseErrors);
   SymbolResolver resolver;
   resolver.Resolve(ast);
@@ -25,7 +25,7 @@ static int Resolve(String const& src) {
 
 // Parse, resolve, and return the first error message (empty if no errors).
 static String FirstError(String const& src) {
-  Vector<ParseError> parseErrors;
+  std::vector<ParseError> parseErrors;
   ASTNode ast = ParseLTSL(src, &parseErrors);
   SymbolResolver resolver;
   resolver.Resolve(ast);
@@ -34,8 +34,8 @@ static String FirstError(String const& src) {
 }
 
 // Parse, resolve, and return all error messages.
-static Vector<String> AllErrors(String const& src) {
-  Vector<ParseError> parseErrors;
+static Vector<String> __attribute__((unused)) AllErrors(String const& src) {
+  std::vector<ParseError> parseErrors;
   ASTNode ast = ParseLTSL(src, &parseErrors);
   SymbolResolver resolver;
   resolver.Resolve(ast);
@@ -46,8 +46,8 @@ static Vector<String> AllErrors(String const& src) {
 }
 
 // Parse, resolve, and return a specific error's line number.
-static int ErrorLine(String const& src, size_t index) {
-  Vector<ParseError> parseErrors;
+static int __attribute__((unused)) ErrorLine(String const& src, size_t index) {
+  std::vector<ParseError> parseErrors;
   ASTNode ast = ParseLTSL(src, &parseErrors);
   SymbolResolver resolver;
   resolver.Resolve(ast);
@@ -221,7 +221,7 @@ LTE_TEST(Resolver_ForIteratorInvisibleOutside) {
 
 LTE_TEST(Resolver_InferIntLiteral) {
   SymbolResolver resolver;
-  Vector<ParseError> parseErrors;
+  std::vector<ParseError> parseErrors;
   ASTNode ast = ParseLTSL("1", &parseErrors);
   resolver.Resolve(ast);
   auto mod = ASTNodeAs<ASTModuleNodeT>(ast);
@@ -240,7 +240,7 @@ LTE_TEST(Resolver_InferBoolFromLogical) {
 
 LTE_TEST(Resolver_BinaryOpTypeInference) {
   SymbolResolver resolver;
-  Vector<ParseError> parseErrors;
+  std::vector<ParseError> parseErrors;
   ASTNode ast = ParseLTSL("1 + 2", &parseErrors);
   resolver.Resolve(ast);
   LTE_CHECK_EQ(resolver.GetErrors().size(), (size_t)0);

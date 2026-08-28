@@ -105,8 +105,7 @@ type App
     var type4 (Item_ShipType 10000000 20 1 1 1)
     for i 0 i < ShipCount i.++
       var choice (rng.Int 1 4)
-      var ship
-        switch
+      var ship switch
           choice == 1 type1.Instantiate
           choice == 2 type2.Instantiate
           choice == 3 type3.Instantiate
