@@ -28,7 +28,7 @@ struct ParseError {
 
 class Parser {
 public:
-  Parser(std::vector<Token> const& tokens) : tokens(tokens), pos(0), bareCallDepth(0), prattCalls(0), curDepth(0), maxDepth(0) {}
+  Parser(std::vector<Token> const& tokens) : tokens(tokens), pos(0), bareCallDepth(0), prattCalls(0), curDepth(0), maxDepth(0), blownUp(false), blowLine(-1) {}
 
   // Parse the full token stream into an AST module.
   ASTNode Parse();
@@ -40,6 +40,8 @@ public:
 
   size_t GetPrattCalls() const { return prattCalls; }
   int GetMaxDepth() const { return maxDepth; }
+  bool GetBlownUp() const { return blownUp; }
+  int GetBlowLine() const { return blowLine; }
 
 private:
   // Token stream
@@ -50,6 +52,8 @@ private:
   size_t prattCalls;
   int curDepth;
   int maxDepth;
+  bool blownUp;
+  int blowLine;
 
   // --- Token access ---
   Token const& Peek() const;

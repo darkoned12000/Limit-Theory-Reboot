@@ -615,7 +615,8 @@ ASTNode Parser::ParseTypeDecl() {
     ASTNode member = ParseTypeMember();
     if (member)
       node->members.push(member);
-    else if (pos == before) {
+    if (pos == before) {
+      // Guarantee progress even when a member parse yields null without advancing.
       ReportError(Peek(), "unexpected token in type member");
       Advance();
     }
@@ -894,7 +895,13 @@ ASTNode Parser::ParseExpression() {
 }
 
 ASTNode Parser::ParsePratt(int minPrec) {
+  if (blownUp) return nullptr;
   prattCalls++;
+  if (prattCalls > 2000000) {
+    blownUp = true;
+    blowLine = Peek().line;
+    return nullptr;
+  }
   curDepth++;
   if (curDepth > maxDepth) maxDepth = curDepth;
   ASTNode left = ParseUnary();
@@ -1286,9 +1293,15 @@ ASTNode Parser::Parse() {
 
   SkipNewlines();
   while (!AtEnd()) {
+    size_t before = pos;
     ASTNode stmt = ParseStatement();
     if (stmt)
       module->statements.push(stmt);
+    if (pos == before) {
+      // Guarantee progress even when a statement yields null without advancing.
+      ReportError(Peek(), "unexpected token");
+      Advance();
+    }
     SkipNewlines();
   }
 
