@@ -10,6 +10,9 @@
 // Pass-1 scopes are destroyed before Pass 2 can use them.
 
 #include "SymbolResolver.h"
+#include "LTE/Function.h"
+#include "LTE/Type.h"
+#include "LTE/Script.h"
 #include <algorithm>
 #include <string>
 
@@ -68,7 +71,61 @@ void SymbolResolver::PreScanDeclarations(ASTNode const& node) {
     } else if (stmt->kind == AST_TYPE_DECL) {
       auto td = ASTNodeAs<ASTTypeDeclNodeT>(stmt);
       types[td->name] = td;
+      // Methods declared inside a type body are top-level script functions in
+      // LTSL (resolved as `Script:Method`, e.g. Widget/Window:CreateChildren).
+      for (size_t m = 0; m < td->members.size(); ++m)
+        PreScanNode(td->members[m]);
+    } else {
+      PreScanNode(stmt);
     }
+  }
+}
+
+// Recursive pre-scan. Old LTSL hoists nested declarations into script scope:
+// a `function` nested inside another function body (no type context) lands in
+// script->functions, and type methods are surfaced as `Script:Method`. Walk
+// nested constructs so the new pipeline exposes the same declaration set.
+void SymbolResolver::PreScanNode(ASTNode const& node) {
+  if (!node) return;
+
+  switch (node->kind) {
+    case AST_FUNC_DECL: {
+      auto func = ASTNodeAs<ASTFuncDeclNodeT>(node);
+      functions[func->name] = func;
+      PreScanNode(func->body);
+      break;
+    }
+    case AST_TYPE_DECL: {
+      auto td = ASTNodeAs<ASTTypeDeclNodeT>(node);
+      types[td->name] = td;
+      for (size_t m = 0; m < td->members.size(); ++m)
+        PreScanNode(td->members[m]);
+      break;
+    }
+    case AST_BLOCK: {
+      auto blk = ASTNodeAs<ASTBlockNodeT>(node);
+      for (size_t i = 0; i < blk->statements.size(); ++i)
+        PreScanNode(blk->statements[i]);
+      break;
+    }
+    case AST_IF: {
+      auto ifNode = ASTNodeAs<ASTIfNodeT>(node);
+      PreScanNode(ifNode->thenBlock);
+      PreScanNode(ifNode->elseBlock);
+      break;
+    }
+    case AST_WHILE: {
+      auto w = ASTNodeAs<ASTWhileNodeT>(node);
+      PreScanNode(w->body);
+      break;
+    }
+    case AST_FOR: {
+      auto f = ASTNodeAs<ASTForNodeT>(node);
+      PreScanNode(f->body);
+      break;
+    }
+    default:
+      break;
   }
 }
 
@@ -256,14 +313,12 @@ void SymbolResolver::ResolveAndDeclare(ASTNode const& node) {
     case AST_IDENTIFIER: {
       auto ident = ASTNodeAs<ASTIdentifierNodeT>(node);
       Symbol* sym = LookupSymbol(ident->name);
-      if (!sym) {
-        Vector<String> names = AllSymbolNames();
-        String suggestion = BestMatch(ident->name, names);
-        String msg = "undefined variable '" + ident->name + "'";
-        if (!suggestion.empty())
-          msg += " -- did you mean '" + suggestion + "'?";
-        ReportError(msg, ident->loc.line, ident->loc.column);
-      }
+      if (sym) break;
+      // An identifier may also name an engine function (used as a value,
+      // e.g. a callback), a type (e.g. a constructor name), or a cross-file
+      // script function. LTSL resolves these dynamically at runtime, so an
+      // unrecognized name is not a compile error — match the old
+      // interpreter's runtime-dynamic behavior.
       break;
     }
 
@@ -286,22 +341,39 @@ void SymbolResolver::ResolveAndDeclare(ASTNode const& node) {
 
 void SymbolResolver::ResolveFuncCall(ASTFuncCallNodeT const* call) {
   ASTFuncDeclNodeT** funcPtr = functions.get(call->name);
-  if (!funcPtr) {
-    ReportError("undefined function '" + call->name + "'",
-                call->loc.line, call->loc.column);
+  if (funcPtr) {
+    // Script-defined function — enforce arity strictly.
+    ASTFuncDeclNodeT* func = *funcPtr;
+    size_t expected = func->paramNames.size();
+    size_t got = call->args.size();
+    if (got != expected) {
+      String msg = "function '" + call->name + "' expects " +
+                   String(std::to_string(expected)) + " argument" +
+                   (expected != 1 ? "s" : "") + " but got " +
+                   String(std::to_string(got));
+      ReportError(msg, call->loc.line, call->loc.column);
+    }
     return;
   }
 
-  ASTFuncDeclNodeT* func = *funcPtr;
-  size_t expected = func->paramNames.size();
-  size_t got = call->args.size();
-  if (got != expected) {
-    String msg = "function '" + call->name + "' expects " +
-                 String(std::to_string(expected)) + " argument" +
-                 (expected != 1 ? "s" : "") + " but got " +
-                 String(std::to_string(got));
-    ReportError(msg, call->loc.line, call->loc.column);
-  }
+  // Not a script function: check the engine's native registry. Engine
+  // functions are resolved dynamically by arity at runtime, so we only
+  // verify that the name is known (constructors like Vec3 are bound as
+  // functions too).
+  if (Function_Exists(call->name))
+    return;
+
+  // Cross-file script function (e.g. "Config:Get" defined in Config.lts).
+  // The engine resolves these lazily by loading the defining script, so
+  // probe it the same way.
+  if (ScriptFunction_Load(call->name))
+    return;
+
+  // LTSL is dynamically typed: names are resolved at runtime (the engine
+  // lazily loads the defining script and falls back to Function_Find). An
+  // unknown name here is not a compile error — it matches the old
+  // interpreter's runtime-dynamic behavior. Defer to runtime.
+  return;
 }
 
 // ============================================================================

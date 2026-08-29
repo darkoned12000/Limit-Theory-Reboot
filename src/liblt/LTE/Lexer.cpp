@@ -246,8 +246,38 @@ Token Lexer::ReadIdentifier() {
     }
   }
 
-  while (!AtEnd() && IsIdentChar(Peek()))
-    Advance();
+  // LTSL is whitespace-delimited, so '/', ':', '<' and '>' act as NAME
+  // characters rather than operators when they sit directly between identifier
+  // characters:
+  //   Widget/Pause:Pause_State        -> one name (namespace separators)
+  //   Vector<Reference<RenderPassT>>  -> one name (generic type)
+  //   a / b,  a < b                   -> operators (spaces either side)
+  // The old interpreter got this right by splitting on whitespace; replicate it
+  // so namespaced and generic type names stay intact.
+  while (!AtEnd()) {
+    if (IsIdentChar(Peek())) {
+      Advance();
+      continue;
+    }
+    char c = Peek();
+    // '<', '/' and ':' open a following name segment.
+    if ((c == '/' || c == ':' || c == '<') && (size_t)(pos + 1) < source.size() &&
+        IsIdentStart(source[pos + 1])) {
+      Advance();
+      continue;
+    }
+    // '>' closes a generic segment (and '>>' closes nested ones). It must
+    // directly follow an identifier character or another '>' so that the
+    // spaced '>=' comparison and the '->' dereference stay operators.
+    if (c == '>' && pos > (size_t)start) {
+      char prev = source[pos - 1];
+      if (IsIdentChar(prev) || prev == '>') {
+        Advance();
+        continue;
+      }
+    }
+    break;
+  }
 
   String value = source.substr(start, pos - start);
   TokenKind kind = LookupKeyword(value);

@@ -1,12 +1,15 @@
 #ifndef LTE_ScriptFunction_h__
 #define LTE_ScriptFunction_h__
 
+#include "AST.h"
 #include "AutoClass.h"
 #include "Expression.h"
 #include "String.h"
 #include "Vector.h"
 
 namespace LTE {
+  struct ScriptT;   // owner script; defined in Script.h (included via ScriptType.h)
+
   AutoClassDerived(ScriptFunctionT, RefCounted,
     String, name,
     Expression, expression,
@@ -15,6 +18,23 @@ namespace LTE {
     Function, function)
 
     ScriptFunctionT() = default;
+
+    /* --- New compiler (AST) path ----------------------------------------
+       When `astFunc` is set, Call() evaluates the function body with the
+       Evaluator instead of the legacy `Expression` tree. These are plain
+       members (deliberately NOT part of the AutoClass field list) so the
+       reflected/serialized shape of ScriptFunctionT is unchanged and no
+       circular type dependency is introduced.
+
+       astFunc         — AST node of the function body to evaluate.
+       astOwner        — script that owns this function (raw back-pointer;
+                         lifetime is owned by ScriptT, never by this handle).
+       astImplicitThis — true for type methods: the receiver is passed as
+                         argument 0 and bound to `this`, matching the old
+                         interpreter's calling convention. */
+    ASTFuncDeclNodeT* astFunc = nullptr;
+    ScriptT* astOwner = nullptr;
+    bool astImplicitThis = false;
 
     LT_API void Call(void* returnValue, void** args);
 

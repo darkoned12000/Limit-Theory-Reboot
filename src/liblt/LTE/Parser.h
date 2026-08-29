@@ -28,7 +28,7 @@ struct ParseError {
 
 class Parser {
 public:
-  Parser(std::vector<Token> const& tokens) : tokens(tokens), pos(0), bareCallDepth(0), prattCalls(0), curDepth(0), maxDepth(0), blownUp(false), blowLine(-1) {}
+  Parser(std::vector<Token> const& tokens) : tokens(tokens), pos(0), bareCallDepth(0), prattCalls(0), curDepth(0), maxDepth(0), blownUp(false), blowLine(-1), suppressSpaceArgs(false) {}
 
   // Parse the full token stream into an AST module.
   ASTNode Parse();
@@ -54,6 +54,12 @@ private:
   int maxDepth;
   bool blownUp;
   int blowLine;
+  // True while parsing a context that is space-separated and where the following
+  // token does NOT belong to the current expression: `for` header args
+  // (`for it a b c`) and `if`/`while` conditions that are followed by an inline
+  // body on the same line. In these contexts a member chain must not consume the
+  // next token as one of its own arguments.
+  bool suppressSpaceArgs;
 
   // --- Token access ---
   Token const& Peek() const;
@@ -96,11 +102,27 @@ private:
   ASTNode ParsePostfix(ASTNode left);
   ASTNode ParseIdentifier(Token const& tok);
 
+  // An INDENT ... DEDENT in expression position is a parenthesized
+  // expression-group: `(a b c)` == function call a(b, c). Returns a
+  // bare expression when the block has a single line, or a function-call
+  // node when multiple lines are present (first line is the callee).
+  ASTNode ParseBlockExpression();
+  // Parses the INDENT..DEDENT body as a sequence of expressions (one per
+  // line). Requires the current token to be TOK_INDENT.
+  Vector<ASTNode> ParseExpressionLines();
+  // If `init` is a bare identifier immediately followed by an indented block
+  // of arguments (e.g. `var x TypeName <indented args>`), rewrite it as a
+  // function/constructor call. Otherwise returns init unchanged.
+  ASTNode MaybeConstructorBlock(ASTNode init);
+
   // Pratt helpers
   static int GetPrefixPrec(TokenKind kind);
   static int GetInfixPrec(TokenKind kind);
   static bool IsInfixRightAssoc(TokenKind kind);
   static String TokenKindToOp(TokenKind kind);
+  // True when a token can head a parenthesized group as a callable operator,
+  // e.g. (++ i), (! x), (- a b).
+  static bool IsOperatorFunctionToken(TokenKind kind);
 
   // --- Type name parsing ---
   // Parses: IDENTIFIER ['/' IDENTIFIER]*

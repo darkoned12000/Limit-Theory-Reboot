@@ -266,6 +266,11 @@ Type Type_Find(String const& name) {
   return GetTypeMap()[name];
 }
 
+bool Type_Exists(String const& name) {
+  Type const* t = GetTypeMap().get(name);
+  return t && *t;
+}
+
 Vector<Type> const& Type_GetList() {
   return GetTypeList();
 }

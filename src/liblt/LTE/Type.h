@@ -251,6 +251,7 @@ LT_API Type Type_Create(String const& name, size_t size);
 
 LT_API void Type_AddAlias(Type const& type, String const& alias);
 LT_API Type Type_Find(String const& name);
+LT_API bool Type_Exists(String const& name);
 LT_API Vector<Type> const& Type_GetList();
 LT_API void Type_Print(void* base, Type const& type, uint maxDepth);
 

@@ -704,6 +704,45 @@ Value Evaluator::CallEngineFunction(String const& name, Vector<Value> const& arg
   return Value::MakeNone();
 }
 
+Value Evaluator::CallFunction(ASTFuncDeclNodeT* fn,
+                              Vector<Value> const& args,
+                              bool hasImplicitThis) {
+  if (!fn) {
+    RuntimeError("attempt to call a null script function");
+    return Value::MakeNone();
+  }
+
+  PushScope();
+
+  /* Bind arguments. For type methods the receiver arrives as argument 0 and
+     is bound to `this`; the declared parameters follow. */
+  size_t argBase = 0;
+  if (hasImplicitThis && args.size() > 0) {
+    Declare("this", args[0]);
+    argBase = 1;
+  }
+  for (size_t i = 0; i < fn->paramNames.size(); ++i) {
+    if (argBase + i < args.size())
+      Declare(fn->paramNames[i], args[argBase + i]);
+  }
+
+  Value result = Value::MakeNone();
+  if (fn->body && fn->body->kind == AST_BLOCK)
+    result = EvalBlock(static_cast<ASTBlockNodeT*>(fn->body.t));
+  else if (fn->body)
+    result = Evaluate(fn->body);
+
+  PopScope();
+
+  if (flowSignal == FLOW_RETURN) {
+    result = flowValue;
+    flowSignal = FLOW_NONE;
+    flowValue = Value::MakeNone();
+  }
+
+  return result;
+}
+
 Value Evaluator::CallScriptFunction(String const& name, Vector<Value> const& args) {
   // Look up script function
   Value fnVal = Lookup(name);

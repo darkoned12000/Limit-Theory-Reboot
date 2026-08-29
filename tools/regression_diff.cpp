@@ -170,19 +170,36 @@ static void RunOneFile(int fd, String const& path, String const& name) {
 
     bool parseOk = false;
     ASTNode module;
+    Parser parser(tokens);
     if (lexOk) {
-      Parser parser(tokens);
       module = parser.Parse();
       parseOk = parser.GetErrors().empty();
     }
 
     bool resolveOk = false;
+    SymbolResolver resolver;
     if (parseOk && module.t) {
-      SymbolResolver resolver;
       resolveOk = resolver.Resolve(module);
     }
 
     newOk = lexOk && parseOk && resolveOk;
+
+    // Diagnostic: dump NEW-pipeline errors to stderr (inherited by parent).
+    if (!newOk) {
+      std::fprintf(stderr, "[NEW-PARSER] %s\n", name.c_str());
+      if (!lexOk) {
+        for (auto const& e : lexer.GetErrors())
+          std::fprintf(stderr, "  LEX %d:%d %s\n", e.line, e.column, e.message.c_str());
+      }
+      if (lexOk && !parseOk) {
+        for (auto const& e : parser.GetErrors())
+          std::fprintf(stderr, "  PARSE %d:%d %s\n", e.line, e.column, e.message.c_str());
+      }
+      if (lexOk && parseOk && !resolveOk) {
+        for (auto const& e : resolver.GetErrors())
+          std::fprintf(stderr, "  RESOLVE %d:%d %s\n", e.line, e.column, e.message.c_str());
+      }
+    }
 
     // Declaration diff if both pass
     if (oldOk && newOk) {
@@ -450,14 +467,14 @@ int main(int argc, char** argv) {
             pos = eol + 1;
             if (line.empty()) continue;
             hasDeclMismatch = true;
-            if (line.compare(0, 12, "old_has_func:") == 0)
-              declDiffs.push_back(sname + ": old has function '" + line.substr(12) + "' missing in new");
-            else if (line.compare(0, 12, "new_has_func:") == 0)
-              declDiffs.push_back(sname + ": new has function '" + line.substr(12) + "' missing in old");
-            else if (line.compare(0, 12, "old_has_type:") == 0)
-              declDiffs.push_back(sname + ": old has type '" + line.substr(12) + "' missing in new");
-            else if (line.compare(0, 12, "new_has_type:") == 0)
-              declDiffs.push_back(sname + ": new has type '" + line.substr(12) + "' missing in old");
+            if (line.compare(0, 13, "old_has_func:") == 0)
+              declDiffs.push_back(sname + ": old has function '" + line.substr(13) + "' missing in new");
+            else if (line.compare(0, 13, "new_has_func:") == 0)
+              declDiffs.push_back(sname + ": new has function '" + line.substr(13) + "' missing in old");
+            else if (line.compare(0, 13, "old_has_type:") == 0)
+              declDiffs.push_back(sname + ": old has type '" + line.substr(13) + "' missing in new");
+            else if (line.compare(0, 13, "new_has_type:") == 0)
+              declDiffs.push_back(sname + ": new has type '" + line.substr(13) + "' missing in old");
           }
         }
         break;

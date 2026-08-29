@@ -38,7 +38,7 @@ type SliderBar
     if self.focusMouse && Mouse_LeftDown
       var c Cursor_Get
       var t (c.x - self.pos.x) / self.size.x
-      var value (cast Int (Mix (cast Float minValue) (cast Float maxValue + 1) t)
+      var value (cast Int (Mix (cast Float minValue) (cast Float maxValue + 1) t))
       value = (Clamp value minValue maxValue)
       self.SendUp (SliderSet value)
 

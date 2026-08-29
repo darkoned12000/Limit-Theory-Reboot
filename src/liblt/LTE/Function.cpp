@@ -70,6 +70,11 @@ Vector<Function> const& Function_Find(String const& name) {
   return GetFunctionMap()[name];
 }
 
+bool Function_Exists(String const& name) {
+  Vector<Function> const* v = GetFunctionMap().get(name);
+  return v && !v->empty();
+}
+
 Vector<Function> const& Function_GetList() {
   return GetFunctionList();
 }

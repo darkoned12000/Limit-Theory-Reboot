@@ -130,6 +130,8 @@ private:
 
   // --- Pre-scan: register file-level functions/types ---
   void PreScanDeclarations(ASTNode const& node);
+  // Recursive walk over nested declarations (see PreScanNode in .cpp).
+  void PreScanNode(ASTNode const& node);
 
   // --- Combined pass: declare + resolve ---
   void ResolveAndDeclare(ASTNode const& node);

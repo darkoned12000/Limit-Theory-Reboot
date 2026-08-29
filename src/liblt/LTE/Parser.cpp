@@ -180,6 +180,29 @@ String Parser::TokenKindToOp(TokenKind kind) {
   }
 }
 
+bool Parser::IsOperatorFunctionToken(TokenKind kind) {
+  switch (kind) {
+    case TOK_PLUS:
+    case TOK_MINUS:
+    case TOK_STAR:
+    case TOK_SLASH:
+    case TOK_MOD:
+    case TOK_CARET:
+    case TOK_NOT:
+    case TOK_EQUALS:
+    case TOK_NOT_EQUALS:
+    case TOK_LESS:
+    case TOK_GREATER:
+    case TOK_LESS_EQUALS:
+    case TOK_GREATER_EQUALS:
+    case TOK_AND:
+    case TOK_OR:
+      return true;
+    default:
+      return false;
+  }
+}
+
 // ============================================================================
 // Type name parsing
 // ============================================================================
@@ -210,10 +233,12 @@ String Parser::ParseFieldType() {
     SkipNewlines();
     Token const& base = Expect(TOK_IDENTIFIER, "expected generic type name");
     String result = base.value;
-    if (Check(TOK_IDENTIFIER)) {
-      Token const& inner = Peek();
-      Advance();
-      result += String("<") + inner.value + String(">");
+    if (!Check(TOK_RPAREN)) {
+      SkipNewlines();
+      // Inner type may be a plain identifier, a ':'-path (FixedPoint:FixedPoint),
+      // or another parenthesized generic '(Array T)' — recurse to consume it fully.
+      String inner = ParseFieldType();
+      result += String("<") + inner + String(">");
     }
     SkipNewlines();
     Expect(TOK_RPAREN, "expected ')' after generic type");
@@ -275,8 +300,14 @@ Vector<ASTNode> Parser::ParseArgList() {
 // block = INDENT statement+ DEDENT
 ASTNode Parser::ParseBlock() {
   if (!Match(TOK_INDENT)) {
-    ReportError("expected indented block");
-    // Error recovery: parse a single statement
+    // Inline single-statement body (function Int N () 8, inline if/else body).
+    // Only report "expected indented block" when there is genuinely no body
+    // (blank line / dedent / EOF). A clear statement on this line is valid.
+    Token const& t = Peek();
+    if (t.kind == TOK_NEWLINE || t.kind == TOK_DEDENT || t.kind == TOK_EOF) {
+      // Allow empty block (stub function / marker) - corpus has these (e.g. Thruster.lts)
+      return AST_MakeNoop();
+    }
     ASTNode stmt = ParseStatement();
     if (stmt)
       return stmt;
@@ -514,7 +545,12 @@ ASTNode Parser::ParseVarDecl() {
   node->name = name.value;
 
   SkipNewlines();
-  node->initializer = ParseExpression();
+  if (Check(TOK_SWITCH)) {
+    node->initializer = ParseSwitch();
+  } else {
+    node->initializer = ParseExpression();
+    node->initializer = MaybeConstructorBlock(node->initializer);
+  }
   if (!node->initializer) {
     ReportError("expected initializer expression");
   }
@@ -535,6 +571,7 @@ ASTNode Parser::ParseRefDecl() {
 
   SkipNewlines();
   node->initializer = ParseExpression();
+  node->initializer = MaybeConstructorBlock(node->initializer);
   if (!node->initializer) {
     ReportError("expected initializer expression");
   }
@@ -555,6 +592,7 @@ ASTNode Parser::ParseStaticDecl() {
 
   SkipNewlines();
   node->initializer = ParseExpression();
+  node->initializer = MaybeConstructorBlock(node->initializer);
   if (!node->initializer) {
     ReportError("expected initializer expression");
   }
@@ -605,7 +643,7 @@ ASTNode Parser::ParseTypeDecl() {
 
   SkipNewlines();
   if (!Match(TOK_INDENT)) {
-    ReportError("expected indented type body");
+    // Allow empty type (marker type with no members, e.g. ProbeMsgDelete)
     return node;
   }
 
@@ -684,13 +722,86 @@ ASTNode Parser::ParseIf() {
   ASTIfNodeT* node = new ASTIfNodeT();
   node->loc = SourceLocation(ifTok.line, ifTok.column);
 
+  // Old-LTSL form: the condition may sit on the following, more deeply
+  // indented line(s) instead of on the `if` line:
+  //   if
+  //     object.HasComponentInterior ||
+  //       object.HasComponentNavigable ||
+  //         object.IsCustom
+  //   <body statements at the condition's indent level>
+  // In that layout the condition and the body share one indented block: the
+  // condition is the leading expression (which may continue across lines via
+  // trailing operators) and the remaining statements are the body.
+  if (Check(TOK_NEWLINE)) {
+    SkipNewlines();
+    if (!Match(TOK_INDENT)) {
+      ReportError("expected indented condition after 'if'");
+      return node;
+    }
+    suppressSpaceArgs = true;
+    node->condition = ParseExpression();
+    suppressSpaceArgs = false;
+    if (!node->condition)
+      ReportError("expected condition expression");
+    // The condition may have skipped continuation INDENTs (trailing `||`);
+    // unwind them so the body is read at the condition's own block level.
+    while (Check(TOK_DEDENT))
+      Advance();
+    SkipNewlines();
+
+    ASTBlockNodeT* blk = new ASTBlockNodeT();
+    blk->loc = node->loc;
+    while (!AtEnd() && Peek().kind != TOK_EOF && !Check(TOK_DEDENT)) {
+      size_t before = pos;
+      ASTNode stmt = ParseStatement();
+      if (stmt)
+        blk->statements.push(stmt);
+      if (pos == before) {
+        ReportError(Peek(), "unexpected token");
+        Advance();
+      }
+      SkipNewlines();
+    }
+    Match(TOK_DEDENT);
+    node->thenBlock = blk;
+
+    SkipNewlines();
+    if (Match(TOK_ELSE)) {
+      SkipNewlines();
+      if (Check(TOK_IF)) {
+        node->elseBlock = ParseIf();
+      } else {
+        node->elseBlock = ParseBlock();
+      }
+    }
+    return node;
+  }
+
+  // A condition may be followed by an inline body on the same line, so suppress
+  // greedy space-separated argument collection: otherwise `Key_P.Pressed paused`
+  // would swallow `paused` (the body's assignment target) as an argument.
+  suppressSpaceArgs = true;
   node->condition = ParseExpression();
+  suppressSpaceArgs = false;
   if (!node->condition) {
     ReportError("expected condition expression");
   }
 
-  SkipNewlines();
-  node->thenBlock = ParseBlock();
+  // An inline body may follow the condition on the SAME line (old LTSL form:
+  // `if cond body`). Only an indented block requires ParseBlock.
+  bool inlineThen = !Check(TOK_NEWLINE) && !Check(TOK_INDENT) &&
+                    !Check(TOK_DEDENT) && !Check(TOK_EOF);
+  if (inlineThen) {
+    ASTBlockNodeT* block = new ASTBlockNodeT();
+    block->loc = node->loc;
+    ASTNode stmt = ParseStatement();
+    if (stmt)
+      block->statements.push(stmt);
+    node->thenBlock = block;
+  } else {
+    SkipNewlines();
+    node->thenBlock = ParseBlock();
+  }
 
   // Optional else
   SkipNewlines();
@@ -699,6 +810,14 @@ ASTNode Parser::ParseIf() {
     if (Check(TOK_IF)) {
       // else if — nest as the else branch
       node->elseBlock = ParseIf();
+    } else if (!Check(TOK_NEWLINE) && !Check(TOK_INDENT) &&
+               !Check(TOK_DEDENT) && !Check(TOK_EOF)) {
+      ASTBlockNodeT* block = new ASTBlockNodeT();
+      block->loc = node->loc;
+      ASTNode stmt = ParseStatement();
+      if (stmt)
+        block->statements.push(stmt);
+      node->elseBlock = block;
     } else {
       node->elseBlock = ParseBlock();
     }
@@ -714,7 +833,9 @@ ASTNode Parser::ParseWhile() {
   ASTWhileNodeT* node = new ASTWhileNodeT();
   node->loc = SourceLocation(whileTok.line, whileTok.column);
 
+  suppressSpaceArgs = true;
   node->condition = ParseExpression();
+  suppressSpaceArgs = false;
   if (!node->condition) {
     ReportError("expected condition expression");
   }
@@ -756,12 +877,22 @@ ASTNode Parser::ParseFor() {
   }
 
   // Standard form: for name init pred step body
+  // The header is space-separated (`for it a b c`), so suppress greedy
+  // space-separated argument collection while parsing init/cond/step; otherwise
+  // `it.HasMore` would be swallowed as an argument of `root.GetInteriorObjects`.
+  suppressSpaceArgs = true;
   node->init = ParseExpression();
   SkipNewlines();
   node->condition = ParseExpression();
   SkipNewlines();
-  node->step = ParseExpression();
-  SkipNewlines();
+  // The body is an indented block; do NOT consume it as the step expression.
+  if (Check(TOK_INDENT)) {
+    node->step = nullptr;
+  } else {
+    node->step = ParseExpression();
+    SkipNewlines();
+  }
+  suppressSpaceArgs = false;
   node->body = ParseBlock();
 
   return node;
@@ -836,8 +967,14 @@ ASTNode Parser::ParseSwitch() {
     }
 
     // Regular case: expr block — handle same-line body like `1 == 1 1` at col7 and col14
+    // A case is `pred body` on one space-separated line, so suppress greedy
+    // space-separated argument collection while parsing the predicate:
+    // otherwise `self.focusMouse Colors:Secondary` collapses into a single
+    // expression (body swallowed as an arg) and the case loses its body.
     ASTSwitchCase sc;
+    suppressSpaceArgs = true;
     sc.condition = ParseExpression();
+    suppressSpaceArgs = false;
     SkipNewlines();
     // If next token is on same line as condition, body is on same line
     if (!Check(TOK_INDENT) && !AtEnd() && sc.condition && Peek().line == sc.condition->loc.line) {
@@ -914,8 +1051,12 @@ ASTNode Parser::ParsePratt(int minPrec) {
     Token const& tok = Peek();
     int prec = GetInfixPrec(tok.kind);
 
-    // Stop if not an infix operator or precedence too low
-    if (prec < minPrec)
+    // Stop if this is not a real infix token (a non-operator like ')' or a
+    // newline with prec 0 must break, even though prec == minPrec == 0) or
+    // if its precedence is too low. A DOT is a method-access operator and is
+    // allowed through at any precedence.
+    bool isInfixToken = (prec > 0) || (tok.kind == TOK_DOT);
+    if (!isInfixToken || prec < minPrec)
       break;
 
     // For right-associative operators, parse at one higher precedence
@@ -939,8 +1080,23 @@ ASTNode Parser::ParsePratt(int minPrec) {
     SourceLocation opLoc(tok.line, tok.column);
     Advance();
 
+    // LTSL allows an operator at END OF LINE with its right operand on the
+    // following (often more deeply indented) line. Skip newlines and indent
+    // tokens so the continuation is found instead of failing with "expected
+    // expression after operator":
+    //   if
+    //     object.HasComponentInterior ||
+    //       object.HasComponentNavigable ||
+    //         object.IsCustom
+    size_t beforeOperand = pos;
+    while (Peek().kind == TOK_NEWLINE || Peek().kind == TOK_INDENT)
+      Advance();
+
     ASTNode right = ParsePratt(nextPrec);
     if (!right) {
+      // No operand on the continuation line — rewind the skipped layout
+      // tokens so error recovery stays positioned at the operator.
+      pos = beforeOperand;
       ReportError("expected expression after operator");
       curDepth--;
       return left;
@@ -982,6 +1138,18 @@ ASTNode Parser::ParseUnary() {
 
 ASTNode Parser::ParsePrimary() {
   Token const& tok = Peek();
+
+  // --- Indented block in expression position = parenthesized group ---
+  if (tok.kind == TOK_INDENT) {
+    return ParseBlockExpression();
+  }
+
+  // --- switch as an expression: `offset.x = <indented switch>` ---
+  // A `switch` may appear wherever a value is expected (assignment RHS,
+  // var initializer). It is a keyword, so ParsePrimary must dispatch it.
+  if (tok.kind == TOK_SWITCH || tok.kind == TOK_QUESTION) {
+    return ParseSwitch();
+  }
 
   // --- Literals ---
   if (tok.kind == TOK_INT) {
@@ -1084,18 +1252,92 @@ ASTNode Parser::ParsePrimary() {
 
     // Check for function call: (name arg1 arg2 ...)
     // If first expression is an identifier and more tokens follow before ')',
-    // treat as space-separated function call.
+    // treat as space-separated function call. BUT a parenthesized expression
+    // like `(p <= m && m <= p + s)` or `(files.Get i)` must NOT be treated as
+    // a call — disambiguate by the token after the identifier: an infix
+    // operator / comma means it is a parenthesized expression.
+    //
+    // A '.' after the identifier means it is a member-access chain: either a
+    // parenthesized member expression `(obj.field)` OR a method call
+    // `(obj.method args)`. Parse it as a normal expression and let ParsePostfix
+    // handle the member/method semantics, then expect ')'.
     Token const& firstTok = Peek();
     if (firstTok.kind == TOK_IDENTIFIER) {
+      Token const& afterTok = Peek2();
+      if (afterTok.kind == TOK_DOT) {
+        // Inside a parenthesized group the member chain is the CALLEE, so any
+        // expressions that follow before ')' are its arguments:
+        //   (nodes.Get (Mod i + 1 nodes.Size))  ->  Get(nodes, Mod(...))
+        //   (self.LeftCenter)                   ->  property access, no args
+        ASTNode callee = ParseExpression();
+        SkipNewlines();
+        if (callee && !Check(TOK_RPAREN) && !Check(TOK_EOF)) {
+          if (callee->kind == AST_METHOD_CALL) {
+            ASTMethodCallNodeT* mc = ASTNodeAs<ASTMethodCallNodeT>(callee);
+            do {
+              SkipNewlines();
+              size_t before = pos;
+              ASTNode arg = ParseExpression();
+              if (arg && pos > before)
+                mc->args.push(arg);
+              else if (pos == before)
+                break;
+              SkipNewlines();
+            } while (!Check(TOK_RPAREN) && !Check(TOK_EOF));
+          } else if (callee->kind == AST_IDENTIFIER) {
+            ASTIdentifierNodeT* id = ASTNodeAs<ASTIdentifierNodeT>(callee);
+            ASTFuncCallNodeT* call = new ASTFuncCallNodeT();
+            call->loc = id->loc;
+            call->name = id->name;
+            do {
+              SkipNewlines();
+              size_t before = pos;
+              ASTNode arg = ParseExpression();
+              if (arg && pos > before)
+                call->args.push(arg);
+              else if (pos == before)
+                break;
+              SkipNewlines();
+            } while (!Check(TOK_RPAREN) && !Check(TOK_EOF));
+            callee = call;
+          }
+        }
+        SkipNewlines();
+        Expect(TOK_RPAREN, "expected ')'");
+        return callee;
+      }
+      bool isParenExpr = (afterTok.kind == TOK_COMMA) ||
+        (GetInfixPrec(afterTok.kind) > 0);
+      // Unary minus/plus before number: `(Vec2 -1 0)` is a call, not `Vec2 - 1`,
+      // but `(klen + 1)` is an expression, not a call. Only suppress isParenExpr
+      // when the head looks like a type constructor (capitalized, e.g. Vec2/Vec3).
+      if ((afterTok.kind == TOK_MINUS || afterTok.kind == TOK_PLUS) && (size_t)(pos + 2) < tokens.size()) {
+        TokenKind nextKind = tokens[pos + 2].kind;
+        if ((nextKind == TOK_INT || nextKind == TOK_FLOAT) && !firstTok.value.empty() && firstTok.value[0] >= 'A' && firstTok.value[0] <= 'Z') isParenExpr = false;
+      }
+      if (isParenExpr) {
+        ASTNode expr = ParseExpression();
+        SkipNewlines();
+        Expect(TOK_RPAREN, "expected ')'");
+        ASTNode result = ParsePostfix(expr);
+        return result;
+      }
+
       Token saved = firstTok;
       Advance();
+      String funcName = saved.value;
+      while (Check(TOK_COLON)) {
+        Advance();
+        Token const& part = Expect(TOK_IDENTIFIER, "expected name after ':'");
+        funcName += String(":") + part.value;
+      }
       SkipNewlines();
 
       if (!Check(TOK_RPAREN)) {
         // This is a function call — parse space-separated arguments
         ASTFuncCallNodeT* call = new ASTFuncCallNodeT();
         call->loc = SourceLocation(saved.line, saved.column);
-        call->name = saved.value;
+        call->name = funcName;
 
         do {
           SkipNewlines();
@@ -1119,7 +1361,39 @@ ASTNode Parser::ParsePrimary() {
       // No args — bare (name) is a function call with zero args
       ASTFuncCallNodeT* call = new ASTFuncCallNodeT();
       call->loc = SourceLocation(saved.line, saved.column);
-      call->name = saved.value;
+      call->name = funcName;
+      Expect(TOK_RPAREN, "expected ')'");
+      return call;
+    }
+
+    // Operator used as a function name: (++ i), (! x), (- a), (< a b).
+    // LTSL exposes the operators as callable functions; the old interpreter
+    // treats (OP args...) as a call to OP. Handle doubled forms too (++/--).
+    if (IsOperatorFunctionToken(Peek().kind)) {
+      Token saved = Peek();
+      Advance();
+      String opName = saved.value;
+      if ((saved.kind == TOK_PLUS && Check(TOK_PLUS)) ||
+          (saved.kind == TOK_MINUS && Check(TOK_MINUS))) {
+        Advance();
+        opName = String(saved.value) + saved.value;
+      }
+      ASTFuncCallNodeT* call = new ASTFuncCallNodeT();
+      call->loc = SourceLocation(saved.line, saved.column);
+      call->name = opName;
+      SkipNewlines();
+      if (!Check(TOK_RPAREN)) {
+        do {
+          SkipNewlines();
+          size_t before = pos;
+          ASTNode arg = ParseExpression();
+          if (arg && pos > before)
+            call->args.push(arg);
+          else if (pos == before)
+            break;
+          SkipNewlines();
+        } while (!Check(TOK_RPAREN) && !Check(TOK_EOF));
+      }
       Expect(TOK_RPAREN, "expected ')'");
       return call;
     }
@@ -1181,45 +1455,133 @@ ASTNode Parser::ParsePrimary() {
   }
 
   // --- Identifier: variable, function call, constructor, or type name ---
-  if (tok.kind == TOK_IDENTIFIER) {
-    Advance();
+    if (tok.kind == TOK_IDENTIFIER) {
+      Advance();
 
-    ASTNode ident = ParseIdentifier(tok);
-
-    // Check for function/constructor call: name(args)
-    if (Check(TOK_LPAREN)) {
-      Advance();  // consume '('
-      SkipNewlines();
-
-      ASTFuncCallNodeT* call = new ASTFuncCallNodeT();
-      call->loc = ident->loc;
-      call->name = tok.value;
-
-      if (!Check(TOK_RPAREN)) {
-        do {
-          SkipNewlines();
-          call->args.push(ParseExpression());
-          SkipNewlines();
-        } while (Match(TOK_COMMA));
+      // Fold colon-namespace segments into a compound name: Colors:Primary,
+      // HUD/HUDWidget:Create, Components:MinSize. Consume ":part" chains so the
+      // atom is parsed as one unit instead of leaving a stray ':'.
+      String name = tok.value;
+      while (Check(TOK_COLON)) {
+        Advance();
+        Token const& part = Expect(TOK_IDENTIFIER, "expected name after ':'");
+        name += String(":") + part.value;
+      }
+      // Fold slash-path segments: Icon/Cursors:Pointer, Widget/DevPanel:Create
+      // Only when '/' is immediately after previous segment (no space), to avoid
+      // conflating `a / b` division with `Icon/Cursors` path.
+      while (Check(TOK_SLASH) && Peek2().kind == TOK_IDENTIFIER && Peek().column == (int)(tok.column + name.size()) && Peek2().column == Peek().column + 1) {
+        Advance(); // '/'
+        Token const& part = Advance();
+        name += String("/") + part.value;
+        // Also fold any trailing :part after the slash segment (e.g. Cursors:Pointer)
+        while (Check(TOK_COLON)) {
+          Advance();
+          Token const& cpart = Expect(TOK_IDENTIFIER, "expected name after ':'");
+          name += String(":") + cpart.value;
+        }
       }
 
-      SkipNewlines();
-      Expect(TOK_RPAREN, "expected ')' after function arguments");
-      ASTNode result = ParsePostfix(call);
+      ASTNode ident = ParseIdentifier(tok);
+      ASTNodeAs<ASTIdentifierNodeT>(ident)->name = name;
+
+      // Check for function/constructor call: name(args) — only when '(' is immediately after name (no space)
+      // This prevents `Draw (Vec2 1 0)` (bare call with space) from being mis-parsed as `Draw(Vec2 1 0)`
+      if (Check(TOK_LPAREN) && Peek().column == ident->loc.column + (int)name.size()) {
+        Advance();  // consume '('
+        SkipNewlines();
+
+        ASTFuncCallNodeT* call = new ASTFuncCallNodeT();
+        call->loc = ident->loc;
+        call->name = name;
+
+        if (!Check(TOK_RPAREN)) {
+          do {
+            SkipNewlines();
+            if (Check(TOK_RPAREN) || Check(TOK_EOF)) break;
+            call->args.push(ParseExpression());
+            SkipNewlines();
+            if (Check(TOK_COMMA)) Advance();
+          } while (!Check(TOK_RPAREN) && !Check(TOK_EOF));
+        }
+
+        SkipNewlines();
+        Expect(TOK_RPAREN, "expected ')' after function arguments");
+        ASTNode result = ParsePostfix(call);
+        return result;
+      }
+
+      // Check for dotted access / method call: identifier[.identifier...] [(args)]
+      ASTNode result = ParsePostfix(ident);
+
       return result;
     }
-
-    // Check for dotted access / method call: identifier[.identifier...] [(args)]
-    ASTNode result = ParsePostfix(ident);
-
-    return result;
-  }
 
   ReportError(Peek(), "unexpected token in expression");
   return nullptr;
 }
 
 // Parse postfix operators (dot access and method calls)
+Vector<ASTNode> Parser::ParseExpressionLines() {
+  Vector<ASTNode> result;
+  Expect(TOK_INDENT, "expected indented block");
+  while (!Check(TOK_DEDENT) && !AtEnd()) {
+    SkipNewlines();
+    if (Check(TOK_DEDENT) || AtEnd()) break;
+    size_t before = pos;
+    ASTNode e = ParseExpression();
+    if (e && pos > before) {
+      result.push(e);
+    } else if (pos == before) {
+      ReportError(Peek(), "expected expression in block");
+      Advance();
+      if (Check(TOK_DEDENT)) break;
+    } else {
+      break;
+    }
+    SkipNewlines();
+  }
+  Expect(TOK_DEDENT, "expected dedent to close block");
+  return result;
+}
+
+ASTNode Parser::ParseBlockExpression() {
+  Vector<ASTNode> exprs = ParseExpressionLines();
+  if (exprs.empty())
+    return nullptr;
+  if (exprs.size() == 1)
+    return exprs[0];
+  // `(a b c)` is a function call a(b, c) in LTSL. The first line is the
+  // callee; subsequent lines are positional arguments.
+  if (exprs[0]->kind == AST_IDENTIFIER) {
+    ASTFuncCallNodeT* call = new ASTFuncCallNodeT();
+    call->loc = exprs[0]->loc;
+    call->name = ASTNodeAs<ASTIdentifierNodeT>(exprs[0])->name;
+    for (size_t i = 1; i < exprs.size(); ++i)
+      call->args.push(exprs[i]);
+    return call;
+  }
+  // Head is not a plain identifier (e.g. a dotted path / constructor). Treat
+  // the block as a single expression chain by returning the first element
+  // rather than inventing a call.
+  return exprs[0];
+}
+
+ASTNode Parser::MaybeConstructorBlock(ASTNode init) {
+  if (!init || init->kind != AST_IDENTIFIER)
+    return init;
+  if (!Check(TOK_INDENT))
+    return init;
+  ASTIdentifierNodeT* id = ASTNodeAs<ASTIdentifierNodeT>(init);
+  Vector<ASTNode> args = ParseExpressionLines();
+  ASTFuncCallNodeT* call = new ASTFuncCallNodeT();
+  call->loc = id->loc;
+  call->name = id->name;
+  for (size_t i = 0; i < args.size(); ++i)
+    call->args.push(args[i]);
+  return call;
+}
+
 ASTNode Parser::ParsePostfix(ASTNode left) {
   if (!left)
     return nullptr;
@@ -1228,10 +1590,47 @@ ASTNode Parser::ParsePostfix(ASTNode left) {
     if (!Match(TOK_DOT))
       break;
 
+    // Postfix increment/decrement/not: x.++ / x.-- / x.!
+    if (Peek().kind == TOK_PLUS && Peek2().kind == TOK_PLUS) {
+      Advance();  // '+'
+      Advance();  // '+'
+      ASTUnaryOpNodeT* node = new ASTUnaryOpNodeT();
+      node->loc = left->loc;
+      node->op = "++";
+      node->operand = left;
+      left = node;
+      continue;
+    }
+    if (Peek().kind == TOK_MINUS && Peek2().kind == TOK_MINUS) {
+      Advance();  // '-'
+      Advance();  // '-'
+      ASTUnaryOpNodeT* node = new ASTUnaryOpNodeT();
+      node->loc = left->loc;
+      node->op = "--";
+      node->operand = left;
+      left = node;
+      continue;
+    }
+    if (Peek().kind == TOK_NOT) {
+      Advance();
+      return left;  // 'x.!' — treated as terminator of the postfix chain
+    }
+
     Token const& member = Expect(TOK_IDENTIFIER, "expected member name after '.'");
 
     // Check for method call: .methodName(args)
+    // Only treat as a call when '(' is immediately adjacent (no space), i.e.
+    // `obj.method(args)`. When a space separates them (`obj.prop (arg)`), the
+    // parenthesized group is a SIBLING argument of the enclosing call, not an
+    // argument of this member — `self.LeftCenter (Vec2 1 2)` means the property
+    // `LeftCenter` and a separate `(Vec2 1 2)` argument, matching the old
+    // interpreter's grouping.
     if (Check(TOK_LPAREN)) {
+      Token const& lparen = Peek();
+      bool adjacent = (lparen.line == member.line) &&
+        (lparen.column == member.column + member.length);
+      if (!adjacent)
+        return left;  // property access; leave '(' for the enclosing call
       Advance();  // consume '('
       SkipNewlines();
 
@@ -1250,6 +1649,12 @@ ASTNode Parser::ParsePostfix(ASTNode left) {
 
       SkipNewlines();
       Expect(TOK_RPAREN, "expected ')' after method arguments");
+      // Indented block of additional arguments: `obj.Method (a) <block args>`
+      if (Check(TOK_INDENT)) {
+        Vector<ASTNode> extra = ParseExpressionLines();
+        for (size_t i = 0; i < extra.size(); ++i)
+          call->args.push(extra[i]);
+      }
       left = call;
     } else {
       // LTSL space-separated method call: .name arg1 arg2 ...
@@ -1259,14 +1664,44 @@ ASTNode Parser::ParsePostfix(ASTNode left) {
       call->object = left;
       call->methodName = member.value;
 
-      // Collect simple identifier args until we hit a non-identifier token
-      // (dot, operator, newline, EOF, etc.)
+      // Collect space-separated value args until we hit a token that does not
+      // start a value (dot, operator, newline, closing paren, EOF, comma).
+      // Inside a `for` header, collect nothing: the next token belongs to the
+      // enclosing `for` (init/condition/step), not to this member chain.
+      if (suppressSpaceArgs) {
+        left = call;
+        continue;
+      }
       for (;;) {
-        if (!Check(TOK_IDENTIFIER))
+        Token const& a = Peek();
+        bool startsValue = (a.kind == TOK_IDENTIFIER) || (a.kind == TOK_INT) ||
+          (a.kind == TOK_FLOAT) || (a.kind == TOK_STRING) ||
+          (a.kind == TOK_LPAREN) ||
+          (a.kind == TOK_TRUE) || (a.kind == TOK_FALSE) || (a.kind == TOK_NULL);
+        if (!startsValue)
           break;
-        Token const& argTok = Peek();
-        Advance();
-        call->args.push(ParseIdentifier(argTok));
+        // Don't swallow a bare identifier that begins a postfix step on the
+        // SURROUNDING expression (e.g. `for i 0 i < nodes.Size i.++` — the
+        // `i` of `i.++` must not become an arg of `nodes.Size`). Detect the
+        // `ident . ++|--|!` pattern and stop collecting.
+        if (a.kind == TOK_IDENTIFIER && Peek2().kind == TOK_DOT &&
+            (pos + 2) < tokens.size()) {
+          Token const& third = tokens[pos + 2];
+          if (third.kind == TOK_PLUS || third.kind == TOK_MINUS ||
+              third.kind == TOK_NOT)
+            break;
+        }
+        ASTNode arg = ParseUnary();
+        if (!arg)
+          break;
+        call->args.push(arg);
+      }
+
+      // Indented block of additional arguments: `obj.Method a <block args>`
+      if (Check(TOK_INDENT)) {
+        Vector<ASTNode> extra = ParseExpressionLines();
+        for (size_t i = 0; i < extra.size(); ++i)
+          call->args.push(extra[i]);
       }
 
       left = call;

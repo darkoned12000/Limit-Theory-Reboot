@@ -104,3 +104,25 @@ target_include_directories(ltsl_compile_gate PRIVATE
   ${CMAKE_SOURCE_DIR}/include/FreeType)
 target_link_libraries(ltsl_compile_gate lt ${LINK_LIBRARIES})
 configure_output_dir(ltsl_compile_gate)
+
+# ---------------------------------------------------------------------------
+# ltsl_regression_diff: corpus regression diff. Compiles every .lts under
+# resource/script through BOTH the old interpreter (Script_CompileCheck) and
+# the new pipeline (Lexer -> Parser -> SymbolResolver), then compares results.
+#   Build:  cmake --build ./build --target ltsl_regression_diff
+#   Run:    LD_LIBRARY_PATH=bin:extbin/linux64 bin/ltsl_regression_diff \
+#             [--timeout N] [corpusRoot]
+add_executable(ltsl_regression_diff
+  ../tools/regression_diff.cpp)
+
+set_target_properties(ltsl_regression_diff PROPERTIES CXX_STANDARD 17)
+target_compile_options(ltsl_regression_diff PRIVATE
+  -fno-exceptions
+  -msse -msse2
+  -Wall -Wextra)
+target_include_directories(ltsl_regression_diff PRIVATE
+  ${CMAKE_SOURCE_DIR}/src/liblt
+  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/include/FreeType)
+target_link_libraries(ltsl_regression_diff lt ${LINK_LIBRARIES})
+configure_output_dir(ltsl_regression_diff)

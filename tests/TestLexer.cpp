@@ -282,10 +282,23 @@ LTE_TEST(Lexer_FunctionDecl) {
 }
 
 LTE_TEST(Lexer_ColonPath) {
+  // LTSL is whitespace-delimited: '/' and ':' are NAME SEPARATORS when directly
+  // adjacent to identifier characters, so a namespaced name lexes as ONE token.
+  // (The old interpreter got this by splitting on whitespace.)
   auto toks = Lex("Widget/Components:AlignCenter");
-  // Colon is a standalone delimiter
-  LTE_CHECK_EQ(Count(toks, TOK_COLON), 1);
-  LTE_CHECK(FindFirst(toks, TOK_SLASH) != nullptr);
+  LTE_CHECK_EQ(Count(toks, TOK_IDENTIFIER), 1);
+  LTE_CHECK_EQ(toks[0].value, "Widget/Components:AlignCenter");
+  LTE_CHECK_EQ(Count(toks, TOK_COLON), 0);
+  LTE_CHECK_EQ(Count(toks, TOK_SLASH), 0);
+}
+
+LTE_TEST(Lexer_SpacedSlashIsDivision) {
+  // With spaces either side, '/' stays the division operator (not a name part).
+  auto toks = Lex("a / b");
+  LTE_CHECK_EQ(Count(toks, TOK_IDENTIFIER), 2);
+  LTE_CHECK_EQ(Count(toks, TOK_SLASH), 1);
+  LTE_CHECK_EQ(toks[0].value, "a");
+  LTE_CHECK_EQ(toks[2].value, "b");
 }
 
 // ── Line/column tracking ───────────────────────────────────────────────

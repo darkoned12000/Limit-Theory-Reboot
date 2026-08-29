@@ -1056,20 +1056,8 @@ tests/
 6. **Remove bare-call support from parser** (~15 lines deleted) — NEXT (after 5)
 7. **Delete old interpreter** — remove `Expression.cpp`, `LTSL.cpp`, `StringList.cpp` (~2,854 LOC) — NEXT
 
-**Update 2026-08-27 (evening):** Strict 157/157 via the *new* parser is in progress.
-**Honest current count: 16/157 parse clean (0 errors), 133 parse with recoverable
-errors, 7 parse clean-but-exponentially-slow (25-90s+ each; NOT hangs), 1 lexer
-error.** Fixed a real infinite-loop class: `ParseBlock`/`ParseDesc`/`ParseSwitch`
-restored `pos` on the terminating `DEDENT` instead of consuming it, looping forever
-on certain nested-block terminators — dropped HANG 13 → 7, all 1477 tests still
-pass, and both measurement tools (`scan_fork`, `test_errors`) now agree on 16 after
-being recompiled against the current parser (the earlier "78/157" figure was a
-stale snapshot from a prior parser state; stale tool binaries were silently erroring
-on an out-of-line constructor symbol). **Remaining blocker to growing OK:** the 7
-slow-clean files are an exponential blowup in the parser (a failed nested argument
-`ParseExpression()` re-parsing the same tokens), which also makes every full scan
-take minutes. Fix that, then the loose-pattern normalization (Option B) below fixes
-the 133 erroring files.
+**Update 2026-08-28 (evening):** Strict 157/157 via the *new* parser — batch conversion in progress.
+**Current: 71/157 new-parser clean (0 errors) via `scan_fork` (was 16/157), 85 parse with recoverable errors, 14 parked for deeper `Parser.cpp` work (see `docs/ltsl-conversion-parked.md:5`).** Batch converted ~44 files from bare `fn arg` / indented `l +=` / `for it a b c` / `var x switch` to `(fn ...)` / `for it (a) (b) (c)` / `var x (fn ...)` + `Parser.cpp` fixes: `isUnaryNum` for `Vec2 -1` (`Parser.cpp:1107`), `:`/`/` fold for `Icon/Cursors:Pointer`/`Widget/Components:` (`Parser.cpp:1233`), `var`+`switch` (`Parser.cpp:522`), `Draw` immediate `(` check (`Parser.cpp:1238`), `for` postfix guard (`Parser.cpp:1372`). Old `ltsl_compile_gate` still 157/157 clean on old interpreter; new parser now drives `scan_fork`. Remaining 85 are `l +=` indented `Components:`/`Widgets:` chains + `self.Add`+`Vec` nested (`TransferUnitType` etc.) — same patterns, batch continues a few files at a time to avoid timeouts. Parked 14 need `Parser.cpp:1130` `self.Method (Vec ...)` nested and `var`+`Custom` block fixes.
 
 **Note:** The Phase 0.5 audit moves discovery cost from "implicit and
 unbounded inside every phase" to a single upfront week with a concrete
@@ -1078,6 +1066,89 @@ quirk will surface as a surprise — the inventory is already done. The
 total stays at ~9 weeks because the audit was already implicit in the
 old estimate; making it explicit doesn't add time, it just makes the
 risk visible.
+
+---
+
+## Open Blocker #1: Declaration-hoisting mismatch (MUST resolve before wiring)
+
+**Status:** OPEN. Discovered 2026-08-29. **Blocks** step 7 (delete old
+interpreter) and the `Script.cpp` wiring, because a mismatched
+declaration set means a function that exists at parse time but is
+unreachable at runtime (or vice versa).
+
+**Symptom.** `ltsl_regression_diff` reports `Declaration diffs: YES` —
+8 functions that the old interpreter exposes as top-level script
+functions but the new pipeline does not:
+
+| File | Function |
+|---|---|
+| `Item/ShipType/Generate` | `GetAxis` |
+| `Item/StationType/Generate` | `AddColumn`, `AddRing`, `ClampExp` |
+| `Widget/Window` | `CaptureFocus`, `CreateChildren`, `PostUpdate`, `PreDraw` |
+
+**Root cause.** Old-LTSL registers a `function` declaration into one of
+two different maps, depending on `env.context`:
+
+```cpp
+// src/liblt/LTE/Expression/Function.cpp:181-184
+if (env.context.size()) env.context.back()->functions[name] = fn;  // type scope
+else                    env.script->functions[name] = fn;          // script scope
+```
+
+`env.context` is a `Vector<ScriptType>` pushed only while compiling a
+`type` body (`Expression/Type.cpp:212`, popped at `:236`). So:
+
+- **Functions nested inside another function** (e.g. `GetAxis` indented
+  under `function Main` in `Item/ShipType/Generate.lts:30`) compile with
+  an *empty* context → they land in **script scope**.
+- **Functions inside a `type` body** (e.g. `WidgetWindow`'s
+  `CreateChildren`) compile with a context → they land in **type scope**.
+
+Yet old reports *both* classes as script functions, so the exact rule is
+not simply "type-scoped functions are excluded". This is the unresolved
+part.
+
+**What was tried (do not repeat blindly).**
+- Flat comparison (file-level statements only) → 8 diffs, all
+  "old has X missing in new" (under-collects).
+- Blanket recursive walk collecting every nested `AST_FUNC_DECL`
+  (including type methods and function bodies) → **317** diffs, all
+  "new has X missing in old" (over-collects; e.g. `App/colony`'s
+  `Create`/`Initialize`/`Update` are type methods that old does *not*
+  expose as script functions).
+- The truth is between the two and depends on old's `env.context`
+  semantics, which were not fully reconciled.
+
+**Also note (verified bug in the checker).** The declaration-diff
+detail was never printed: the prefixes are **13** characters
+(`old_has_func:`) but the comparison used length **12**
+(`tools/regression_diff.cpp:470-477`), so every branch silently failed
+while `hasDeclMismatch` was still set. Fixed by comparing/substringing
+13. Without this fix the diffs were invisible — re-check if the count
+ever looks suspicious.
+
+**Why it matters for wiring.** When the new pipeline drives
+`ScriptT::Reload`, the declaration set determines which script functions
+are callable. If new hoists a function old didn't (or misses one old
+had), calls resolve differently at runtime — the failure mode is a null
+reference, exactly the `Reference.h:125 "Attempt to access null
+reference"` class of crash.
+
+**Resolution plan.**
+1. Read `Expression/Type.cpp:200-240` to determine exactly when
+   `env.context` is pushed/popped relative to member compilation, and
+   whether nested (non-type) functions are *always* script-scoped.
+2. Make the new pipeline's declaration set match old exactly:
+   script scope = file-level functions + functions nested inside
+   function bodies (NOT type methods, per the `App/colony` evidence).
+3. Re-run `ltsl_regression_diff` and require
+   `Declaration diffs: none`.
+4. Only then proceed to wire the new pipeline into `Script.cpp` and
+   delete the old interpreter.
+
+**Non-blocking note:** none of the 8 are in `ltheory-main`,
+`ltheory-unitest`, `rails`, or `war`, so this does not block those four
+apps from parsing.
 
 ---
 

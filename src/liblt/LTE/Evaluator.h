@@ -108,6 +108,15 @@ public:
   // Evaluate a single expression.
   Value Evaluate(ASTNode node);
 
+  // Call a specific script function with already-evaluated arguments.
+  // This is the entry point used by ScriptFunctionT::Call when the engine
+  // invokes a script function through the new compiler. `hasImplicitThis`
+  // selects whether argument 0 is the receiver bound to `this` (true for
+  // type methods) or simply the first declared parameter.
+  Value CallFunction(ASTFuncDeclNodeT* func,
+                     Vector<Value> const& args,
+                     bool hasImplicitThis = false);
+
   // Error state
   bool HasErrors() const { return !errors.empty(); }
   Vector<String> const& GetErrors() const { return errors; }

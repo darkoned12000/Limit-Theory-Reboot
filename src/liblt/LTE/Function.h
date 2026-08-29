@@ -37,6 +37,7 @@ LT_API Function Function_Create(String const& name);
 
 LT_API void Function_AddAlias(String const& source, String const& alias);
 LT_API Vector<Function> const& Function_Find(String const& name);
+LT_API bool Function_Exists(String const& name);
 LT_API Vector<Function> const& Function_GetList();
 LT_API void Function_ForEach(void* user, void (*callback)(
   void* user, String const& name, Vector<Function> const& functions));
