@@ -1152,6 +1152,181 @@ apps from parsing.
 
 ---
 
+## Migration Log — 2026-08-29 (parser hardening + switchover)
+
+Living record of the parser-hardening and `Script.cpp` switchover session.
+Read the **Gotchas** section before touching `Parser.cpp` — most of the traps
+below cost a regression to discover, and two of them made things *worse*
+before they made things better.
+
+### Where things stand (measured, not estimated)
+
+| Metric | Start of session | Now |
+|---|---|---|
+| `ltsl_regression_diff` Both PASS | 33 | **129** |
+| New compiler `ltsl_compile_gate` | (not wired) | **139 / 157** |
+| Old interpreter `ltsl_compile_gate` | 145 / 157 | 145 / 157 (unchanged) |
+| Unit tests | 1477 checks | **1477 checks, 0 failures** |
+| `ltheory-main`, `ltheory-unitest`, `rails`, `war` | broken / failing | **all compile under the new compiler** |
+
+The new pipeline is wired in but **opt-in**: `LTSL_NEW_COMPILER=1`. The old
+path is still the default until the new one is verified end-to-end at runtime.
+
+### What was done
+
+1. **Resolver made dynamic** (matches old-interpreter semantics). LTSL
+   resolves names at *runtime*, not compile time. The resolver previously
+   errored on every engine/cross-file name (`Vec3`, `Config:Get`,
+   `Components:AlignCenter`). Added `Function_Exists`/`Type_Exists` (in
+   `Function.h`/`Type.h`) and made unknown names **defer to runtime** instead
+   of failing. 15 resolver unit tests had to be updated — they asserted strict
+   compile-time semantics that LTSL does not have.
+2. **Lexer name rules** (`ReadIdentifier`, `Lexer.cpp:249`): `/`, `:`, `<`, `>`
+   are name characters when directly adjacent to identifier characters, so
+   `Widget/Pause:Pause_State` and `Vector<Reference<RenderPassT>>` lex as one
+   token. Spaced `a / b` is still division. `>` must follow an identifier char
+   or another `>` so `>=` and `->` stay operators.
+3. **Parser hardening** — the bulk of the work (see Gotchas): indented blocks
+   as expression groups, parenthesized callee vs binary-expression
+   disambiguation, `suppressSpaceArgs` for `for`/`if`/`while`/switch-case,
+   `switch` as an expression, operator-as-function (`(++ i)`), generic types in
+   members, inline `if cond body`, multi-line operator continuation.
+4. **Switchover plumbing** — `Evaluator::CallFunction()` public entry point,
+   `Evaluator::ValueFromSlot`/`ValueToSlot` marshalling (`void**`+`Type` ↔
+   `Value`), `ScriptFunctionT` AST body + `astImplicitThis`, `ScriptT` gains
+   `astModule`, `Reload()`/`Script_CompileCheck()` honor the switch,
+   `BuildFunction`/`BuildType` populate the script from the AST.
+5. **Types** — `ASTDeclNodeT::typeName` (was parsed and thrown away),
+   `ScriptTypeT::astInitializers`, and the `ScriptType_*` hooks extracted into
+   a shared `src/liblt/LTE/ScriptType.cpp` behind
+   `ScriptType_CreateEngineType()`.
+6. **Tooling** — fixed the declaration-diff reporting bug (prefix length 13,
+   compared as 12), restored the `ltsl_regression_diff` target, added
+   new-pipeline error dumping (`[NEW-PARSER]` lines on stderr).
+
+Commits: `822ed31` (parser/resolver + groundwork), `8fe58e0` (switchover).
+
+### Gotchas (read before touching Parser.cpp)
+
+**1. The corpus was already migrated, and that is what breaks the app.**
+`var x switch` + indented cases is valid for the *new* parser but invalid for
+the *old* interpreter (`var` reads `switch`/case/body as extra args →
+`expects 2 arguments, but got 4`). The app runs the old path, so ~12 scripts
+fail to compile, their functions are null, and `InterfaceUpdate` dereferences
+one → `Reference.h:125 "Attempt to access null reference"` → SIGABRT.
+**Do not patch the runtime for this.** The only fix is to finish the
+switchover. (9 of those 12 already compile under the new compiler.)
+
+**2. Greedy space-separated method-arg collection — the single biggest trap.**
+`ParsePostfix` collects following space-separated values as arguments of a
+`.member`. That silently swallows the *next* token when it belongs to the
+enclosing construct:
+- `for it root.GetInteriorObjects it.HasMore it.Advance` → `it.HasMore` becomes an arg of `GetInteriorObjects`
+- `if Key_P.Pressed paused = paused.!` → `paused` (the assignment target) becomes an arg of `Pressed`
+- switch case `self.focusMouse Colors:Secondary` → the case body becomes an arg, so the case has no body
+
+Fix: a `suppressSpaceArgs` flag set while parsing `for` headers, `if`/`while`
+conditions, and switch-case **predicates**. Do NOT suppress it globally — that
+breaks legitimate `.Method arg` calls.
+
+**3. `(obj.Method args)` vs `(a.b - c.d)` — cost two regressions, get it right.**
+Both start with an identifier + `.` + something. Two failed attempts, recorded
+so they are not repeated:
+- ❌ Allowing `-`/`+` as value-starts in the *space-separated* loop →
+  `foo.Bar - 1` silently became `Bar(-1)` (gate 138 → **126**).
+- ❌ Parsing the callee with `ParseUnary` unconditionally → broke
+  `(ship.GetPos - o.GetPos)` (gate 138 → **109**).
+- ✅ Correct: parse the callee with `ParseUnary` (Pratt would read
+  `(rng.Vec2 -1 1)` as `rng.Vec2 - 1`), then **MINUS directly followed by a
+  number** = negative-literal argument; any *other* infix operator = rewind and
+  re-parse the whole group as a binary expression. `+` is deliberately
+  excluded: `(rng.Int + 8)` is **addition**, not a positive literal.
+
+**4. Method-vs-property + a parenthesized argument is context-dependent.**
+`self.LeftCenter (Vec2 1 2)` (bare call) = property + sibling arg, but
+`nodes.Get (Mod i + 1 nodes.Size)` = method call with that arg. Identical
+spacing, opposite meaning, and it cannot be decided without runtime type
+info. Resolved by context: **inside parens the member chain is the callee**
+(args attach); in a bare/space-separated context, a space before `(` means
+property + sibling.
+
+**5. `switch` is a keyword but is also a value.** Needed for
+`offset.x = <indented switch>`. `ParsePrimary` must dispatch `TOK_SWITCH`
+(or it fails with "unexpected token in expression").
+
+**6. Multi-line operator continuation.** LTSL puts the operator at end of
+line: `a ||` / `  b`. After consuming a binary operator, skip `NEWLINE` and
+`INDENT` to find the operand (this fixed ~42 `expected expression after
+operator` errors corpus-wide). Related: `if` alone on a line with the
+condition on following indented lines — the condition and body share one
+indented block, so after the condition you must **unwind the continuation
+INDENTs (consume pending DEDENTs)** before parsing the body.
+
+**7. Type field types were parsed and discarded.** `ParseTypeMember` computed
+`fieldType` but never stored it, so the runtime could not lay out `type`
+members. Added `ASTDeclNodeT::typeName` and set it.
+
+**8. Type field initializers are legacy IR.** `ScriptTypeT::initializers` is
+`Vector<Expression>`, which the new pipeline does not produce. Added a
+parallel `ScriptTypeT::astInitializers` (index-aligned with `fields`) and
+wired it into `ScriptType_Construct`. **Without this, `Bool enabled true`
+silently becomes `false`** — a quiet behavior change, not a crash.
+
+**9. Don't probe `ScriptFunction_Load` from the resolver.** It forces script
+loads as a compile-time side effect and logs "Failed to load script" for
+names that are simply resolved lazily at runtime. Removed (spurious errors
+went to 0).
+
+**10. `-Werror` is on for project targets.** A `size_t` vs `int` comparison
+(`pos > start` in the lexer) fails the build. Cast explicitly.
+
+**11. Some scripts are genuinely malformed at HEAD.** Example fixed:
+`Widget/Slider.lts:41` — `var value (cast Int (Mix ... t)` opened 4 parens
+and closed 3.
+
+### Remaining work (in priority order)
+
+1. **Fix the 18 files that still fail under the new compiler** — this is the
+   blocker for actually launching the game, because `ltheory-main` pulls in
+   the HUD widgets. Work queue (all currently `FAIL` under
+   `LTSL_NEW_COMPILER=1`):
+
+   `App/draw`, `Icons`, `Object/Firework`, `Object/System`, `Texture/Filters`,
+   `Widget/Browser`, `Widget/FontPreview`, `Widget/HUD/Minimap`,
+   `Widget/HUD/PilotingBadge`, `Widget/HUD/WorldObjects`, `Widget/Map`,
+   `Widget/Market/RightPanel`, `Widget/Market/Transaction`,
+   `Widget/Object/Assets`, `Widget/RadialList`, `Widget/Text`,
+   `Widget/TextField`, `ZZSlotDriver`
+
+   These are the same classes as the gotchas above (paren/binary ambiguity,
+   switch/operator forms). Fix a file, re-run the gate, repeat — the gate is
+   the loop.
+
+2. **Resolve Open Blocker #1** (declaration-hoisting mismatch) before
+   deleting the old interpreter.
+
+3. **Verify the Evaluator at runtime.** It has never executed real scripts.
+   Expect a debug loop once the app boots: `python3 configure.py run war`
+   with `LTSL_NEW_COMPILER=1`.
+
+4. **Flip the default** to the new compiler, then do post-verification
+   cleanup: remove the bare-call bridge, delete `Expression.cpp`/`LTSL.cpp`/
+   `StringList.cpp` (~2,854 LOC).
+
+**Commands for the loop:**
+```bash
+python3 configure.py build
+LD_LIBRARY_PATH=bin:extbin/linux64 ./bin/lte_tests          # must stay 0 failures
+LD_LIBRARY_PATH=bin:extbin/linux64 LTSL_NEW_COMPILER=1 ./bin/ltsl_compile_gate
+LD_LIBRARY_PATH=bin:extbin/linux64 ./bin/ltsl_regression_diff --timeout 5
+```
+
+**Housekeeping:** `script/ltsl-convert.py` is still untracked and deliberately
+uncommitted — it is the converter that corrupted 14 files with unbalanced
+parens. The user intends to delete it once the migration is complete.
+
+---
+
 ## Phase 5: DX & Modding — Making LTSL Easy to Grasp (Next)
 
 **Goal:** Files are hard to understand and future modding must be easy. Keep LTSL **strict but assisted** (hard errors + auto-fix), not permissive. The 79-file normalization (Option B) already lands the strict subset; Phase 5 adds the tooling so authors never have to think about it.
