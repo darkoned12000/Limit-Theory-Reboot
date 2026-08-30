@@ -704,6 +704,55 @@ Value Evaluator::CallEngineFunction(String const& name, Vector<Value> const& arg
   return Value::MakeNone();
 }
 
+Value Evaluator::ValueFromSlot(Type t, void* data) {
+  if (!data || !t)
+    return Value::MakeNone();
+
+  /* Primitives are stored inline in the Value (no heap, no ownership). */
+  if (t == Type_Find("Int"))
+    return Value::MakeInt(*static_cast<int*>(data));
+  if (t == Type_Find("Float"))
+    return Value::MakeFloat(*static_cast<float*>(data));
+  if (t == Type_Find("Bool"))
+    return Value::MakeBool(*static_cast<bool*>(data));
+  if (t == Type_Find("String"))
+    return Value::MakeString(*static_cast<String*>(data));
+
+  /* Engine-managed types (Vec3, Object, Widget, ...): borrow the slot. */
+  return Value::MakePtr(t, data, /*owned*/ false);
+}
+
+void Evaluator::ValueToSlot(Value const& v, Type t, void* dest) {
+  if (!dest || v.IsNone())
+    return;
+
+  if (t) {
+    if (t == Type_Find("Int") && v.IsInt()) {
+      *static_cast<int*>(dest) = v.AsInt();
+      return;
+    }
+    if (t == Type_Find("Float") && v.IsFloat()) {
+      *static_cast<float*>(dest) = v.AsFloat();
+      return;
+    }
+    if (t == Type_Find("Bool") && v.IsBool()) {
+      *static_cast<bool*>(dest) = v.AsBool();
+      return;
+    }
+    if (t == Type_Find("String") && v.IsString()) {
+      *static_cast<String*>(dest) = v.AsString();
+      return;
+    }
+  }
+
+  /* Engine-managed type: copy the payload into the destination slot via the
+     type's assignment operator. */
+  if (v.data && t && t->assign) {
+    t->assign(t.t, v.data, dest);
+    return;
+  }
+}
+
 Value Evaluator::CallFunction(ASTFuncDeclNodeT* fn,
                               Vector<Value> const& args,
                               bool hasImplicitThis) {

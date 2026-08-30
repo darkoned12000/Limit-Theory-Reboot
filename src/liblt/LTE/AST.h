@@ -104,6 +104,9 @@ T* ASTNodeAs(ASTNode const& node) {
 struct ASTDeclNodeT : public ASTNodeT {
   String name;
   ASTNode initializer;   // The expression after the name
+  String typeName;       // Declared type name (empty when inferred). Required
+                         // for `type` members so the runtime can lay out
+                         // fields; also set for var/ref/static decls.
 
   ASTDeclNodeT() : ASTNodeT(AST_VAR_DECL) {}
 };

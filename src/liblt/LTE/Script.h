@@ -16,6 +16,14 @@ namespace LTE {
 
     ScriptT() : hash(0) {}
 
+    /* --- New compiler (AST) module -------------------------------------
+       Set by Reload() when the script is compiled with the new pipeline
+       (Lexer -> Parser -> SymbolResolver). ScriptFunctionT handles keep a
+       back-pointer to this ScriptT and reference AST nodes owned here, so
+       this must outlive them. Plain member, not an AutoClass field, so the
+       reflected/serialized shape of ScriptT is unchanged. */
+    ASTNode astModule;
+
     bool DependsOn(Script const& script) const {
       if (script.t == this)
         return true;

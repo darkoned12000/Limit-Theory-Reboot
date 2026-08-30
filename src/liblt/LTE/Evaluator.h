@@ -117,6 +117,17 @@ public:
                      Vector<Value> const& args,
                      bool hasImplicitThis = false);
 
+  /* --- Engine <-> Value marshalling -----------------------------------
+     The engine's calling convention is raw memory slots (void*) tagged with
+     an engine Type; the Evaluator works in Values. These convert between the
+     two and are shared by ScriptFunctionT::Call and script-type field
+     initialization.
+
+     ValueFromSlot BORROWS the slot: the caller owns that memory for the
+     duration of the call, so the returned Value must not free it. */
+  static Value ValueFromSlot(Type t, void* data);
+  static void ValueToSlot(Value const& v, Type t, void* dest);
+
   // Error state
   bool HasErrors() const { return !errors.empty(); }
   Vector<String> const& GetErrors() const { return errors; }

@@ -688,6 +688,7 @@ ASTNode Parser::ParseTypeMember() {
   ASTDeclNodeT* field = new ASTDeclNodeT();
   field->loc = SourceLocation(fName.line, fName.column);
   field->name = fname;
+  field->typeName = fieldType;   // needed to lay out the type at runtime
 
   // Optional default expression (rest of the same logical line).
   // Only treat a default as present when the token immediately after the field
@@ -1269,7 +1270,33 @@ ASTNode Parser::ParsePrimary() {
         // expressions that follow before ')' are its arguments:
         //   (nodes.Get (Mod i + 1 nodes.Size))  ->  Get(nodes, Mod(...))
         //   (self.LeftCenter)                   ->  property access, no args
-        ASTNode callee = ParseExpression();
+        //
+        // The callee is just the member chain, so ParseUnary (not
+        // ParseExpression): Pratt would otherwise continue through the binary
+        // table and read `(rng.Vec2 -1 1)` as the subtraction `rng.Vec2 - 1`.
+        size_t calleeStart = pos;
+        ASTNode callee = ParseUnary();
+
+        /* Disambiguate a call `(obj.Method args)` from a parenthesized binary
+           expression `(ship.GetPos - o.GetPos)`:
+             - '-'/'+' directly followed by a NUMBER is a negative-literal
+               argument: (rng.Vec2 -1 1), (rng.Float -1.0 1.0)
+             - any other infix operator is binary arithmetic on the member
+               chain, so re-parse the whole group as an expression. */
+        /* MINUS only. A leading '-' on a number is a real LTSL idiom for a
+           negative literal argument, but a leading '+' is not: `(rng.Int + 8)`
+           is ADDITION, not a positive literal. */
+        bool signedNumberArg =
+          (Peek().kind == TOK_MINUS) &&
+          (Peek2().kind == TOK_INT || Peek2().kind == TOK_FLOAT);
+
+        if (!signedNumberArg && GetInfixPrec(Peek().kind) > 0) {
+          pos = calleeStart;
+          ASTNode expr = ParseExpression();
+          SkipNewlines();
+          Expect(TOK_RPAREN, "expected ')'");
+          return expr;
+        }
         SkipNewlines();
         if (callee && !Check(TOK_RPAREN) && !Check(TOK_EOF)) {
           if (callee->kind == AST_METHOD_CALL) {
@@ -1678,6 +1705,12 @@ ASTNode Parser::ParsePostfix(ASTNode left) {
           (a.kind == TOK_FLOAT) || (a.kind == TOK_STRING) ||
           (a.kind == TOK_LPAREN) ||
           (a.kind == TOK_TRUE) || (a.kind == TOK_FALSE) || (a.kind == TOK_NULL);
+        /* NOTE: deliberately NOT accepting '-'/'+' here. In the space-separated
+           (unparenthesized) context a sign may begin a BINARY operation on the
+           enclosing expression (`foo.Bar - 1` is subtraction, not Bar(-1)), so
+           treating signed numbers as arguments there silently changes meaning.
+           Signed number arguments are collected in the parenthesized callee
+           path instead, where every element is unambiguously an argument. */
         if (!startsValue)
           break;
         // Don't swallow a bare identifier that begins a postfix step on the

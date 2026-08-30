@@ -363,11 +363,9 @@ void SymbolResolver::ResolveFuncCall(ASTFuncCallNodeT const* call) {
   if (Function_Exists(call->name))
     return;
 
-  // Cross-file script function (e.g. "Config:Get" defined in Config.lts).
-  // The engine resolves these lazily by loading the defining script, so
-  // probe it the same way.
-  if (ScriptFunction_Load(call->name))
-    return;
+  // NOTE: deliberately NOT probing ScriptFunction_Load here. Doing so forces
+  // script loads as a compile-time side effect and logs "Failed to load
+  // script" for names that are simply resolved lazily at runtime.
 
   // LTSL is dynamically typed: names are resolved at runtime (the engine
   // lazily loads the defining script and falls back to Function_Find). An
