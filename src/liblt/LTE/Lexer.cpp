@@ -148,11 +148,12 @@ void Lexer::EmitIndentTokens(int newIndent) {
 
   if (newIndent > current) {
     indentStack.push(newIndent);
-    pending.push_back(Token(TOK_INDENT, "", line, 1, 0));
+    pending.push_back(Token(TOK_INDENT, "", line, newIndent, 0));
   } else if (newIndent < current) {
     while (indentStack.back() > newIndent) {
+      int closedLevel = indentStack.back();
       indentStack.pop();
-      pending.push_back(Token(TOK_DEDENT, "", line, 1, 0));
+      pending.push_back(Token(TOK_DEDENT, "", line, closedLevel, 0));
     }
     if (indentStack.back() != newIndent) {
       ReportError("unindent does not match any outer indentation level");
@@ -199,6 +200,17 @@ Token Lexer::ReadNumber() {
     Advance();
     while (!AtEnd() && IsDigit(Peek()))
       Advance();
+  }
+
+  /* A number immediately followed by identifier characters is a single
+     token in LTSL: `2Pi` is a bound no-arg native function (Float_2Pi),
+     not `2` times `Pi`. The old atom-based tokenizer kept it as one atom,
+     so lex it as an IDENTIFIER the same way. */
+  if (!AtEnd() && (isalpha(Peek()) || Peek() == '_')) {
+    while (!AtEnd() && (isalnum(Peek()) || Peek() == '_'))
+      Advance();
+    String value = source.substr(start, pos - start);
+    return Token(TOK_IDENTIFIER, value, startLine, startCol, pos - start);
   }
 
   String value = source.substr(start, pos - start);
@@ -391,6 +403,22 @@ std::vector<Token> Lexer::Tokenize() {
     // === Newline handling ===
     if (Peek() == '\n') {
       Advance();
+
+      // Unbalanced '(' / '[' left open at end of line: auto-close them here.
+      // The old line parser (StringList_ParseLine) balanced parens per line,
+      // auto-nesting an unclosed '(' into an implicit closer — it never carried
+      // a group onto the next line. Replicate that: emit synthetic close tokens
+      // so `(Vec2 0 0.5 * (x + 1.0` compiles as `(Vec2 0 0.5 * (x + 1.0))`.
+      // No corpus script relies on cross-line paren groups, and the trusted
+      // fixtures (App/draw.lts:56-57, Widget/Text.lts:26) depend on this.
+      while (!groupStack.empty()) {
+        char open = groupStack.back();
+        groupStack.pop_back();
+        parenDepth--;
+        TokenKind close = (open == '(') ? TOK_RPAREN : TOK_RBRACKET;
+        tokens.push_back(Token(close, open == '(' ? ")" : "]", line - 1, 0, 1));
+      }
+
       if (parenDepth == 0) {
         // Only emit NEWLINE if real tokens were on this line
         if (hasTokensOnLine) {
@@ -418,6 +446,7 @@ std::vector<Token> Lexer::Tokenize() {
     // === Track paren/bracket depth ===
     if (Peek() == '(' || Peek() == '[') {
       parenDepth++;
+      groupStack.push_back(Peek());
       char c = Advance();
       TokenKind kind = (c == '(') ? TOK_LPAREN : TOK_LBRACKET;
       std::string val(1, c);
@@ -430,8 +459,11 @@ std::vector<Token> Lexer::Tokenize() {
       TokenKind kind = (c == ')') ? TOK_RPAREN : TOK_RBRACKET;
       std::string val(1, c);
       Emit(Token(kind, val, line, column - 1, 1));
-      if (parenDepth > 0)
+      if (parenDepth > 0) {
         parenDepth--;
+        if (!groupStack.empty())
+          groupStack.pop_back();
+      }
 
       // Do NOT set atLineStart here — the close-paren may be mid-line
       // (e.g. "(1 + 2) * 3"). Indent tracking resumes naturally on the
@@ -502,8 +534,9 @@ std::vector<Token> Lexer::Tokenize() {
 
   // Flush any remaining indent stack (implicit dedents at EOF)
   while (indentStack.size() > 1) {
+    int closedLevel = indentStack.back();
     indentStack.pop();
-    tokens.push_back(Token(TOK_DEDENT, "", line, 1, 0));
+    tokens.push_back(Token(TOK_DEDENT, "", line, closedLevel, 0));
   }
 
   // Emit EOF

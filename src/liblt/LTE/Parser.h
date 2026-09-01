@@ -88,6 +88,19 @@ private:
   ASTNode ParseWhile();
   ASTNode ParseFor();
   ASTNode ParseSwitch();
+  // `? (pred body) (pred body) ... (otherwise default)` — the unparenthesized
+  // ternary form used at statement/expression position in the corpus.
+  ASTNode ParseQuestionExpr();
+  // Case-predicate helper for the indented `?` layout (must not swallow the
+  // same-line body as a space-separated argument).
+  ASTNode ParseSwitchPredExpr();
+  // Case-body helper for the indented `?` layout (statement/block body).
+  ASTNode ParseQuestionCaseBody();
+  // Parses a switch case body (or `otherwise` body): either a value on the
+  // same line as the case predicate, an indented block, or both (the old
+  // engine nests deeper-indented lines under the preceding case and treats
+  // the whole thing as a sequence). Returns the body as a block node.
+  ASTNode ParseSwitchBodyExpression();
   ASTNode ParseAssignment(ASTNode const& target);
   ASTNode ParseExprStmt();
 
@@ -110,6 +123,11 @@ private:
   // Parses the INDENT..DEDENT body as a sequence of expressions (one per
   // line). Requires the current token to be TOK_INDENT.
   Vector<ASTNode> ParseExpressionLines();
+  // Argument splicing helpers: value-head argument groups (a `?` switch
+  // followed by more sibling lines) are marked with a "@splice" callee so
+  // call-builders can flatten them into the enclosing call's argument list.
+  void AppendCallArgs(Vector<ASTNode>& args, Vector<ASTNode> const& nodes, size_t begin);
+  void PushCallArg(Vector<ASTNode>& args, ASTNode const& arg);
   // If `init` is a bare identifier immediately followed by an indented block
   // of arguments (e.g. `var x TypeName <indented args>`), rewrite it as a
   // function/constructor call. Otherwise returns init unchanged.
@@ -123,6 +141,9 @@ private:
   // True when a token can head a parenthesized group as a callable operator,
   // e.g. (++ i), (! x), (- a b).
   static bool IsOperatorFunctionToken(TokenKind kind);
+  // True for =, +=, -=, *=, /= — either leading an assignment-expression group
+  // `(+ = target value)` or trailing a target inside `(color.x += 1.0)`.
+  static bool IsAssignOp(TokenKind kind);
 
   // --- Type name parsing ---
   // Parses: IDENTIFIER ['/' IDENTIFIER]*

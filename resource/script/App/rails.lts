@@ -22,15 +22,15 @@ type App
 
     # Set up the game view
     var passes Vector<Reference<RenderPassT>>
-    passes.Append (RenderPass_Clear (Vec4 0.0))
-    passes.Append (RenderPass_Camera camera)
-    passes.Append (RenderPass_SMAA)
-    passes.Append (RenderPass_Interface ui)
-    passes.Append (RenderPass_PostFilter "post/dither.jsl")
-    gameView.Add (Widget_Rendered passes)
+    passes.Append(RenderPass_Clear(Vec4(0.0)))
+    passes.Append(RenderPass_Camera(camera))
+    passes.Append(RenderPass_SMAA())
+    passes.Append(RenderPass_Interface(ui))
+    passes.Append(RenderPass_PostFilter("post/dither.jsl"))
+    gameView.Add(Widget_Rendered(passes))
 
     # Create the system
-    system = (Object_System (Vec3 15.012) 1340)
+    system = Object_System(Vec3(15.012), 1340)
 
     # Create the player ship
     var shipType (Item_ShipType 20000 55 1 1 1)
@@ -120,7 +120,7 @@ type App
 
 
     # Set up the UI
-    ui.Add (Widget/HUD:Create player)
+    ui.Add(Widget/HUD:Create(player))
 
   function Void Update ()
     if Key_T.Pressed Shader_RecompileAll

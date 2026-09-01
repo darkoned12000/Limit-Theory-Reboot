@@ -23,7 +23,7 @@ type FontPreview
                   Widgets:Text (Font_Get path) "BIG STUFF" 48 1
                 Components:AlignBottomLeft
                   Widgets:Text (Font_Get path) "in a small world :)" 20 Colors:Primary
-         l += (Widgets:SpacerH 0)
+        l += (Widgets:SpacerH 0)
     l
   
 function Widget Create ()

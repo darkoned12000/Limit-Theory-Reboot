@@ -130,6 +130,61 @@ namespace LTE {
       }
     }
 
+    /* Register functions and types into the script, MIRRORING the legacy
+       interpreter's hoisting: a `function`/`type` declared nested inside
+       another function body or type body still lands at script scope (the
+       resolver's PreScanNode applies the same rule). Methods receive their
+       owning type as ownerType; everything else registers with a null owner. */
+    void RegisterDecls(ScriptT* script, ASTNode const& node, ScriptType ownerType) {
+      if (!node) return;
+      switch (node->kind) {
+        case AST_MODULE: {
+          ASTModuleNodeT* mod = static_cast<ASTModuleNodeT*>(node.t);
+          for (size_t i = 0; i < mod->statements.size(); ++i)
+            RegisterDecls(script, mod->statements[i], nullptr);
+          break;
+        }
+        case AST_FUNC_DECL: {
+          ASTFuncDeclNodeT* fn = static_cast<ASTFuncDeclNodeT*>(node.t);
+          BuildFunction(script, fn, ownerType);
+          RegisterDecls(script, fn->body, nullptr);
+          break;
+        }
+        case AST_TYPE_DECL: {
+          ASTTypeDeclNodeT* td = static_cast<ASTTypeDeclNodeT*>(node.t);
+          BuildType(script, td);
+          ScriptType type = script->GetType(td->name);
+          for (size_t m = 0; m < td->members.size(); ++m)
+            RegisterDecls(script, td->members[m], type);
+          break;
+        }
+        case AST_BLOCK: {
+          ASTBlockNodeT* blk = static_cast<ASTBlockNodeT*>(node.t);
+          for (size_t i = 0; i < blk->statements.size(); ++i)
+            RegisterDecls(script, blk->statements[i], nullptr);
+          break;
+        }
+        case AST_IF: {
+          ASTIfNodeT* ifNode = static_cast<ASTIfNodeT*>(node.t);
+          RegisterDecls(script, ifNode->thenBlock, nullptr);
+          RegisterDecls(script, ifNode->elseBlock, nullptr);
+          break;
+        }
+        case AST_WHILE: {
+          ASTWhileNodeT* w = static_cast<ASTWhileNodeT*>(node.t);
+          RegisterDecls(script, w->body, nullptr);
+          break;
+        }
+        case AST_FOR: {
+          ASTForNodeT* f = static_cast<ASTForNodeT*>(node.t);
+          RegisterDecls(script, f->body, nullptr);
+          break;
+        }
+        default:
+          break;
+      }
+    }
+
     bool CompileWithNewPipeline(ScriptT* script,
                                 Location const& location,
                                 Vector<String>& errors) {
@@ -175,25 +230,22 @@ namespace LTE {
          keep back-pointers into it. */
       script->astModule = module;
 
-      ASTModuleNodeT* mod = static_cast<ASTModuleNodeT*>(module.t);
-      for (size_t i = 0; i < mod->statements.size(); ++i) {
-        ASTNode stmt = mod->statements[i];
-        if (!stmt) continue;
-        if (stmt->kind == AST_FUNC_DECL)
-          BuildFunction(script, static_cast<ASTFuncDeclNodeT*>(stmt.t), nullptr);
-        else if (stmt->kind == AST_TYPE_DECL)
-          BuildType(script, static_cast<ASTTypeDeclNodeT*>(stmt.t));
-      }
+      RegisterDecls(script, module, nullptr);
 
       return true;
     }
 
-    /* Selects the compiler. Old is still the default until the new pipeline
-       has been verified end-to-end at runtime; set LTSL_NEW_COMPILER=1 to
-       drive scripts through Lexer -> Parser -> SymbolResolver -> Evaluator. */
+    /* Selects the compiler. The NEW pipeline (Lexer -> Parser -> SymbolResolver
+       -> Evaluator) is the default now that the corpus compiles clean under it
+       (157/157, compile gate) and declaration parity with the old interpreter
+       holds. Set LTSL_OLD_COMPILER=1 to run the legacy StringList-based
+       interpreter — kept until its remaining call sites (Script_CompileCheck's
+       old branch below, regression-diff's old side) are removed. */
     bool UseNewCompiler() {
-      char const* env = getenv("LTSL_NEW_COMPILER");
-      return env && env[0] == '1';
+      char const* legacy = getenv("LTSL_OLD_COMPILER");
+      if (legacy && legacy[0] == '1')
+        return false;
+      return true;
     }
   }
 

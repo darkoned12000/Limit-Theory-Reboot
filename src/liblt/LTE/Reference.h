@@ -25,6 +25,11 @@ struct RefCounted : public NullBase<RefCounted> {
   }
 };
 
+// Forward declaration: refCount-aware assign for Reference<T>.
+// Defined after the class (needs full Reference<T> definition).
+template <class T>
+void __Reference_Assign(TypeT*, void const* src, void* dst);
+
 template <class T>
 struct Reference : public NullBase<Reference<T> > {
   using BaseType = NullBase<Reference<T> >;
@@ -104,7 +109,7 @@ struct Reference : public NullBase<Reference<T> > {
   }
 
   friend bool operator!=(T* t, Reference const& r) {
-    return r.t != t;
+    return t != r.t;
   }
 
   friend bool operator<(Reference const& one, Reference const& two) {
@@ -181,8 +186,38 @@ struct Reference : public NullBase<Reference<T> > {
     type->GetPointeeType() = Type_Get<T>();
   }
 
-  AUTOMATIC_REFLECTION_PARAMETRIC1(Reference, T)
+  /* Custom _Type_Get: the default AUTOMATIC_REFLECTION_PARAMETRIC1 assign
+     does a shallow field copy (no refCount++), which paired with a destructing
+     decrement frees the pointee prematurely. Use __Reference_Assign instead,
+     which calls operator= (Acquire/Release balanced). */
+  friend Type _Type_Get([[maybe_unused]] Reference const& t) {
+    Type& type = Type_GetStorage<Reference>();
+    if (!type) {
+      Type t1Type = Type_Get<T>();
+      type = Type_Create(
+        String("Reference") + "<" + t1Type->name + ">",
+        sizeof(Reference));
+      type->alignment = AlignOf<Reference>();
+      type->allocate = __type_default_allocator<Reference>;
+      type->assign = &__Reference_Assign<T>;
+      type->base = Type_Get<Reference::BaseType>();
+      type->construct = __type_default_construct<Reference>;
+      type->deallocate = __type_default_deallocator<Reference>;
+      type->destruct = __type_default_destruct<Reference>;
+      type->mapper = Reference::MapFields;
+      type->toString = __type_default_tostring<Reference>;
+      FillMetadata(type);
+    }
+    return type;
+  }
 };
+
+// RefCount-aware assign: calls operator= which Acquire()s the new pointer
+// and Release()s the old one, keeping refCount balanced.
+template <class T>
+void __Reference_Assign([[maybe_unused]] TypeT*, void const* src, void* dst) {
+  *(Reference<T>*)dst = *(Reference<T> const*)src;
+}
 
 #include "Compare_AutoPtr_Reference.h"
 #include "Compare_Pointer_Reference.h"

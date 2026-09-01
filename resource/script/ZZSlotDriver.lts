@@ -3,7 +3,7 @@ function Void Main ()
   var count (SaveGame_Count)
   for i 0 i < slots.Size i.++
     var info (slots.Get i)
-    var title (info.saveName.Length > 0 info.saveName info.slotName)
+    var title (? (info.saveName.Length > 0 info.saveName) (otherwise info.slotName))
     var check (info.slotName == title)
     var date info.dateCreated
   if slots.Size == 0
@@ -20,4 +20,4 @@ function Void Main ()
     var slots2 (SaveGame_ListSlots)
     for i 0 i < slots2.Size i.++
       var info (slots2.Get i)
-      var title (info.saveName.Length > 0 info.saveName info.slotName)
+      var title (? (info.saveName.Length > 0 info.saveName) (otherwise info.slotName))

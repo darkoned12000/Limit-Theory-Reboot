@@ -42,6 +42,7 @@ namespace LTE {
         }
 
         Evaluator eval;
+        eval.SetScript(astOwner);
         Value result = eval.CallFunction(astFunc, values, astImplicitThis);
 
         if (eval.HasErrors())

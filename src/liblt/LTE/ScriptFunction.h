@@ -82,7 +82,7 @@ namespace LTE {
     void VoidCall(void* returnValue) {
       LTE_ASSERT(parameters.size() == 0)
 
-      bool constructRV = !returnValue && returnType->allocate;
+      bool constructRV = !returnValue && returnType && returnType->allocate;
       if (constructRV) returnValue = returnType->Allocate();
       Call(returnValue, (void**)nullptr);
       if (constructRV) returnType->Deallocate(returnValue);
@@ -96,7 +96,7 @@ namespace LTE {
       LTE_ASSERT(parameters[0].type == p0.type)
 
       void* args[] = { p0.data };
-      bool constructRV = !returnValue && returnType->allocate;
+      bool constructRV = !returnValue && returnType && returnType->allocate;
       if (constructRV) returnValue = returnType->Allocate();
       Call(returnValue, args);
       if (constructRV) returnType->Deallocate(returnValue);
@@ -112,7 +112,7 @@ namespace LTE {
       LTE_ASSERT(parameters[1].type == p1.type)
 
       void* args[] = { p0.data, p1.data };
-      bool constructRV = !returnValue && returnType->allocate;
+      bool constructRV = !returnValue && returnType && returnType->allocate;
       if (constructRV) returnValue = returnType->Allocate();
       Call(returnValue, args);
       if (constructRV) returnType->Deallocate(returnValue);
@@ -130,7 +130,7 @@ namespace LTE {
       LTE_ASSERT(parameters[2].type == p2.type)
 
       void* args[] = { p0.data, p1.data, p2.data };
-      bool constructRV = !returnValue && returnType->allocate;
+      bool constructRV = !returnValue && returnType && returnType->allocate;
       if (constructRV) returnValue = returnType->Allocate();
       Call(returnValue, args);
       if (constructRV) returnType->Deallocate(returnValue);

@@ -117,6 +117,13 @@ public:
                      Vector<Value> const& args,
                      bool hasImplicitThis = false);
 
+  // Attach the owning script so calls and member accesses can resolve script
+  // functions and script-type fields. The Evaluator is otherwise a fresh
+  // per-call object with no knowledge of its script. Defined in the .cpp
+  // (out-of-line) so TUs including this header do not force instantiation of
+  // Reference<ScriptT> without a complete ScriptT.
+  void SetScript(ScriptT* ctx);
+
   /* --- Engine <-> Value marshalling -----------------------------------
      The engine's calling convention is raw memory slots (void*) tagged with
      an engine Type; the Evaluator works in Values. These convert between the
@@ -149,6 +156,7 @@ private:
   Value EvalWhile(ASTWhileNodeT* node);
   Value EvalFor(ASTForNodeT* node);
   Value EvalSwitch(ASTSwitchNodeT* node);
+  Value EvalSwitchExpr(ASTSwitchExprNodeT* node);
   Value EvalAssign(ASTAssignNodeT* node);
   Value EvalReturn(ASTReturnNodeT* node);
   Value EvalExprStmt(ASTExprStmtNodeT* node);
@@ -165,6 +173,10 @@ private:
   Value EvalMethodCall(ASTMethodCallNodeT* node);
   Value EvalFuncCall(ASTFuncCallNodeT* node);
   Value EvalCast(ASTCastNodeT* node);
+  // Conversion to a scalar type (`(String x)`, `(Int x)`). Compensates for
+  // the parser emitting lowercase type-cast heads as function calls instead
+  // of cast nodes.
+  Value ScalarCast(String const& typeName, Value const& val);
   Value EvalAddress(ASTAddressNodeT* node);
   Value EvalDeref(ASTDerefNodeT* node);
   Value EvalArrayLiteral(ASTArrayLiteralNodeT* node);
@@ -172,10 +184,49 @@ private:
   Value EvalPrint(ASTPrintNodeT* node);
 
   // Engine function dispatch
-  Value CallEngineFunction(String const& name, Vector<Value> const& args);
+  Value CallEngineFunction(String const& name, Vector<Value> const& args, SourceLocation const& loc = SourceLocation());
 
   // Script function dispatch
-  Value CallScriptFunction(String const& name, Vector<Value> const& args);
+  Value CallScriptFunction(String const& name, Vector<Value> const& args, SourceLocation const& loc = SourceLocation());
+
+  // Script-type field access. `recv` must be a PTR/CUSTOM value whose Type
+  // carries a ScriptType in its Aux (created by ScriptType_CreateEngineType).
+  // FieldGet returns NONE when `recv` has no such type or no such field;
+  // FieldSet reports the write via its return value.
+  ScriptType ScriptTypeOf(Value const& recv) const;
+  Field const* FindField(ScriptType st, String const& name) const;
+  Value FieldGet(Value const& recv, String const& name) const;
+  bool FieldSet(Value const& recv, String const& name, Value const& value);
+
+  // Build a default-constructed instance of a script type, boxed as a Data
+  // (the legacy representation of a script value).
+  Value MakeScriptTypeValue(ScriptType const& st);
+
+  // `this`-relative field helpers (bare member names inside a method body).
+  Value ThisFieldGet(String const& name) const;
+  bool ThisFieldSet(String const& name, Value const& value);
+  ScriptType ThisType() const;
+  Value const* ThisValue() const;
+
+  // Apply a compound assignment op to a stored field value.
+  Value ApplyBinaryOp(String const& op, Value const& lhs, Value const& rhs);
+
+  // `++`/`--` on a named variable or operand expression: mutate the scope slot
+  // / field in place (the engine binding mutates by reference, which a
+  // by-value call would discard) and return the new value.
+  Value IncDecSlot(String const& op, String const& name);
+  Value IncDecOperand(String const& op, ASTNode operand);
+
+  // Script function dispatch by handle / name.
+  Value CallScriptFunction(ScriptFunction const& sf,
+                           Vector<Value> const& args);
+
+  // Raw storage pointer for a Value, in the layout engine bindings expect
+  // (primitives -> the union member, strings/heap values -> data).
+  void* ValueArgPtr(Value const& v) const;
+
+  // True when `name` resolves in any enclosing scope.
+  bool ScopeHasName(String const& name) const;
 
   // Engine function lookup
   Vector<Function> FindFunctions(String const& name);

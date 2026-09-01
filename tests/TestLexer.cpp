@@ -223,24 +223,31 @@ LTE_TEST(Lexer_TabsAsIndent) {
   LTE_CHECK(FindFirst(toks, TOK_INDENT) != nullptr);
 }
 
-// ── Multi-line paren groups ────────────────────────────────────────────
+// ── Paren groups close at end of line (per-line balance) ───────────────
 
 LTE_TEST(Lexer_MultiLineParens) {
+  // The old line parser (StringList_ParseLine) balanced parens per line and
+  // auto-nested an unclosed '(' into an implicit closer — it never carried a
+  // group onto the next line. The lexer replicates that: an unbalanced '(' at
+  // end of line is auto-closed with a synthetic ')' and the NEWLINE is still
+  // emitted.
   auto toks = Lex("var x (a +\n      b)");
-  // Inside parens, no NEWLINE should be emitted
-  LTE_CHECK_EQ(Count(toks, TOK_NEWLINE), 0);
+  // One NEWLINE (after the first line); the group is closed at EOL
+  LTE_CHECK_EQ(Count(toks, TOK_NEWLINE), 1);
   // All tokens should be present
   LTE_CHECK(FindFirst(toks, TOK_VAR) != nullptr);
   LTE_CHECK(FindFirst(toks, TOK_LPAREN) != nullptr);
-  LTE_CHECK(FindFirst(toks, TOK_RPAREN) != nullptr);
+  // The unclosed '(' produced a synthetic closer, plus the real ')' on line 2
+  LTE_CHECK_EQ(Count(toks, TOK_RPAREN), 2);
 }
 
 LTE_TEST(Lexer_NestedParens) {
   auto toks = Lex("(a (b +\n       c))");
-  // Still no newlines inside parens
-  LTE_CHECK_EQ(Count(toks, TOK_NEWLINE), 0);
+  // First line's two unclosed groups auto-close at EOL -> 1 NEWLINE
+  LTE_CHECK_EQ(Count(toks, TOK_NEWLINE), 1);
   LTE_CHECK_EQ(Count(toks, TOK_LPAREN), 2);
-  LTE_CHECK_EQ(Count(toks, TOK_RPAREN), 2);
+  // 2 synthetic closers for line 1 + 2 real closers on line 2
+  LTE_CHECK_EQ(Count(toks, TOK_RPAREN), 4);
 }
 
 // ── Postfix operators (.! .++ .--) ────────────────────────────────────

@@ -1037,3 +1037,89 @@ LTE_TEST(Parser_BareCallInsideVarDecl) {
   LTE_CHECK(init != nullptr);
   LTE_CHECK_EQ(init->name, String("foo"));
 }
+
+// ── Diagnostic: Engine method-call shape (rails/threads failing lines) ──
+
+namespace {
+  void DumpNode(ASTNode const& n, std::ostringstream& out);
+
+  void DumpNodeOpen(ASTNode const& n, std::ostringstream& out) {
+    if (!n) {
+      out << "null";
+      return;
+    }
+    switch (n->kind) {
+      case AST_VAR_DECL: {
+        ASTDeclNodeT const* d = AsDecl(n);
+        out << "VarDecl(name=" << d->name << ")";
+        break;
+      }
+      case AST_EXPR_STMT: {
+        ASTExprStmtNodeT const* es = AsExprStmt(n);
+        out << "ExprStmt(";
+        DumpNode(es->expression, out);
+        out << ")";
+        break;
+      }
+      case AST_IDENTIFIER: {
+        out << AsIdent(n)->name;
+        break;
+      }
+      case AST_INT_LITERAL:
+        out << AsIntLit(n)->value;
+        break;
+      case AST_FLOAT_LITERAL:
+        out << AsFloatLit(n)->value;
+        break;
+      case AST_STRING_LITERAL:
+        out << "'" << AsStringLit(n)->value << "'";
+        break;
+      case AST_FUNC_CALL: {
+        ASTFuncCallNodeT const* c = AsFuncCall(n);
+        out << "FuncCall(" << c->name;
+        for (size_t i = 0; i < c->args.size(); ++i) {
+          out << " ";
+          DumpNode(c->args[i], out);
+        }
+        out << ")";
+        break;
+      }
+      case AST_METHOD_CALL: {
+        ASTMethodCallNodeT const* mc = AsMethodCall(n);
+        out << "MethodCall(obj=";
+        DumpNode(mc->object, out);
+        out << ", method=" << mc->methodName;
+        for (size_t i = 0; i < mc->args.size(); ++i) {
+          out << " ";
+          DumpNode(mc->args[i], out);
+        }
+        out << ")";
+        break;
+      }
+      default:
+        out << "kind#" << n->kind;
+    }
+  }
+
+  void DumpNode(ASTNode const& n, std::ostringstream& out) {
+    DumpNodeOpen(n, out);
+  }
+}
+
+LTE_TEST(Parser_DiagEngineMethodShapes) {
+  std::ostringstream out;
+  auto dump = [&](String const& src) {
+    DumpNode(ModuleStmt(Parse(src), 0), out);
+    out << "\n";
+  };
+  dump("passes.Append (RenderPass_Clear (Vec4 0.0))");
+  dump("gameView.Add (Widget_Rendered passes)");
+  dump("ui.Add (Custom Widget ThreadsScreen)");
+  dump("gameView.Update");
+  dump("camera.Push");
+  dump("Vector<Reference<RenderPassT>>");
+  dump("DrawPanel self.LeftCenter (Vec2 self.size.x 2) 0.2 1 0.5 4");
+  dump("item.SetPos (spawn.GetPos + spawnOffset)");
+  std::printf("PARSE-SHAPE:\n%s\n", out.str().c_str());
+  LTE_CHECK(true);
+}

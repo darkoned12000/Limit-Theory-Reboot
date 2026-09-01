@@ -171,6 +171,9 @@ private:
   bool atLineStart;
   bool hasTokensOnLine;
   int parenDepth;
+  // Open-group kinds ('(' or '[') — used to auto-close unbalanced groups at
+  // end of line, matching the old line parser's per-line paren balance.
+  std::vector<char> groupStack;
 
   // Output
   std::vector<Token> tokens;

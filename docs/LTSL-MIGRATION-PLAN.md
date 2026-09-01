@@ -1327,6 +1327,157 @@ parens. The user intends to delete it once the migration is complete.
 
 ---
 
+## Migration Log — 2026-08-31 (runtime bring-up: rails boots, black screen remains)
+
+Living record of the first *runtime* debugging session. Phase 1-4 compiler work
+got the corpus compiling; this session drove `rails` through the new Evaluator
+end-to-end for the first time and fixed three engine-side runtime bugs that are
+only reachable when scripts actually execute. These are **new finding classes** —
+not locally scoped parser fixes — and several were masked by earlier bugs
+(`boxes += box` used to be a silent no-op, so every loop over `boxes` saw
+`boxes.Size == 0` and never ran).
+
+### Where things stand (measured, not estimated)
+
+| Metric | Start of session | Now |
+|---|---|---|
+| `rails` boots (process stays alive, no crash) | crashed (SIGFPE → `RNG.h:65` modulo) | **runs to timeout, no crash** |
+| `lte_tests` | (green) | 1473 checks, 0 failures (unchanged) |
+| `ltsl_compile_gate` | 157/157 PASS | 157/157 PASS (unchanged) |
+| `ltsl_regression_diff` | PASS | PASS (unchanged) |
+| Rendering | — | **still black across all apps** (see Open Blocker #2) |
+
+### Fix #1 — `j.++` / `(++ i)` never incremented the loop variable (infinite loops)
+
+**Symptom.** `rails.Initialize` never returned; it hung in
+`for j 0 j < 8 j.++` (Generate.lts:115) doing 300k+ iterations. The whole app
+blocked inside `Initialize`, so the render loop was never reached (this is the
+*same* "black screen" from the launcher's perspective — no frames, no
+`Widget_Rendered::PreDraw`).
+
+**Root cause.** `Int_Increment` (`Int.cpp:171`, aliased to `++`) mutates its
+argument **by reference**: `((int&)i)++`. The new Evaluator passes the receiver
+as a *by-value copy* (`j` Value) into `CallEngineFunction`, so the binding
+incremented a discarded copy and `j` never changed → `i < 8` stayed true.
+
+**Fix (Evaluator).** `++`/`--` on a *named variable* must write back to the
+scope slot. Added `IncDecSlot`/`IncDecOperand` helpers and route:
+- `EvalMethodCall`: `j.++` (postfix, empty args, receiver is an identifier)
+  → `IncDecSlot` mutates the scope variable in place.
+- `EvalFuncCall`: `(++ j)` (prefix, single arg) → `IncDecOperand` mutates.
+
+`IncDecOperand` also handles bare member names resolving to a field of `this`,
+and a dotted field of a receiver (`obj.field.++`), writing back via `FieldSet`.
+
+> **Not yet fixed:** `EvalUnaryOp` still raises "unsupported unary op: ++" for
+> the *statement-level* unary form `i.++` when the parser emits
+> `AST_UNARY_OP` rather than `AST_METHOD_CALL` (Generate.lts:67 — the
+> `boxesPassive` step). It does not crash but the loop step silently no-ops;
+> this is step 1 of "Immediate next steps" below.
+
+### Fix #2 — compound-op `+=` on non-primitives was a silent no-op (empty lists)
+
+**Symptom.** `boxes += (Box ...)` (Generate.lts:47) did nothing; `boxes.Size`
+stayed 0, so `rng.Int boxes.Size` → `GetInt(0,-1)` → modulo by 0 → SIGFPE. This
+was the *first* crash seen at the start of the session.
+
+**Root cause.** `EvalAssign`'s compound-op handler only did inline math for
+int/float/string primitives; everything else fell through to nothing (a `List`
+append was silently dropped).
+
+**Fix.** `EvalAssign` + `ApplyBinaryOp` now dispatch non-primitive compound ops
+to the engine operator (`List_Append` aliased `+=`, `Vec3d_AddInPlace`, etc.),
+assigning the result back only when it isn't NONE (void-returning mutators like
+`List_Append` keep the target unchanged).
+
+> **Gotcha exposed by Fix #2:** the earlier `RNG_Int(0,-1)` SIGFPE and the
+> `VectorNP:84` type assert were both *masked by* the empty-list bug. Fixing the
+> append is what surfaced Fix #3.
+
+### Fix #3 — script-type boxing inconsistency (cast vs constructor)
+
+**Symptom.** `VectorNP.h:84` assert `t.type == type` in `List_Append`, then
+(once that was fixed) `Reference.h:19 refCount > 0` / SIGSEGV in
+`Type::operator=` (Type.h:286) deep-copying a cast `Box`.
+
+**Root cause (two-part).**
+1. `EvalCast` returned a **bare** script value (`Value::MakePtr(st->type, inst,
+   false)`) while `EvalConstructor` returned a **Data-wrapped** value
+   (`MakeScriptTypeValue` → `Value::MakePtr(GetDataValueType(), d, true)` with
+   `d->type = st->type`). Feeding a bare value to `List_Append` made `ValueArgPtr`
+   hand the raw Box buffer where a `Data` struct was expected → mismatched
+   `elem.type` → `VectorNP:84`.
+2. The first fix attempt *borrowed* `inst` (`d->data = inst` pointing into a
+   live List element). That left a lifetime hazard: the Box `Type`'s refcount got
+   unbalanced by the borrow + deep-copy interaction → premature `delete` of the
+   Box `Type` while a `Reference` still pointed at it → `refCount > 0` at
+   destruction.
+
+**Fix.** `EvalCast` now boxs the cast result exactly like the constructor,
+**deep-owning a copy**: `d->type = st->type; d->data = st->type->Allocate();
+st->type->Assign(inst, d->data);` and `MakePtr(Data, d, true)` — matching
+`MakeScriptTypeValue`'s ownership and lifetime model, so `List_Append` reads a
+consistent `Box` element type and no borrowed pointer outlives its source.
+
+**Rule going forward.** In the Evaluator, a script-type instance is **always**
+a `Data`-wrapped value (`Value.type == GetDataValueType()`, `data` = `Data*`
+with `Data.type` = the script `Type`). Never construct a *bare* script value
+(`MakePtr(st->type, ...)`) — it breaks `Data`-param engine bindings
+(`List_Append`) and the Data deep-copy path in `Value::operator=`. `EvalCast`
+must deep-own (copy) rather than borrow, matching `EvalConstructor`.
+
+### Open Blocker #2 — black screen (no graphics) across all apps
+
+`rails` (and `ltheory-main`, `war`, `ltheory-unitest`) now run to timeout with
+**no crash**, but render a solid black window. **The apps DO reach the main
+loop now** (Fix #1 unblocked `Initialize`), but `Widget_Rendered::PreDraw` is
+still never called — verified by instrumenting `Rendered.cpp` (no `[dbg PreDraw]`
+frames printed after `Initialize` returns). This is the next step.
+
+**Hypotheses to pursue (in order), none yet proven:**
+1. **The app's `Update` / `gameView.Draw` is not reached each frame.** The
+   launcher drives `update->VoidCall(0, instance)` in `OnUpdate`
+   (launch.cpp:105). If the script `Update` function (rails.lts:141) errors early
+   or the const `gameView` widget was never added to the interface, `Draw` never
+   fires. Now that `Initialize` returns, instrument `Launcher::OnUpdate` and the
+   rails `Update` to confirm the draw call runs.
+2. **`Widget_Rendered` / render passes aren't created.** `rails.Initialize`
+   builds `Widget_Rendered([...passes])` + `gameView.Add(...)`. If any pass or
+   the widget fails to materialize, nothing renders.
+3. **GL/present quad issue.** Passes render to FBOs then present via a quad
+   (`Rendered.cpp:143-155`). Independent of script — if the present shader or
+   buffer chain is broken, even a correct scene is black.
+4. **`rails.lts` setup not yet validated** — `var zone` `Object_Zone` block args
+   (rails lines 50-62), `Item_StationType` block args. These compile gate-clean
+   but may mis-execute.
+
+### Immediate next steps
+
+1. `EvalUnaryOp`: fix `i.++` (unary `++`/`--`) which still raises
+   "unsupported unary op: ++" at Generate.lts:67 — route through
+   `IncDecOperand`. (This is the remaining runtime error in `rails`; it does
+   not crash, but the loop step silently no-ops.)
+2. Instrument `Launcher::OnUpdate` + `Widget_Rendered::PreDraw` to confirm the
+   draw path; then chase whichever of Open Blocker #2's hypotheses is confirmed.
+3. Re-run the loop: build, `lte_tests`, `ltsl_compile_gate`, `ltsl_regression_diff`.
+
+### Verification commands (this session)
+
+```bash
+python3 configure.py build
+LD_LIBRARY_PATH=bin:extbin/linux64 timeout 25 ./bin/launch rails   # exit=124 = still running = no crash
+LD_LIBRARY_PATH=bin:extbin/linux64 ./bin/lte_tests
+LD_LIBRARY_PATH=bin:extbin/linux64 ./bin/ltsl_compile_gate
+LD_LIBRARY_PATH=bin:extbin/linux64 ./bin/ltsl_regression_diff
+```
+
+> **Note:** `LTSL_OLD_COMPILER=1` (legacy interpreter) no longer runs `rails`
+> cleanly — `rails` uses new-syntax constructs (WarpRail, Dict) the old
+> interpreter can't parse (SIGSEGV). The new compiler is the only path forward
+> for these apps; do not A/B the old interpreter against them.
+
+---
+
 ## Phase 5: DX & Modding — Making LTSL Easy to Grasp (Next)
 
 **Goal:** Files are hard to understand and future modding must be easy. Keep LTSL **strict but assisted** (hard errors + auto-fix), not permissive. The 79-file normalization (Option B) already lands the strict subset; Phase 5 adds the tooling so authors never have to think about it.

@@ -224,6 +224,14 @@ void SymbolResolver::ResolveAndDeclare(ASTNode const& node) {
       break;
     }
 
+    case AST_SWITCH_EXPR: {
+      auto swx = ASTNodeAs<ASTSwitchExprNodeT>(node);
+      for (size_t i = 0; i < swx->cases.size(); ++i)
+        ResolveAndDeclare(swx->cases[i]);
+      ResolveAndDeclare(swx->defaultExpr);
+      break;
+    }
+
     case AST_ASSIGN: {
       auto assign = ASTNodeAs<ASTAssignNodeT>(node);
       ResolveAndDeclare(assign->target);
