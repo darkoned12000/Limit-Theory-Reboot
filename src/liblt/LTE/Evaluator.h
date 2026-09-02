@@ -147,6 +147,11 @@ private:
   void Declare(String const& name, Value const& val, bool isRef = false);
   Value& Lookup(String const& name);
 
+  // Deep-own a borrowed engine value so persistent storage never aliases a
+  // temporary that dies with the enclosing scope (e.g. `prevNode = node`
+  // where `node` is a per-loop-iteration local).
+  static Value OwnedCopy(Value const& v);
+
   // Statement evaluation
   Value EvalBlock(ASTBlockNodeT* block);
   Value EvalVarDecl(ASTDeclNodeT* decl);

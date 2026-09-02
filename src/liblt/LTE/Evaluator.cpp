@@ -18,7 +18,9 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <cstdio>
 #include <iostream>
+#include <cmath>
 
 namespace LTE {
 
@@ -31,18 +33,19 @@ Value Value::MakeEngine(Type t, void const* src) {
   r.owned = true;
   r.data = t->Allocate();
   if (t->construct) t->construct(t.t, r.data);
-  if (src)
+  if (src) {
     t->Assign(const_cast<void*>(src), r.data);
+  }
   return r;
 }
 
 Value Value::MakePtr(Type t, void* ptr, bool own) {
-  Value r;
-  r.kind = PTR;
-  r.type = t;
-  r.data = ptr;
-  r.owned = own;
-  return r;
+  Value v;
+  v.kind = CUSTOM;
+  v.type = t;
+  v.owned = own;
+  v.data = ptr;
+  return v;
 }
 
 Value Value::MakeString(String const& s) {
@@ -108,8 +111,6 @@ void Value::Release() {
     if (kind == STRING) {
       delete static_cast<String*>(data);
     } else if (type) {
-      // Reference<T> now has a ref-counting-aware assign/destruct via the
-      // type system, so the standard deallocate path is correct.
       type->Deallocate(data);
     }
     data = nullptr;
@@ -244,6 +245,20 @@ Value& Evaluator::Lookup(String const& name) {
   return none;
 }
 
+Value Evaluator::OwnedCopy(Value const& other) {
+  if (other.owned || other.kind != Value::CUSTOM || !other.data || !other.type)
+    return other;
+  Value out;
+  out.kind = other.kind;
+  out.type = other.type;
+  out.intVal = other.intVal;
+  out.data = other.type->Allocate();
+  if (other.type->construct) other.type->construct(out.type.t, out.data);
+  other.type->Assign(other.data, out.data);
+  out.owned = true;
+  return out;
+}
+
 /* `++`/`--` on a named variable: the engine binding mutates storage by
    reference, which a by-value call would discard, so mutate the scope slot
    in place. Returns the new value, or NONE if the name isn't a numeric local. */
@@ -362,7 +377,7 @@ Value Evaluator::EvalVarDecl(ASTDeclNodeT* decl) {
     }
   }
 
-  Declare(decl->name, init, decl->kind == AST_REF_DECL);
+  Declare(decl->name, OwnedCopy(init), decl->kind == AST_REF_DECL);
   return init;
 }
 
@@ -562,14 +577,14 @@ Value Evaluator::EvalAssign(ASTAssignNodeT* node) {
       }
     }
     /* Fall back to a dynamic local (unresolved at compile time). */
-    Declare(targetName, rhs);
+    Declare(targetName, OwnedCopy(rhs));
     return rhs;
   }
 
   Value* target = &Lookup(targetName);
 
   if (node->op == "=") {
-    *target = rhs;
+    *target = OwnedCopy(rhs);
   } else {
     bool prim = target->IsInt() || target->IsFloat() || target->IsString();
     if (prim) {
@@ -772,6 +787,7 @@ Value Evaluator::EvalBinaryOp(ASTBinaryOpNodeT* node) {
     if (node->op == "*")  return Value::MakeInt(l * r);
     if (node->op == "/")  return Value::MakeInt(r != 0 ? l / r : 0);
     if (node->op == "%")  return Value::MakeInt(r != 0 ? l % r : 0);
+    if (node->op == "^")  return Value::MakeInt((int)pow((double)l, (double)r));
     if (node->op == "<")  return Value::MakeBool(l < r);
     if (node->op == ">")  return Value::MakeBool(l > r);
     if (node->op == "<=") return Value::MakeBool(l <= r);
@@ -788,6 +804,7 @@ Value Evaluator::EvalBinaryOp(ASTBinaryOpNodeT* node) {
     if (node->op == "-")  return Value::MakeFloat(l - r);
     if (node->op == "*")  return Value::MakeFloat(l * r);
     if (node->op == "/")  return Value::MakeFloat(r != 0.0f ? l / r : 0.0f);
+    if (node->op == "^")  return Value::MakeFloat(powf(l, r));
     if (node->op == "<")  return Value::MakeBool(l < r);
     if (node->op == ">")  return Value::MakeBool(l > r);
     if (node->op == "<=") return Value::MakeBool(l <= r);
@@ -829,6 +846,16 @@ Value Evaluator::EvalUnaryOp(ASTUnaryOpNodeT* node) {
   if (node->op == "!") {
     if (operand.IsBool()) return Value::MakeBool(!operand.AsBool());
     if (operand.IsInt())  return Value::MakeBool(operand.AsInt() == 0);
+  }
+
+  /* Unary increment/decrement: `++ i` / `i.++` / `s.count.++` (AST_UNARY_OP
+     when the parser doesn't turn it into a method-call). The engine binding
+     mutates by reference, so write back to the scope slot / field in place and
+     return the new value. */
+  if (node->op == "++" || node->op == "--") {
+    Value mutated = IncDecOperand(node->op, node->operand);
+    if (mutated.kind != Value::NONE)
+      return mutated;
   }
 
   RuntimeError("unsupported unary op: " + node->op, node->loc);
@@ -877,6 +904,27 @@ Value Evaluator::EvalMethodCall(ASTMethodCallNodeT* node) {
     ScriptFunction sf = script->GetFunction(node->methodName);
     if (sf)
       return CallScriptFunction(sf, args);
+  }
+
+  /* Reflective field access on an engine-managed type (e.g. `p.x`, `p.z`
+     on a Vec3, or `q.slotName` on an engine object). This mirrors the old
+     interpreter's Expression_Access, which fell back to a `FindField` (field
+     offset lookup) on the receiver's engine Type when no script function or
+     method matched. Script-type fields already resolve above (both for the
+     raw script type and the Data-wrapped form), so only reach here for a
+     genuine engine value whose `receiver.type` matches its instance —
+     NOT a Data box wrapping a script payload of a different type (mapping
+     the Data type's fields over that payload would walk garbage). */
+  if (receiver.type && !IsScriptType(receiver.type) && !IsDataWrapped(receiver)) {
+    void* inst = ScriptInstance(receiver);
+    if (inst) {
+      FieldType f = receiver.type->FindField(inst, node->methodName);
+      if (f.type) {
+        Value v = ValueFromSlot(f.type, f.address);
+        if (v.kind != Value::NONE)
+          return v;
+      }
+    }
   }
 
   return CallEngineFunction(node->methodName, args, node->loc);
@@ -1112,7 +1160,12 @@ static bool EvalParamMatch(Type pt, Value const& v) {
   if (v.IsString())
     return v.type == pt;
 
-  if (!v.type)
+  /* A value with no type AND no payload is unknown/empty — let it match
+     anything. But a weakly-typed value that actually holds a heapp block
+     (e.g. an Object reference with a null `type`) must NOT silently match
+     an unrelated param type such as `Data` — that reinterprets the block
+     as garbage. */
+  if (!v.type && !v.data)
     return true;
 
   if (v.type == pt)
@@ -1284,14 +1337,86 @@ Value Evaluator::CallEngineFunction(String const& name, Vector<Value> const& arg
 
   Function const& fn = fns[bestIndex];
 
-  // Build the raw argument array. Engine bindings expect each void* to
-  // point at a real parameter object (value or ref type), so we hand out
-  // the Value's own storage: the inline union for primitives, the heap
-  // String*, or the borrowed pointer for engine/heap types.
+  /* Build the raw argument array, converting each arg to the parameter's
+     declared C++ type. Engine bindings expect every void* to point at a real
+     parameter object, so numeric args are staged into a slot of the param
+     type: a script Int literal `20000` passed to a `double const&` param must
+     become a real 8-byte double, not the Value's 4-byte int storage (which
+     the binding would reinterpret as a denormal ≈ 0). Non-primitive args
+     (String, engine objects, Reference<T>, vectors, ...) pass their heap
+     storage by pointer as-is. Staged slots are freed after the call; per the
+     legacy interpreter no write-back is done for primitive params. */
+  auto NumToDouble = [](Value const& v) -> double {
+    if (v.IsInt()) return (double)v.AsInt();
+    if (v.IsFloat()) return (double)v.AsFloat();
+    if (v.IsBool()) return v.AsBool() ? 1.0 : 0.0;
+    return 0.0;
+  };
+
   Vector<void*> rawArgs;
   rawArgs.reserve(args.size());
-  for (size_t i = 0; i < args.size(); ++i)
-    rawArgs.push(ValueArgPtr(args[i]));
+  Vector<Type> stagedTypes;
+  Vector<void*> stagedSlots;
+  for (size_t i = 0; i < args.size(); ++i) {
+    Type pt = (fn->params) ? fn->params[i].type : nullptr;
+    /* Primitive C++ params: stage a correctly-typed slot. */
+    if (pt &&
+        (pt == Type_Get<bool>() ||
+         pt == Type_Get<signed char>() || pt == Type_Get<unsigned char>() ||
+         pt == Type_Get<signed short>() || pt == Type_Get<unsigned short>() ||
+         pt == Type_Get<signed int>() || pt == Type_Get<unsigned int>() ||
+         pt == Type_Get<signed long>() || pt == Type_Get<unsigned long>() ||
+         pt == Type_Get<signed long long>() || pt == Type_Get<unsigned long long>() ||
+         pt == Type_Get<float>() || pt == Type_Get<double>())) {
+      void* slot = pt->Allocate();
+      if (pt->construct) pt->construct(pt.t, slot);
+      if (pt == Type_Get<float>())
+        *static_cast<float*>(slot) = (float)NumToDouble(args[i]);
+      else if (pt == Type_Get<double>())
+        *static_cast<double*>(slot) = NumToDouble(args[i]);
+      else if (pt == Type_Get<bool>())
+        *static_cast<bool*>(slot) = args[i].IsBool() ? args[i].AsBool()
+                                                     : (NumToDouble(args[i]) != 0.0);
+      else if (pt == Type_Get<signed char>() || pt == Type_Get<unsigned char>())
+        *static_cast<char*>(slot) = (char)NumToDouble(args[i]);
+      else if (pt == Type_Get<signed short>() || pt == Type_Get<unsigned short>())
+        *static_cast<short*>(slot) = (short)NumToDouble(args[i]);
+      else if (pt == Type_Get<signed int>() || pt == Type_Get<unsigned int>())
+        *static_cast<int*>(slot) = (int)NumToDouble(args[i]);
+      else if (pt == Type_Get<signed long>() || pt == Type_Get<unsigned long>())
+        *static_cast<long*>(slot) = (long)NumToDouble(args[i]);
+      else
+        *static_cast<long long*>(slot) = (long long)NumToDouble(args[i]);
+      stagedTypes.push(pt);
+      stagedSlots.push(slot);
+      rawArgs.push(slot);
+      continue;
+    }
+
+    /* Non-primitive params: run a registered conversion from the value's type
+       to the parameter type when one exists (e.g. script `Vec3` = V3F read as
+       `Position` = V3D). Passing the raw storage would be a layout mismatch:
+       a 16-byte V3F read as a 24-byte V3D overruns the heap block. Conversion
+       slots are staged like primitives (freed after the call). */
+    bool converted = false;
+    if (pt && args[i].type && pt != args[i].type) {
+      for (size_t ci = 0; ci < args[i].type->GetConversions().size(); ++ci) {
+        ConversionType const& cv = args[i].type->GetConversions()[ci];
+        if (cv.other == pt) {
+          void* slot = pt->Allocate();
+          if (pt->construct) pt->construct(pt.t, slot);
+          cv.fn(pt.t, ValueArgPtr(args[i]), slot);
+          stagedTypes.push(pt);
+          stagedSlots.push(slot);
+          rawArgs.push(slot);
+          converted = true;
+          break;
+        }
+      }
+    }
+    if (!converted)
+      rawArgs.push(ValueArgPtr(args[i]));
+  }
 
   // Allocate return value if needed
   void* retBuf = nullptr;
@@ -1308,8 +1433,10 @@ Value Evaluator::CallEngineFunction(String const& name, Vector<Value> const& arg
   if (fn->returnType && retBuf) {
     if (fn->returnType == Type_Get<int>() || fn->returnType == Type_Find("Int"))
       result = Value::MakeInt(*static_cast<int*>(retBuf));
-    else if (fn->returnType == Type_Get<float>() || fn->returnType == Type_Get<double>() || fn->returnType == Type_Find("Float"))
+    else if (fn->returnType == Type_Get<float>() || fn->returnType == Type_Find("Float"))
       result = Value::MakeFloat(*static_cast<float*>(retBuf));
+    else if (fn->returnType == Type_Get<double>() || fn->returnType == Type_Find("Double"))
+      result = Value::MakeFloat((float)*static_cast<double*>(retBuf));
     else if (fn->returnType == Type_Get<bool>() || fn->returnType == Type_Find("Bool"))
       result = Value::MakeBool(*static_cast<bool*>(retBuf));
     else if (fn->returnType == Type_Get<String>() || fn->returnType == Type_Find("String"))
@@ -1319,6 +1446,17 @@ Value Evaluator::CallEngineFunction(String const& name, Vector<Value> const& arg
     }
     fn->returnType->Deallocate(retBuf);
   }
+
+  /* Free the staged primitive/conversion slots (after the call so a
+     by-reference binding could observe them; no value is written back to
+     the script). stagedTypes[i] pairs with stagedSlots[i] — the rawArgs
+     index must NOT be reused for pairing, because non-staged args (raw
+     passes) leave rawArgs populated but staged empty, which would delete
+     a receiver/borrowed pointer as a staged slot. */
+  for (size_t i = 0; i < stagedTypes.size(); ++i)
+    if (stagedTypes[i]->deallocate)
+      stagedTypes[i]->deallocate(stagedTypes[i].t, stagedSlots[i]);
+
   return result;
 }
 
@@ -1329,14 +1467,26 @@ Value Evaluator::ValueFromSlot(Type t, void* data) {
   /* Primitives are stored inline in the Value (no heap, no ownership). */
   if (t == Type_Get<int>() || t == Type_Find("Int"))
     return Value::MakeInt(*static_cast<int*>(data));
-  if (t == Type_Get<float>() || t == Type_Get<double>() || t == Type_Find("Float"))
+  if (t == Type_Get<float>() || t == Type_Find("Float"))
     return Value::MakeFloat(*static_cast<float*>(data));
+  if (t == Type_Get<double>() || t == Type_Find("Double"))
+    return Value::MakeFloat((float)*static_cast<double*>(data));
   if (t == Type_Get<bool>() || t == Type_Find("Bool"))
     return Value::MakeBool(*static_cast<bool*>(data));
   if (t == Type_Get<String>() || t == Type_Find("String"))
     return Value::MakeString(*static_cast<String*>(data));
 
-  /* Engine-managed types (Vec3, Object, Widget, ...): borrow the slot. */
+  /* Value-semantics vector fields (Vec2/Vec3/Vec4, f/d): return an owned
+     copy. A field-read result is consumed after the receiver copy is
+     released (EvalMethodCall's `receiver` owns its Data and dies on
+     return); borrowing into that Data would read freed memory. Reference /
+     container fields (Object, Array, ...) stay borrowed below. */
+  if (t == Type_Get<V2F>() || t == Type_Get<V2D>() ||
+      t == Type_Get<V3F>() || t == Type_Get<V3D>() ||
+      t == Type_Get<V4F>() || t == Type_Get<V4D>())
+    return Value::MakeEngine(t, data);
+
+  /* Engine-managed types (Object, Widget, Array, ...): borrow the slot. */
   return Value::MakePtr(t, data, /*owned*/ false);
 }
 
@@ -1349,13 +1499,21 @@ void Evaluator::ValueToSlot(Value const& v, Type t, void* dest) {
       *static_cast<int*>(dest) = v.AsInt();
       return;
     }
-    if ((t == Type_Get<float>() || t == Type_Get<double>() || t == Type_Find("Float")) && v.IsFloat()) {
+    if ((t == Type_Get<float>() || t == Type_Find("Float")) && v.IsFloat()) {
       *static_cast<float*>(dest) = v.AsFloat();
-      // Allow int -> float promotion
       return;
     }
-    if ((t == Type_Get<float>() || t == Type_Get<double>() || t == Type_Find("Float")) && v.IsInt()) {
+    if ((t == Type_Get<double>() || t == Type_Find("Double")) && v.IsFloat()) {
+      *static_cast<double*>(dest) = (double)v.AsFloat();
+      return;
+    }
+    // Allow int -> float/double promotion
+    if ((t == Type_Get<float>() || t == Type_Find("Float")) && v.IsInt()) {
       *static_cast<float*>(dest) = (float)v.AsInt();
+      return;
+    }
+    if ((t == Type_Get<double>() || t == Type_Find("Double")) && v.IsInt()) {
+      *static_cast<double*>(dest) = (double)v.AsInt();
       return;
     }
     if ((t == Type_Get<int>() || t == Type_Find("Int")) && v.IsFloat()) {
@@ -1463,6 +1621,31 @@ Value Evaluator::CallScriptFunction(String const& name, Vector<Value> const& arg
         for (size_t i = 0; i < n; ++i)
           FieldSet(inst, st->fields[i].name, args[i]);
         return inst;
+      }
+    }
+  }
+
+  /* Engine-type construction/cast when the head names an engine TYPE rather
+     than a function: `(Renderable model)`, `(Vec3d v)`. Mirrors the old
+     interpreter's constructor/conversion fallback, which built an instance of
+     the named type from the argument — `Renderable model` at the end of a
+     generator `Main` must convert the Model to a Renderable (via the
+     registered Model→Renderable conversion), not fail as "undefined function:
+     Renderable". */
+  Type tname = Type_Find(name);
+  if (tname && args.size() == 1 && args[0].type) {
+    Value const& src = args[0];
+    /* Identity cast: same type, return the value as-is. */
+    if (src.type == tname)
+      return src;
+    /* Registered conversion on the source type (e.g. Model -> Renderable). */
+    for (ConversionType const& cv : src.type->GetConversions()) {
+      if (cv.other == tname || cv.other->GetAliasName() == name) {
+        void* dest = tname->Allocate();
+        if (tname->construct)
+          tname->construct(tname.t, dest);
+        cv.fn(nullptr, ValueArgPtr(src), dest);
+        return Value::MakePtr(tname, dest, true);
       }
     }
   }

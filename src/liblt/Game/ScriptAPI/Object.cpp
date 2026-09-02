@@ -52,6 +52,32 @@ static void player_to_object_Impl(Player const& src, Object& dest) {
 }
 static int const player_to_object_Registration = Conversion_Bind<&player_to_object_Impl>();
 
+/* Reference null-checks (IsNull / IsNotNull). These exist solely so an
+   `Object` reference's null state is decidable from script without
+   dispatching to the `Data`-typed overloads (Data.cpp binds Data_IsNull/
+   Data_IsNotNull): with only the Data overloads available, an Object
+   receiver (an 8-byte Reference block) matched the 8-byte Data param by
+   layout and the binding read garbage. */
+static Function const Object_IsNotNull_Registration = Function_Bind(
+  "Object_IsNotNull",
+  "Return whether 'object' refers to a valid instance",
+  [](Object const& object) -> bool
+  {
+  return object.t != nullptr;
+  },
+  "object");
+static int const Object_IsNotNull_Alias = Function_Alias("Object_IsNotNull", "IsNotNull");
+
+static Function const Object_IsNull_Registration = Function_Bind(
+  "Object_IsNull",
+  "Return whether 'object' does not refer to an instance",
+  [](Object const& object) -> bool
+  {
+  return object.t == nullptr;
+  },
+  "object");
+static int const Object_IsNull_Alias = Function_Alias("Object_IsNull", "IsNull");
+
 static Function const Object_AddChild_Registration = Function_Bind(
   "Object_AddChild",
   "Add 'child' to 'object'",

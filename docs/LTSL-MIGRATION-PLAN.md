@@ -1478,6 +1478,231 @@ LD_LIBRARY_PATH=bin:extbin/linux64 ./bin/ltsl_regression_diff
 
 ---
 
+## Migration Log — 2026-09-01 (runtime root-cause: arg→param type conversion + RNGT double-release)
+
+This session produced the first *definitive* root cause of the 3-day-old `rails`
+startup SIGSEGV. An AddressSanitizer build isolated the crash to a
+**Value-marshalling layout bug** — not ship generation and not the type registry.
+The fix unblocks the infamous `system = Object_System(Vec3(15.012), 1340)`
+assignment (`App/rails.lts:30`); the run now advances into `Item_ShipType.Main`
+ship generation, where a `Reference<RNGT>` double-release is the next target.
+
+### Where things stand (measured, not estimated)
+
+| Metric | Start of session | Now |
+|---|---|---|
+| `rails` crash site | SIGSEGV at `rails.lts:30` (the 3-day blocker) | `system =` succeeds → advances to `Item_ShipType.Main` → crashes on a `Reference<RNGT>` Release (refCount already 0) |
+| Root cause of the old crash | unknown (value-ownership hypotheses) | **confirmed via ASAN + fixed** (see below) |
+| `lte_tests` | 1473 checks, 0 failures | unchanged |
+| `ltsl_compile_gate` (old interpreter) | 157/157 PASS | unchanged |
+| AddressSanitizer | not configured | `build-asan/` configured + built clean; first real ASAN report captured |
+
+### The fix — arg→param type conversion in `CallEngineFunction`
+
+**Symptom.** `Object_System`'s C++ ran fine and `retBuf`/`MakeEngine` produced a
+valid `Reference<ObjectT>` (verified via `[dbg-os]`), yet the `system` field write
+received garbage. SIGSEGV at `Reference.h:85` inside `Reference<ObjectT>::operator=`
+(assert `refCount > 0` at `Reference.h:19`, then a second crash).
+
+**ASAN root cause.** First report in the whole project:
+`heap-buffer-overflow: READ of size 24` at
+`Object_System_Args::Object_System_Args(V3T<double> const&, uint const&)`
+(`Objects.h:118`). Script `Vec3` is aliased to **V3F** — the *float* vec, 16 bytes
+(`TypeAlias(V3F, Vec3)`, `ScriptAPI/V3.cpp:7`) — while the engine's `Position`
+param is `V3D` = `V3T<double>`, 24 bytes. The new Evaluator passed the argument
+value's **raw V3F buffer** into the binding, so `Object_System` read 24 bytes from
+a 16-byte block: an 8-byte heap overread that poisoned adjacent heap, and the
+returned Object `Reference` ended up slotted inside/heap-reused against the freed
+vec block → garbage pointee → the refcount SIGSEGV.
+
+The OLD interpreter never hit this because it **converted** mismatched args —
+`V3F→V3D` is registered (`Conversion_Bind<&V3F_to_V3D_Impl>()`, `V3.cpp:11-14`),
+and `EvalParamMatch` already treats it as a match via the conversion branch
+(`v.type->GetConversions()[i].other == pt`). Only the marshalling skipped the
+conversion step.
+
+**Fix (Evaluator.cpp, marshalling loop in `CallEngineFunction`).** For
+non-primitive params, search the arg Value's `type->GetConversions()`; on
+`cv.other == paramType`, allocate a param-typed slot, `construct`, run `cv.fn`,
+staged like primitives (freed after the call), and pass **the slot** instead of the
+raw value storage. This is the general fix for every cross-type binding mismatch
+(any float-vs-double, etc.) — not a one-off for `Object_System`.
+
+**Verification.** `[dbg-field]` now logs `field=system` with a **valid pointee**
+(identical to the returned Object); `Object_System` generates star/starfield
+(`Unused variable texture ...` shader warnings from `GenerateStar` appear).
+
+### Next crash — `Reference<RNGT>` double-release in `Item_ShipType.Main`
+
+After the `system` assign, `rails` advances into ship generation. `var rng
+(RNG_MTG seed + 102)` (`Item/ShipType/Generate.lts:41`) creates
+`Reference<RNGT>`; the crash is a Release against refCount==0 (abort
+`Reference.h:19`) during `EvalMethodCall` argument teardown inside the first
+`for` loop (`var index (rng.Int boxes.Size)`, `Generate.lts:54`).
+
+Debug status:
+- Refcount instrumentation added to Release + acquire prints
+  (`[dbg-rel] ... rc=N` / `[debug-ref] ... rc=N`), gated by `LTSL_DEBUG=1`.
+- **Trap:** for polymorphic `RefCounted` types (RNGT is abstract → has a vptr),
+  `refCount` lives at **offset 8**, not 0 — `*(uint*)pointee` reads the vptr
+  (garbage constant). Reads must go to `*(uint*)((char*)pointee + 8)` (or avoid
+  reads entirely and tally printed acquires vs releases per pointee).
+- Pointee tally comes out **positive** (net-leak-looking) for every live pointee,
+  because unprinted events (the C++ `retBuf` return slot / teardown Reference
+  ownership) skew the count. The true imbalance is between a printed and an
+  unprinted event — do not trust a raw tally.
+
+**Next step.** Read the real refCount at offset 8 and find the release that hits
+0 (or run the corrected binary under ASAN and let it name the first invalid write).
+
+### Gotchas
+
+1. **V3F vs V3D is a marshalling contract, not a script bug.** LTSL `Vec3` *is*
+   the float vec by design; engine bindings take doubles where they want doubles
+   (`Position`, `Vec3d`, ...). The fix belongs in the evaluator's arg staging
+   (one conversion step for all bindings) — do **not** re-alias `Vec3`→V3D or edit
+   scripts/bindings to dodge it.
+2. **Conversions are registered on the SOURCE type** (`FunctionBind.h:141`:
+   `Type_Get<SourceType>()->AddConversion({DestType, fn})`). Search
+   `valType->GetConversions()` for `cv.other == paramType` — the direction used by
+   `EvalParamMatch` — not the target type's list.
+3. **ASAN shares `bin/`.** `RUNTIME_OUTPUT_DIRECTORY`/`LIBRARY_OUTPUT_DIRECTORY`
+   point at repo `bin/` (`CMakeLists.txt:21-29`), so `cmake --build build-asan`
+   **overwrites `bin/launch` and `bin/liblt.so`** with the instrumented build.
+   Rebuild the normal config (`python3 configure.py build`) to restore the working
+   binaries. (The first ASAN run's `exit=127` was a wrong path —
+   `build-asan/lib/launch` does not exist; the output lands in `bin/`.)
+4. Keep `build-asan/` around until this bug class is closed — it is generated/
+   gitignored, but the configuration is reusable for the next sanitizer run.
+
+### Temporary instrumentation (remove before the final commit)
+
+`[dbg-field]`/`[dbg-os]`/`[dbg-aa]` in `Evaluator.cpp`, the `[debug-ref]`/
+`[dbg-cpy]`/`[dbg-mkptr]`/`[dbg-rel]` Value traces, plus the pre-existing
+`[dbg-ship]` prints (`ShipType.cpp`, `PlateMesh.cpp`, `launch.cpp` `OnUpdate`,
+`Rendered.cpp` `PreDraw`) — all gated behind `LTSL_DEBUG=1`.
+
+---
+
+## Migration Log — 2026-09-01 (runtime root-cause: dangling `prevNode` in the warp-node loop)
+
+Continuation of the `rails` runtime bring-up. The `Object_System` marshalling
+crash from the previous entry is fixed and long behind us; the run now advances
+~1.9M lines into `Initialize` (ship generation + warp-node loop + both stations)
+before faulting on `rails.lts:88`.
+
+### Where things stand (measured, not estimated)
+
+| Metric | Start of session | Now |
+|---|---|---|
+| `rails` crash site | `Reference<RNGT>` double-release in ship generation | `rails.lts:88` `if prevNode.IsNotNull` — **dangling receiver** (root-caused, see below) |
+| `system = Object_System(...)` | SIGSEGV (fixed prev. session) | ✅ succeeds; star/nebula/starfield generate |
+| `Object_IsNull`/`IsNotNull` | unbound for `Object` receivers | ✅ dedicated bindings added |
+| `lte_tests` | 1473 checks, 0 failures | 1473 checks, 0 failures (unchanged) |
+| `ltsl_compile_gate` (old path) | 157/157 PASS | 157/157 PASS (unchanged) |
+
+### Fix #1 — `Object_IsNull`/`Object_IsNotNull`: dedicated Object bindings
+
+`prevNode.IsNotNull` (`rails.lts:88`) previously resolved to `Data_IsNotNull`
+(`ScriptAPI/Data.cpp:40`), which takes a `Data`-boxed script value — the
+receiver type never matched, so the call was the startup SIGSEGV candidate.
+Added real bindings in `src/liblt/Game/ScriptAPI/Object.cpp`:
+
+```cpp
+// IsNull / IsNotNull for an Object receiver (Reference<ObjectT>).
+// return ((Reference<ObjectT> const&)object).t == nullptr
+```
+
+Plus `Object_IsNull`. Aliases registered via `Function_Alias`, so both `IsNull`
+and `IsNotNull` now have Data and Object candidates; overload resolution picks
+the receiver-typed one. **Dispatch now selects the Object binding** (verified in
+gdb: `FunctionBinding<bool, std::tuple<const Reference<ObjectT>&>, ...>`,
+`name="IsNotNull"`, `loc.line=88`).
+
+### Fix #2 — `EvalParamMatch` hardening
+
+`EvalParamMatch` returned "match" whenever `v.type` was null — which included a
+fully-destroyed `Value` (`data == nullptr`, `owned == false`, kind reset). A
+null-typed-but-payloaded value is genuinely untyped, but a null-typed **and**
+null-payloaded value must NOT silently match an arbitrary param slot. Hardened
+the guard to `if (!v.type && !v.data) return true;`.
+
+### Root cause — shallow assignment produces a dangling `prevNode`
+
+**Symptom.** Crash inside `Object_IsNotNull`'s lambda at
+`Object.cpp:66 *...; return object.t != nullptr;` — reading `object.t` from a
+`Reference<ObjectT>` whose block was already freed. Backtrace:
+`EvalFor -> EvalBlock -> EvalIf -> EvalMethodCall -> CallEngineFunction(+0x9ca)`
+— i.e. the `if prevNode.IsNotNull` condition (rails.lts:88) in the warp loop.
+
+**Why.** `rails.lts:92` does `prevNode = node`, where `node` is a per-iteration
+local declared inside the for-body scope (`var node Object_WarpNode`,
+rails.lts:82). The Evaluator `Value` copy semantics (`Evaluator.cpp` Value ctor /
+`operator=`) are:
+- `owned == true` source → **deep copy** the payload (`Allocate`+`construct`+
+  `Assign`) — self-sufficient, refcounted for `Reference<T>`.
+- `owned == false` source → **shallow borrow**: `data = other.data`, `owned =
+  false`.
+
+Lookup of `node` returns a copy of the slot value; if that copy is a borrow (or
+if the assignment itself copies the borrow), `prevNode` aliases the loop-local
+`node` block. When the for-body scope dies at DEDENT, `node`'s block is
+released; iteration N+1's `prevNode.IsNotNull` reads freed memory. The `Add`
+overload worst-match noise seen in the same window (`PlateMesh_AddWarp`
+`pc=2` bestScore 0, `Object/WarpRail.lts:46 myModel.Add myMesh Material_Ice`)
+is a *separate* latent overload-resolution issue, queued behind this crash.
+
+### Fix #3 — `Evaluator::OwnedCopy`: deep-own borrowed values at storage sites
+
+Added a deep-owning helper used **only where a value is stored into a
+persistent variable slot** (so `address`/`deref`/`ref` borrow semantics are
+untouched):
+
+```cpp
+Value Evaluator::OwnedCopy(Value const& other) {
+  if (other.owned || other.kind != Value::CUSTOM || !other.data || !other.type)
+    return other;
+  Value out; /* deep copy via Allocate + construct + Assign, owned = true */
+  return out;
+}
+```
+
+Applied at three storage points:
+- `EvalVarDecl` — `Declare(decl->name, OwnedCopy(init), ...)`
+- `EvalAssign` — `*target = OwnedCopy(rhs)` for `=`
+- `EvalAssign` dynamic-local fallback — `Declare(targetName, OwnedCopy(rhs))`
+
+**Status: NOT yet verified to fix the crash.** Built and run: SIGSEGV persists
+at the same `Object.cpp:66` site (~818th warp iteration, line ≈1.913M). The
+deep-copy is correct in principle (refcounted copy of the Reference block), so
+either the assignment isn't traversing the fixed path (e.g. `node` is a
+`Reference<ObjectT>` raw-borrow whose `type->Assign` still shares the block
+with unbalanced refcount), or the freed block predates `prevNode` (a shared
+`node`-type instance released earlier). **Next step:** verify the stored
+`prevNode` slot's `owned` flag and block refcount at the crash, then either
+confirm OwnedCopy is doing its job and the fault lies in `type->Assign` for
+`Reference<ObjectT>`, or chase the block's last release. ASAN loop
+(`cmake --build build-asan -j 8`; note it clobbers `bin/`) is the next hammer.
+
+### Parser fix (real, unrelated) — method args parse as full expressions
+
+`ParsePostfix` collected each `.member` space-separated argument with
+`ParseUnary`, so an argument containing a binary operator mangled the call into
+a binary expression (e.g. `self.Add box.center * (Vec3 1 1 1) box.size *
+(Vec3 1 1 1) 0 kBevel`). Now parses each argument with `ParseExpression`,
+honoring `a.b expr1 expr2` → `(b a expr1 expr2)` grouping while stopping at the
+next bare value/operator/EOL.
+
+### Instrumentation
+
+All `[dbg-*]` prints from this session were stripped before this commit
+(Evaluator.cpp Value/assign/call foo traces; `[dbg-ship]` etc. in ShipType.cpp,
+PlateMesh.cpp, launch.cpp, Rendered.cpp; parser diag cases in TestParser.cpp).
+The Diagnostic/Parser `[S]/[P]/[M]` unexpected-token lines are pre-existing
+HEAD code and were left alone.
+
+---
+
 ## Phase 5: DX & Modding — Making LTSL Easy to Grasp (Next)
 
 **Goal:** Files are hard to understand and future modding must be easy. Keep LTSL **strict but assisted** (hard errors + auto-fix), not permissive. The 79-file normalization (Option B) already lands the strict subset; Phase 5 adds the tooling so authors never have to think about it.

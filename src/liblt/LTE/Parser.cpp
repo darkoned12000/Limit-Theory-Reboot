@@ -2152,7 +2152,16 @@ ASTNode Parser::ParsePostfix(ASTNode left) {
               third.kind == TOK_NOT)
             break;
         }
-        ASTNode arg = ParseUnary();
+        // Parse a FULL (Pratt) expression per argument so that LTSL's
+        // `a.b expr1 expr2 ...` → `(b a expr1 expr2 ...)` grouping is honored
+        // even when an argument itself contains binary operators, e.g.
+        // `self.Add box.center * (Vec3 1 1 1) box.size * (Vec3 1 1 1) 0 kBevel`
+        // yields Add(self, box.center*Vec3, box.size*Vec3, 0, kBevel) — five
+        // arguments — instead of mangling the call into a binary expression.
+        // ParseExpression stops at the next non-infix token, so each
+        // binary-expression argument is consumed as a single arg and the loop
+        // breaks cleanly at the next bare value / operator / end-of-line.
+        ASTNode arg = ParseExpression();
         if (!arg)
           break;
         PushCallArg(call->args, arg);
