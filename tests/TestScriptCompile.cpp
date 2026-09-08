@@ -133,6 +133,85 @@ LTE_TEST(CompileEnvironment_LineNumberInError) {
   LTE_CHECK(env.errors[0].find("error without line number") != String::npos);
 }
 
+// ── P2-7: StringList_Create single-line (no double-wrap) ────────────────
+// Regression guard for ltsl-hardening.md §5.2. Before the fix, a single
+// line whose statement is a paren group was re-wrapped by ParseBlock, so
+// StringList_Create("(while 1 (return 42))") produced '[[stmt]]' — an extra
+// list level the compiler pierced via GetSize()==1 recursion (transient
+// probe noise, bewildering errors in the original session).
+LTE_TEST(StringList_Create_SingleLineSingleStatement) {
+  StringList list = StringList_Create("(while 1 (return 42))");
+
+  // Root is the statement list; the statement itself is the while call,
+  // NOT a wrapper around it.
+  LTE_CHECK(list->GetSize() == 1);
+  LTE_CHECK(!list->Get(0)->IsAtom());
+  LTE_CHECK_EQ(list->Get(0)->GetSize(), size_t(3));
+  LTE_CHECK(list->Get(0)->Get(0)->IsAtom());
+  LTE_CHECK(list->Get(0)->Get(0)->GetValue() == "while");
+}
+
+LTE_TEST(StringList_Create_SingleLinePlainCompilesClean) {
+  // Single-line inline compile must mirror the file-load semantics of
+  // ScriptT::Reload: compile each root element as a statement (locals ==
+  // nullptr at the top level, exactly as the engine does). A paren-styled
+  // statement compiles like any other statement — the §5.2 noise class
+  // is gone because the wrapper layer no longer exists.
+  StringList list = StringList_Create("(+ 1 2)");
+  LTE_CHECK(list->GetSize() == 1);
+
+  CompileEnvironment env;
+  env.script = new ScriptT;
+  env.script->name = "testScript";
+
+  for (size_t i = 0; i < list->GetSize(); ++i) {
+    Expression expr = Expression_Compile(list->Get(i), env);
+    LTE_CHECK(expr);
+    LTE_CHECK(!env.hasErrors);
+    LTE_CHECK_EQ(env.errors.size(), size_t(0));
+
+    int result = 0;
+    Environment runtimeEnv;
+    expr->Evaluate(&result, runtimeEnv);
+    LTE_CHECK_EQ(result, 3);
+  }
+}
+
+LTE_TEST(StringList_Create_SingleLineParenCompilesAndEvaluates) {
+  // The §5.2 example (while + return) must now compile with zero errors —
+  // previously: 'cannot resolve type' from the double-wrap + probe noise.
+  StringList list = StringList_Create("(while 1 (return 42))");
+
+  CompileEnvironment env;
+  env.script = new ScriptT;
+  env.script->name = "testScript";
+
+  Expression expr;
+  for (size_t i = 0; i < list->GetSize(); ++i) {
+    expr = Expression_Compile(list->Get(i), env);
+    break;
+  }
+  LTE_CHECK(expr);
+  LTE_CHECK(!env.hasErrors);
+  LTE_CHECK_EQ(env.errors.size(), size_t(0));
+
+  Environment runtimeEnv;
+  int result = 0;
+  runtimeEnv.returnValue = &result;
+  expr->Evaluate(&result, runtimeEnv);
+  LTE_CHECK(runtimeEnv.returnSignal);
+  LTE_CHECK_EQ(result, 42);
+}
+
+LTE_TEST(StringList_Create_MultiLineShapeUnchanged) {
+  // Statements stay at exactly one list level regardless of paren style.
+  String const source = "var a 1\nvar b 2\n";
+  StringList list = StringList_Create(source);
+  LTE_CHECK_EQ(list->GetSize(), size_t(2));
+  LTE_CHECK(list->Get(0)->Get(0)->GetValue() == "var");
+  LTE_CHECK(list->Get(1)->Get(0)->GetValue() == "var");
+}
+
 LTE_TEST(CompileEnvironment_MultipleErrorsAccumulate) {
   CompileEnvironment env;
   StringList list1 = StringList_Create("token1");
@@ -729,3 +808,79 @@ LTE_TEST(RewriteElse_LeavesIfWithoutElseUntouched) {
   LTE_CHECK_EQ(list->Get(2)->Get(0)->GetValue(), String("else"));
 }
 
+
+// ── P2-5: explicit-return strict mode ───────────────────────────────────
+// Default OFF (Script_WarnMissingReturn): a non-Void function relying on
+// the last-expression fallback warns only when opted in, and warnings
+// never count as errors (opt-in warnings must not abort app loads).
+LTE_TEST(StrictReturn_DefaultOff_NoWarning) {
+  String const source = "function Int F ()\n  var x 5\n";
+  StringList list = StringList_Create(source);
+  list = LTSL_ApplyRewrites(list);
+
+  CompileEnvironment env;
+  env.script = new ScriptT;
+  env.script->name = "testScript";
+
+  for (size_t i = 0; i < list->GetSize(); ++i)
+    Expression_Compile(list->Get(i), env);
+  LTE_CHECK(!env.hasErrors);
+  LTE_CHECK_EQ(env.errors.size(), size_t(0));
+  LTE_CHECK_EQ(env.warnings.size(), size_t(0));
+}
+
+LTE_TEST(StrictReturn_WarnsWhenMissingReturn) {
+  String const source = "function Int F ()\n  var x 5\n";
+  StringList list = StringList_Create(source);
+  list = LTSL_ApplyRewrites(list);
+
+  CompileEnvironment env;
+  env.script = new ScriptT;
+  env.script->name = "testScript";
+  env.warnMissingReturn = true;
+
+  for (size_t i = 0; i < list->GetSize(); ++i)
+    Expression_Compile(list->Get(i), env);
+  LTE_CHECK(!env.hasErrors);
+  LTE_CHECK_EQ(env.errors.size(), size_t(0));
+  LTE_CHECK_EQ(env.warnings.size(), size_t(1));
+  LTE_CHECK(env.warnings[0].find("function 'F'") != String::npos);
+  LTE_CHECK(env.warnings[0].find("no return statement") != String::npos);
+}
+
+LTE_TEST(StrictReturn_NoWarningWhenReturnPresent) {
+  String const source = "function Int F ()\n  return 42\n";
+  StringList list = StringList_Create(source);
+  list = LTSL_ApplyRewrites(list);
+
+  CompileEnvironment env;
+  env.script = new ScriptT;
+  env.script->name = "testScript";
+  env.warnMissingReturn = true;
+
+  for (size_t i = 0; i < list->GetSize(); ++i)
+    Expression_Compile(list->Get(i), env);
+  LTE_CHECK_EQ(env.warnings.size(), size_t(0));
+}
+
+LTE_TEST(StrictReturn_NoWarningWhenReturnInsideIf) {
+  // A return nested in a conditional still satisfies the requirement —
+  // BodyHasReturn scans the whole body tree.
+  String const source =
+    "function Int F (Bool flag)\n"
+    "  if flag\n"
+    "    return 1\n"
+    "  else\n"
+    "    return 2\n";
+  StringList list = StringList_Create(source);
+  list = LTSL_ApplyRewrites(list);
+
+  CompileEnvironment env;
+  env.script = new ScriptT;
+  env.script->name = "testScript";
+  env.warnMissingReturn = true;
+
+  for (size_t i = 0; i < list->GetSize(); ++i)
+    Expression_Compile(list->Get(i), env);
+  LTE_CHECK_EQ(env.warnings.size(), size_t(0));
+}

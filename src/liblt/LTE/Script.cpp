@@ -28,6 +28,9 @@ namespace {
 }
 
 namespace LTE {
+  /* P2-5 strict mode toggle (default off — see Environment.h). */
+  bool Script_WarnMissingReturn = false;
+
   void ScriptT::Reload() {
     String scriptPath = name + kScriptExtension;
     Location location = Location_Script(scriptPath);
@@ -52,10 +55,13 @@ namespace LTE {
     FRAME(&name.front()) {
       CompileEnvironment env;
       env.script = this;
+      env.warnMissingReturn = Script_WarnMissingReturn;
       for (size_t i = 0; i < list->GetSize(); ++i)
         Expression_Compile(list->Get(i), env);
       if (env.hasErrors)
         env.PrintErrors(name);
+      if (env.warnings.size() != 0)
+        env.PrintWarnings(name);
     }
   }
 

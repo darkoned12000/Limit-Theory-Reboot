@@ -144,7 +144,15 @@ namespace {
         }
       }
 
-      if (current.size() == 1 && current[0]->IsAtom())
+      /* One element is the statement itself — push as-is. Re-wrapping a
+         lone paren-group statement here double-wrapped single-line inputs
+         into '[[stmt]]', hitting Expression_Compile's GetSize()==1
+         piercing path with spurious probe noise (ltsl-hardening.md §5.2,
+         P2-7). Multi-element `current` (a line plus its indented block, or
+         several top-level groups on one line) keeps the wrapper — that
+         list IS the statement. */
+      if (current.size() == 0) {
+      } else if (current.size() == 1)
         elements.push(current[0]);
       else
         elements.push(new StringListList(current));

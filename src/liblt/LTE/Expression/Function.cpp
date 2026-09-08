@@ -13,6 +13,26 @@
 namespace {
   void ScriptFunction_Call(void*, void**, void*) {
   }
+
+  /* Recursive scan for a `return` statement anywhere in the body — used by
+     the explicit-return strict-mode warning (P2-5). A bare `return` atom
+     (Return with no value) counts, as does any list whose head atom is
+     `return`. Scans nested constructs (if/while/switch bodies) too, since
+     a return inside a conditional still satisfies the requirement. */
+  bool BodyHasReturn(StringList const& node) {
+    if (node->IsAtom())
+      return node->GetValue() == "return";
+
+    if (node->GetSize() > 0 && node->Get(0)->IsAtom()
+        && node->Get(0)->GetValue() == "return")
+      return true;
+
+    for (size_t i = 0; i < node->GetSize(); ++i)
+      if (BodyHasReturn(node->Get(i)))
+        return true;
+
+    return false;
+  }
 }
 
 namespace LTE {
@@ -113,6 +133,7 @@ namespace LTE {
     CompileEnvironment subEnv;
     subEnv.script = env.script;
     subEnv.context = env.context;
+    subEnv.warnMissingReturn = env.warnMissingReturn;
 
     /* Rebuild the full parameter list: implicit 'this' (per context) first,
        then declared parameters. For a reused placeholder this reproduces the
@@ -177,6 +198,30 @@ namespace LTE {
       env.errors.push(subEnv.errors[i]);
     if (subEnv.hasErrors)
       env.hasErrors = true;
+
+    /* Explicit-return strict mode (P2-5, default OFF via
+       Script_WarnMissingReturn). Warn when the function declares a
+       non-Void return type but the body contains no `return` statement —
+       such a function relies on the last-expression fallback, which is
+       the silent-wrong-value bug class. Errors in the body exempt it from
+       extra noise; declared-but-unresolvable return types ("Void" is not
+       a registered type) are treated as Void per the advisory-declaration
+       rule above. */
+    if (subEnv.warnMissingReturn && !subEnv.hasErrors) {
+      Type declared = env.script->ResolveType(list->Get(1));
+      if (declared && declared != Type_Get<void>()) {
+        bool hasReturn = false;
+        for (size_t i = 4; i < list->GetSize() && !hasReturn; ++i)
+          hasReturn = BodyHasReturn(list->Get(i));
+
+        if (!hasReturn)
+          env.ReportWarning(list, Stringize()
+            | "function '" | name
+            | "' declares return type '" | list->Get(1)->GetString()
+            | "' but its body has no return statement "
+            | "(value = last expression before the fix-up; intended?)");
+      }
+    }
 
     if (env.context.size())
       env.context.back()->functions[name] = fn;

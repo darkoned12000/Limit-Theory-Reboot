@@ -114,10 +114,13 @@ namespace LTE {
     int registers;
     bool hasErrors;
     Vector<String> errors;
+    bool warnMissingReturn;
+    Vector<String> warnings;
 
     CompileEnvironment() :
       registers(0),
-      hasErrors(false)
+      hasErrors(false),
+      warnMissingReturn(false)
       {}
 
     void ReportError(StringList const& list, String const& message) {
@@ -131,12 +134,33 @@ namespace LTE {
       hasErrors = true;
     }
 
+    /* Compile-time diagnostics that do NOT fail the script — surfaced via
+       PrintWarnings and never folded into `errors`/hasErrors, so opt-in
+       hardening warnings (P2-5) cannot abort app loads. */
+    void ReportWarning(StringList const& list, String const& message) {
+      uint32_t line = StringList_GetLine(list);
+      String formatted;
+      if (line > 0)
+        formatted = Stringize() | "  line " | line | ": " | message;
+      else
+        formatted = Stringize() | "  " | message;
+      warnings.push(formatted);
+    }
+
     void PrintErrors(String const& scriptName) const {
       if (errors.size() == 0) return;
       std::cout << "'" << scriptName << "' -- " << errors.size()
                 << " compilation error(s):" << std::endl;
       for (size_t i = 0; i < errors.size(); ++i)
         std::cout << errors[i] << std::endl;
+    }
+
+    void PrintWarnings(String const& scriptName) const {
+      if (warnings.size() == 0) return;
+      std::cout << "'" << scriptName << "' -- " << warnings.size()
+                << " script warning(s):" << std::endl;
+      for (size_t i = 0; i < warnings.size(); ++i)
+        std::cout << warnings[i] << std::endl;
     }
 
     uint Allocate(
@@ -171,6 +195,14 @@ namespace LTE {
       }
     }
   };
+
+  /* Explicit-return strict mode (ltsl-hardening.md §8 P2-5). Default OFF:
+     when enabled, compiling a function whose declared return type is
+     non-Void but whose body contains no `return` statement emits a
+     script warning (last-expression fallback is the silent-wrong-value
+     bug class). Copied into every script's CompileEnvironment by
+     ScriptT::Reload; tests may set it directly. */
+  LT_API extern bool Script_WarnMissingReturn;
 }
 
 #endif
