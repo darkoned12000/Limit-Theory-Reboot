@@ -16,13 +16,13 @@ namespace LTE {
   struct ExpressionT : public RefCounted {
     BASE_TYPE(ExpressionT)
 
-    virtual String Emit(Vector<String>& context) const {
+    virtual String Emit(Vector<String>&) const {
       return "";
     }
 
     virtual void Evaluate(void* returnValue, Environment& env) const = 0;
 
-    virtual void* GetLValue(Environment& env) const {
+    virtual void* GetLValue(Environment&) const {
       return nullptr;
     }
 

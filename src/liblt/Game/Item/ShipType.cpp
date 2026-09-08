@@ -33,6 +33,8 @@
 #include "Game/Renderables.h"
 #include "LTE/FunctionBind.h"
 
+#include <ctime>
+
 /* Balance knobs — loaded from ships.json "balance" section.
  * C++ defaults match ships.json; only used if JSON is missing. */
 static uint kThrusterAttempts = 10;
@@ -447,5 +449,46 @@ static Function const Item_ShipType_Registration = Function_Bind(
   "None",
   [](double const& value, uint const& seed, float const& capacity, float const& compactness, float const& integrity) -> Item { return Item_ShipType(value, seed, capacity, compactness, integrity); },
   "value", "seed", "capacity", "compactness", "integrity");
+
+/* ShipType_GetArchetype(name) — create a ship Item from a named archetype.
+ * Reads valueRange midpoint from ships.json, picks a random seed.
+ * Apps call: var shipType (ShipType_GetArchetype "fighter") */
+Item ShipType_GetArchetype(String const& name) {
+  EnsureShipsDb();
+
+  String archetypePath = Stringize() | "shipArcheTypes." | name;
+  json const* archetype =
+    DatabaseManager_Get().FindPath("ships", archetypePath);
+  if (!archetype) {
+    printf("ShipType_GetArchetype: unknown archetype '%s'\n", name.c_str());
+    return nullptr;
+  }
+
+  /* Read valueRange midpoint. */
+  json const* rangeVal = JGet(archetype, "valueRange");
+  float minVal = 0, maxVal = 0;
+  if (!JRange(rangeVal, "ships.json: shipArcheTypes",
+             minVal, maxVal, 0, 0)) {
+    printf("ShipType_GetArchetype: '%s' missing valueRange\n", name.c_str());
+    return nullptr;
+  }
+  double value = (minVal + maxVal) / 2.0;
+
+  /* Random seed per instantiation. */
+  RNG rng = RNG_MTG((uint)std::time(nullptr));
+  uint seed = rng->GetInt();
+  if (!seed) seed = 1;
+
+  return Item_ShipType(value, seed);
+}
+static Function const ShipType_GetArchetype_Registration = Function_Bind(
+  "ShipType_GetArchetype",
+  "Create a ship Item from a named archetype in ships.json. "
+  "Reads valueRange midpoint for the value budget. "
+  "Returns an Item (ship type) ready for Instantiate().",
+  [](String const& name) -> Item { return ShipType_GetArchetype(name); },
+  "name");
+static int const ShipType_GetArchetype_Alias =
+  Function_Alias("ShipType_GetArchetype", "GetArchetype");
 
 

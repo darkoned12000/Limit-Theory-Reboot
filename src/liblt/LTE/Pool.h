@@ -96,11 +96,11 @@ namespace LTE {
 }
 
 #define POOLED_TYPE                                                            \
-  void* operator new(size_t sz) {                                              \
+  void* operator new(size_t) {                                                 \
     return GetTypePool<SelfType, sizeof(SelfType)>()->Allocate();              \
   }                                                                            \
                                                                                \
-  void* operator new(size_t sz, void* buf) {                                   \
+  void* operator new(size_t, void* buf) {                                      \
     return ::new (buf) SelfType;                                               \
   }                                                                            \
                                                                                \
@@ -109,6 +109,6 @@ namespace LTE {
       GetTypePool<SelfType, sizeof(SelfType)>()->Free(p);                      \
   }                                                                            \
                                                                                \
-  void operator delete(void* p, void*) {}
+  void operator delete(void*, void*) {}
 
 #endif

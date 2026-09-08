@@ -51,7 +51,7 @@ inline json const* JGet(json const* arr, int idx) {
  *
  * Returns true on success. On failure, sets out to fallback and returns false.
  * path is used for error messages (e.g. "planets.json: biomes.lava.surfaceTint"). */
-inline bool JColor(json const* v, String const& path, V3& out,
+inline bool JColor(json const* v, [[maybe_unused]] String const& path, V3& out,
                    V3 const& fallback = V3(0.5f))
 {
   if (!v) {
@@ -105,7 +105,7 @@ inline bool JColor(json const* obj, const char* key, String const& path,
 
 /* Parse a [min, max] range from JSON. Returns true on success.
  * Single number → min=max=value (fixed). Missing → fallback. */
-inline bool JRange(json const* v, String const& path,
+inline bool JRange(json const* v, [[maybe_unused]] String const& path,
                    float& minOut, float& maxOut,
                    float fallbackMin = 0.0f, float fallbackMax = 1.0f)
 {

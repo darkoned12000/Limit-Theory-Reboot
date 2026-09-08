@@ -32,8 +32,8 @@ and modernization roadmap. Read before making large changes.
   later. (Example: the LTSL binding bridge — the `Function_Generated.h` /
   `DeclareFunction.h` macro families and the `DefineConversion`/`FunctionAlias`
   macros are **deleted** (Step 10, done 2026-08-05); `Function_Bind`/
-  `Function_Alias`/`Conversion_Bind` are the only binding mechanism. See
-  `ltsl-binding-bridge-replacement.md` §12.)
+  `Function_Alias`/`Conversion_Bind` are the only binding mechanism. The
+  master-plan doc for that migration was retired 2026-09-07 — see A.15.)
 - **Harden against breakage.** Prefer changes that make it hard to break the
   engine: compile-time checks (e.g. the binder's `static_assert` arity guard),
   automated gates (alias-order checker, API-DB byte-diff, `-Werror` on project
@@ -103,15 +103,15 @@ python3 configure.py test       # runs all unit tests (lte_tests target)
   targets (`SFML::Graphics`, etc.) provide include paths and link libraries.
 - Linux flags: `-fno-exceptions -O2 -g -msse -msse2 -Wall -Wextra`
   (`-Werror` scoped to project targets `lt` and `launch`; vendored code excluded).
-- **Known pre-existing warnings:** GCC 15 emits `-Wunused-parameter` warnings
-  from engine template/macro code (`Type.h`, `Common.h`, `Reference.h`,
-  `AutoClass.h`, etc.) in the `launch` and `lte_tests` targets.
-  These come from macro-generated functions (e.g. empty `FIELDS {}` in base types
-  producing `MapFields(TypeT*, void*, FieldMapper&, void*)` with all params
-  unused). Suppressed by `-Wno-unused-parameter` in `CMAKE_CXX_FLAGS` but some
-  template instantiation paths bypass it. **Pre-existing — not caused by any
-  upgrade.** Low priority; fix at source if/when refactoring the reflection
-  macros.
+- **Warnings:** GCC 15/16 emit `-Wunused-parameter` / `-Wdeprecated-copy` from
+  macro-generated code and from code included into targets that re-widen the
+  warning set (`tests/CMakeLists.txt` and `ltsl_api_dump` add `-Wall -Wextra`
+  *after* the global `-Wno-*` flags, re-enabling them). **Resolved 2026-09-07:**
+  all warnings fixed at source (unnamed params in interface default-impls —
+  `Object.h`, `Expression.h`, `StringList.h` — `POOLED_TYPE` macro in
+  `Pool.h`, `[[maybe_unused]]` on reserved `path` params in `JsonHelpers.h`,
+  and an explicit copy ctor in `Pointer.h` to fix deprecated-copy). GCC 16.2
+  full build + `lte_tests` = **0 warnings**.
 - Link libraries (Linux): `dl freetype`, `SFML::Graphics`, `SFML::Audio`,
   `SFML::Network`, `SFML::System`, `SFML::Window` (CMake imported targets from
   `find_package(SFML 3.1)`), `OpenGL::GL` (GLVND), plus GLAD compiled in via
@@ -314,8 +314,9 @@ apps. All files listed here are **Revamp Work** (GPL-3.0).
 - **`resource/script/App/ltheory-main.lts`** — the app:
   - Implements `Config_Get(key)` loader reading `resource/script/gameConfig.txt`
     (`key:value`, `#` comments, no spaces around `:`). Re-parsed per call —
-    call from `Initialize()` and cache. (LTSL `String_Split` 2-arg overload is
-    not bindable in this build, so parses with `Substring`/`Length`.)
+    call from `Initialize()` and cache. (`String_Split` 2-arg **is bound now**
+    — `LTE/ScriptAPI/String.cpp:181`, P2-8 — `Config.lts` still uses the
+    legacy `Substring`/`Length` parsing; switch at will.)
   - Reads `seed`, `loadTime`, `playerCredits`, `shipHull` from config.
   - Creates system via `Object_System (Vec3 15.012) seed` (C++ factory makes
     star + nebula + starfield; does **not** make planets/asteroids).
@@ -632,6 +633,8 @@ and never delete `LICENSE.UNLICENSE`.
 
 ## 12. Quick Start (Linux)
 
+### Debian / Ubuntu (PikaOS etc.)
+
 ```
 sudo apt install git-lfs libopenal-dev libvorbis-dev libogg-dev libflac-dev \
                  flac libflac++-dev libfreetype6-dev build-essential cmake
@@ -641,6 +644,30 @@ python3 configure.py
 python3 configure.py build
 python3 configure.py run war
 ```
+
+### Arch / Omarchy
+
+```
+sudo pacman -S base-devel cmake sfml freetype2 openal libvorbis libogg flac
+git clone <your-fork-url> ltheory-old-test && cd ltheory-old-test
+python3 configure.py
+python3 configure.py build
+python3 configure.py run war
+```
+
+Notes (verified 2026-09 on GCC 16.2 + CMake 3.31 + Arch `sfml 3.1.0-2`):
+
+- Arch's `sfml` package is exactly the version `find_package(SFML 3.1)` wants
+  (no vendored fallback needed; `extbin/linux64/` still carries legacy SFML 2.x
+  `.so` files for `configure.py run`'s `LD_LIBRARY_PATH` — harmless).
+- `base-devel` covers gcc/make/pkg-config. Drag sysinstall-version pitfalls:
+  **never configure with a stale `build/CMakeCache.txt`** moved from another
+  machine — it bakes in old compiler/tool paths (e.g. Debian's
+  `/usr/bin/gmake`, `gcc-ar-15`) and fails with "compiler broken" /
+  "gmake: no such file or directory". Delete `build/` and reconfigure (note
+  `configure.py clean` also deletes `cache/` — save games live there).
+- GLX guard macros in SFML headers (A.1) and `-Werror` remain valid on GCC 16;
+  full build + tests are warning-free.
 
 Build uses parallel compilation (`-j $(nproc)`); ~10s on fast hardware after
 first full build.
@@ -1027,9 +1054,7 @@ note). Ships a real save/load manager behind the GameMenu's previously dead
       reusing `LoadingScreen`, `Texture/SplashScreen.lts`, `Config:Get`,
       `Int_Random`/`RNG_MTG`, and the save/load/settings managers.
 
-### A.14 Save/Load Manager Bug Fixes (2026-08-13)
-
-- [x] **Save/load rows now all render.** `SaveRow`/`LoadRow` gained
+### A.14 Save/Load Manager Bug Fixes (2026-08-13)- [x] **Save/load rows now all render.** `SaveRow`/`LoadRow` gained
       `function HashT GetHash () slotName.GetHash` — the `Dynamic` widget
       keys its children by `GetHash()` (`UI/Widget/Dynamic.cpp:31`), and with
       no `GetHash`/`GetName` defined every row hashed to the empty-name hash,
@@ -1084,6 +1109,40 @@ note). Ships a real save/load manager behind the GameMenu's previously dead
       `resource/script/*.lts` via `Script_Load`) would catch these at CI
       time. See also the LSP constructor-arity divergence for defaulted
       script-type fields.
+
+### A.15 Binding Bridge Closed Out + GCC 16 Bring-up (2026-09-07)
+
+- [x] **`ltsl-binding-bridge-replacement.md` retired.** The binding-bridge
+      replacement (Step 10, 2026-08-05) was verified complete before
+      retirement: all macro families + generator deleted, `Function_Bind`/
+      `Function_Alias`/`Conversion_Bind` sole mechanism, alias-order gate
+      `OK: 511 (1 known exception)`, live API-DB dump vs committed LSP DB
+      = 0 added / 0 removed / 0 signature diffs (~1615 fns / 448 types).
+      The migration history lives in git history; rules that outlive the
+      doc: alias-after-source (§3.1 of `ltsl-hardening.md`), aliases copy
+      the CURRENT bucket (`Function.cpp:62`), and the eager static-init
+      registration shape. Do not re-create the deleted macro headers.
+- [x] **Omarchy/Arch rebuild + GCC 16.2 bring-up** — ported from PikaOS
+      (Debian). Env notes in §12 (Arch package list; stale-CMake-cache trap
+      — old `build/CMakeCache.txt` references Debian-only paths like
+      `/usr/bin/gmake` and `gcc-ar-15`, delete `build/` and reconfigure).
+- [x] **GCC 16 warning sweep (0 warnings, was "known pre-existing")** —
+      unnamed params in interface default-impls (`Object.h`, `Expression.h`,
+      `StringList.h`), `POOLED_TYPE` macro in `Pool.h`,
+      `[[maybe_unused]]` on reserved `path` params in `JsonHelpers.h`,
+      explicit copy ctor in `Pointer.h` (deprecated-copy). All classes of
+      diagnostic verified fixed at source; see §3 Build System note.
+- [x] **Uncommitted json-layer WIP preserved:** gap 2.1
+      `ShipType_GetArchetype(name)` binding (`ShipType.cpp`, aliased
+      `GetArchetype`) — reads `valueRange` midpoint from ships.json,
+      random seed.
+- **NOT a bug (env, documented):** PipeWire `pipewire-pulse` cold-start
+  race aborts the first audio client after a restart with
+  `pa_channel_map_init_extend` assert (SFML 3.1.0's vendored miniaudio
+  predates the miniaudio v0.11.24 PulseAudio crash fix; master vendors
+  0.11.25). Warming the session (any audio client run once) avoids it. If
+  SFML ever releases a fixed 3.1.1+, adopt it; meanwhile `war`-app crashes
+  with the pulse assert are environmental, not engine regressions.
 
 ---
 

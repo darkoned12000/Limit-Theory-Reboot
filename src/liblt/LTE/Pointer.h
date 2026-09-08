@@ -15,6 +15,8 @@ struct Pointer : public NullBase<Pointer<T> > {
 
   Pointer(T* t) : t(t) {}
 
+  Pointer(Pointer const& other) : t(other.t) {}
+
   Pointer& operator=(T* t) {
     this->t = t;
     return *this;

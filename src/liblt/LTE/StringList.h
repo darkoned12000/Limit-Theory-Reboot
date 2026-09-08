@@ -12,7 +12,7 @@ struct StringListT : public RefCounted {
 
   virtual StringList Clone() const = 0;
 
-  virtual StringList Get(size_t index) const {
+  virtual StringList Get(size_t) const {
     return nullptr;
   }
 

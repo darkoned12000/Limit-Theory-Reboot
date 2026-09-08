@@ -108,18 +108,18 @@ struct ObjectT : public RefCounted {
 
   LT_API virtual void OnDestroy();
 
-  virtual void OnUpdate(UpdateState& state) {}
+  virtual void OnUpdate(UpdateState&) {}
 
   LT_API void Update(UpdateState& state);
 
   /* Drawing. */
-  virtual void OnDraw(DrawState* state) {}
-  virtual void OnDrawInterior(DrawState* state) {}
-  virtual void BeginDrawInterior(DrawState* state) {}
-  virtual void EndDrawInterior(DrawState* state) {}
+  virtual void OnDraw(DrawState*) {}
+  virtual void OnDrawInterior(DrawState*) {}
+  virtual void BeginDrawInterior(DrawState*) {}
+  virtual void EndDrawInterior(DrawState*) {}
 
   /* Account. */
-  virtual void AddCredits(Quantity count) {
+  virtual void AddCredits(Quantity) {
     NOT_IMPLEMENTED
   }
 
@@ -127,12 +127,12 @@ struct ObjectT : public RefCounted {
     return 0;
   }
 
-  virtual bool RemoveCredits(Quantity count) {
+  virtual bool RemoveCredits(Quantity) {
     NOT_IMPLEMENTED
     return false;
   }
 
-  virtual void SetCredits(Quantity count) {
+  virtual void SetCredits(Quantity) {
     NOT_IMPLEMENTED
   }
 
@@ -144,18 +144,18 @@ struct ObjectT : public RefCounted {
   }
 
   /* Assets. */
-  virtual void AddAsset(Object const& asset) {
+  virtual void AddAsset(Object const&) {
     NOT_IMPLEMENTED
   }
 
-  virtual void RemoveAsset(Object const& asset) {
+  virtual void RemoveAsset(Object const&) {
     NOT_IMPLEMENTED
   }
 
   /* Attachable. */
   LT_API virtual Transform const& GetLocalTransform() const;
 
-  virtual void SetLocalTransform(Transform const& transform) {
+  virtual void SetLocalTransform(Transform const&) {
     NOT_IMPLEMENTED
   }
 
@@ -165,14 +165,9 @@ struct ObjectT : public RefCounted {
   LT_API float GetRadius() const;
 
   /* Cargo. */
-  virtual bool AddItem(
-    Item const& item,
-    Quantity quantity,
-    bool force = false)
-  {
+  virtual bool AddItem(Item const&, Quantity, bool = false) {
     return false;
   }
-
   bool RemoveItem(Item const& item, Quantity quantity) {
     return AddItem(item, -quantity);
   }
@@ -185,27 +180,27 @@ struct ObjectT : public RefCounted {
     return 0;
   }
 
-  virtual Quantity GetItemCount(Item const& item) const {
+  virtual Quantity GetItemCount(Item const&) const {
     return 0;
   }
 
   /* Collidable. */
-  virtual bool CanCollide(ObjectT const* object) const {
+  virtual bool CanCollide(ObjectT const*) const {
     return true;
   }
 
   virtual void OnCollide(
-    ObjectT* self,
-    ObjectT* other,
-    Position const& selfLocation,
-    Position const& otherLocation) {}
+    ObjectT*,
+    ObjectT*,
+    Position const&,
+    Position const&) {}
 
   /* Container. */
-  virtual void AddInterior(Object const& child) {
+  virtual void AddInterior(Object const&) {
     NOT_IMPLEMENTED
   }
 
-  virtual void RemoveInterior(Object const& child) {
+  virtual void RemoveInterior(Object const&) {
     NOT_IMPLEMENTED
   }
 
@@ -217,15 +212,15 @@ struct ObjectT : public RefCounted {
   LT_API Position GetDockLocation(Object const& docker) const;
 
   /* Dockable. */
-  virtual bool CanDock(Object const& docker) {
+  virtual bool CanDock(Object const&) {
     return false;
   }
 
-  virtual void Dock(Object const& docker) {
+  virtual void Dock(Object const&) {
     NOT_IMPLEMENTED
   }
 
-  virtual void Undock(Object const& docker) {
+  virtual void Undock(Object const&) {
     NOT_IMPLEMENTED
   }
 
@@ -279,7 +274,7 @@ struct ObjectT : public RefCounted {
   LT_API Health GetTotalMaxHealth() const;
 
   /* Log. */
-  virtual void AddLogMessage(String const& message, float importance = 0) {
+  virtual void AddLogMessage(String const&, float = 0) {
     NOT_IMPLEMENTED
   }
 
@@ -303,7 +298,7 @@ struct ObjectT : public RefCounted {
   /* Messaging. */
   LT_API virtual void Broadcast(Data& message);
 
-  virtual void OnMessage(Data& message) {}
+  virtual void OnMessage(Data&) {}
 
   template <class T>
   void Broadcast(T const& value) {
@@ -388,7 +383,7 @@ struct ObjectT : public RefCounted {
     return GetTypeString();
   }
 
-  virtual void SetName(String const& name) {
+  virtual void SetName(String const&) {
     NOT_IMPLEMENTED
   }
 
@@ -435,55 +430,55 @@ struct ObjectT : public RefCounted {
 
   LT_API virtual Transform const& GetTransform() const;
 
-  virtual void SetLook(V3 const& look) {
+  virtual void SetLook(V3 const&) {
     NOT_IMPLEMENTED
   }
 
-  virtual void SetPos(Position const& position) {
+  virtual void SetPos(Position const&) {
     NOT_IMPLEMENTED
   }
 
-  virtual void SetScale(V3 const& scale) {
+  virtual void SetScale(V3 const&) {
     NOT_IMPLEMENTED
   }
 
-  virtual void SetUp(V3 const& up) {
+  virtual void SetUp(V3 const&) {
     NOT_IMPLEMENTED
   }
 
   /* Queryable. */
-  virtual void QueryInterior(Bound3D const& box, Vector<ObjectT*>& objects) {}
+  virtual void QueryInterior(Bound3D const&, Vector<ObjectT*>&) {}
 
   virtual ObjectT* QueryInterior(
-    WorldRay const& ray,
-    float& t,
-    float tMax,
-    V3* normalOut = nullptr,
-    bool accelerate = false,
-    bool (*check)(ObjectT const*, void*) = nullptr,
-    void* aux = nullptr)
+    WorldRay const&,
+    float&,
+    float,
+    V3* = nullptr,
+    bool = false,
+    bool (*)(ObjectT const*, void*) = nullptr,
+    void* = nullptr)
   {
     return nullptr;
   }
 
   /* Scriptable. */
-  virtual void AddScript(Data const& object) {
+  virtual void AddScript(Data const&) {
     NOT_IMPLEMENTED;
   }
 
   /* Sockets. */
-  virtual bool Plug(Item const& item) {
+  virtual bool Plug(Item const&) {
     NOT_IMPLEMENTED
     return false;
   }
 
-  virtual bool Plug(Object const& object) {
+  virtual bool Plug(Object const&) {
     NOT_IMPLEMENTED
     return false;
   }
 
   /* Storage. */
-  virtual Object GetStorageLocker(Object const& owner) {
+  virtual Object GetStorageLocker(Object const&) {
     return nullptr;
   }
 

@@ -8,11 +8,11 @@ See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
 # ltsl-hardening.md — Making LTSL Easy to Develop & Troubleshoot
 
 **Status:** Living analysis doc (feedback + roadmap). Complements `AGENTS.md`
-(engine reference), `docs/ltsl-docs.md` (language), `ROADMAP.md` (work plan),
-and `ltsl-binding-bridge-replacement.md` (the binding bridge that finished in
-Step 10, 2026-08-05). It exists so that every DX failure we hit while doing the
-bridge/While/LSP work is captured once, with a fix priority, instead of being
-re-derived next time.
+(engine reference), `docs/ltsl-docs.md` (language), and `ROADMAP.md` (work
+plan). The binding-bridge replacement itself finished in Step 10 (2026-08-05)
+and its master-plan doc was retired 2026-09-07 — the surviving rules are in
+§3 below and AGENTS.md A.15. This doc exists so that every DX failure we hit
+is captured once, with a fix priority, instead of being re-derived next time.
 
 Two halves:
 
@@ -43,16 +43,16 @@ Two halves:
 - **C++ alias order is a hard invariant:** `Function_Alias("Src", "Dst")`
   must come textually AFTER its source binding in the same file, or it
   registers an empty bucket silently. Gate: `script/check_binding_alias_order.py`
-  → `OK: 509 / 1 known`. See §4.
+  → `OK: 511 / 1 known`. See §3.1.
 - **The single biggest DX problem today (RESOLVED 2026-08-08):**
   `Expression_Compile`'s probe chain used to report spurious "unknown variable
   '1'"-style errors for every literal atom before the Constant parser
   succeeded (ui/market/hud printed "7 compilation error(s)" every load).
   Fixed by `IsLiteralAtom` probe-skipping + diagnostic rollback (§5.1, P1-1).
 - **Hardening priority:** (P1) runtime error channel, startup watchdog.
-  (P2) explicit-return enforcement, `StringList_Create` single-line,
-  `String_Split` 2-arg bind. (P3) hot reload, data-driven UI, list methods.
-  Full list in §8.
+  (P2) explicit-return enforcement, `StringList_Create` single-line, +
+  ~~`String_Split` 2-arg~~ done. (P3) hot reload, data-driven UI, list
+  methods. Full list in §8.
 
 ---
 
@@ -226,10 +226,9 @@ alias keeps only what was registered up to that point.
 - **Rule:** in a `.cpp` file, put `Function_Bind(...)` (or the registration
   expression) before the `Function_Alias(...)` line for the same function.
 - **Gate:** `python3 script/check_binding_alias_order.py $(git ls-files 'src/liblt/**/*.cpp' 'src/liblt/**/*.h')`
-  → `OK: 509 alias sites follow their source (1 known exceptions)`. The 1
+  → `OK: 511 alias sites follow their source (1 known exception)`. The 1
   known exception is the pre-existing `Vec2_Distance` copy-paste bug in
-  `V2.cpp:34` (aliases a never-registered name; documented in
-  `ltsl-binding-bridge-replacement.md`).
+  `V2.cpp:34` (aliases a never-registered name; AGENTS.md A.15).
 - **Note:** `Function_AddAlias` copies the *current* bucket, so overloads
   registered after the alias line won't appear under the alias.
 
@@ -246,8 +245,10 @@ the API database is dumped from the live type/function registry
 
 ### 3.3 The API DB and the LSP (for editing only)
 
-`script/ltsl-lsp/api-database.json` (1857 functions / 445 types) feeds the
-editor language server — it does NOT affect the engine at runtime. Regenerate
+`script/ltsl-lsp/api-database.json` feeds the editor language server — it does
+NOT affect the engine at runtime. Live count as of 2026-09-07: ~1615 fn
+entries / 448 types (an fn entry = one bound overload bucket member; don't
+hardcode counts in prose, read them from a fresh dump). Regenerate
 when the C++ API changes:
 
 ```bash
@@ -372,9 +373,10 @@ Recommendation §6.2 (bind `Log`/`Print`) removes that friction permanently.
 
 ### 5.6 Misc traps catalogued this session
 
-- `String_Split` 2-arg overload is **not bindable** in this build — the
-  config parser in `ltheory-main.lts` parses with `Substring`/`Length`
-  instead. Bind it, or document the limitation.
+- ~~`String_Split` 2-arg overload is **not bindable**~~ **RESOLVED:** now
+  bound (`LTE/ScriptAPI/String.cpp:181`, P2-8, austere
+  `(Vector<String>&, const String&, String)` overload + `Split` alias) —
+  `Config.lts` may switch off the `Substring`/`Length` workaround at will.
 - `Config_Get` re-parses the config file on **every call**; call once in
   `Initialize()` and cache (the app already does this).
 - `switch -- case ... did not compile` lines now always warn (deliberate,
@@ -396,13 +398,14 @@ Recommendation §6.2 (bind `Log`/`Print`) removes that friction permanently.
       still return last expression for backward compat.
 - [x] **While/return termination fix.** `While.cpp` checks `returnSignal`
       before predicate re-eval and after body; regression test added.
-- [x] **Unit-test harness for scripts.** `lte_tests` (492 checks) can compile
-      and evaluate script expressions headlessly — the fastest loop for LTSL
-      engine bugs.
+- [x] **Unit-test harness for scripts.** `lte_tests` can compile and
+      evaluate script expressions headlessly — the fastest loop for LTSL
+      engine bugs (1009 checks / 0 failures as of 2026-09-07).
 - [x] **Binding-bridge Step 10 complete.** All `Function_Generated.h` /
       `DeclareFunction.h` macros deleted; `Function_Bind`/`Conversion_Bind`/
       `Function_Alias` are the only mechanism. Alias-order gate, API-DB
-      byte-diff, and LSP smoke (8 diagnostics) are the automated gates.
+      byte-diff, and LSP smoke are the automated gates. Bridge doc retired
+      2026-09-07 (AGENTS.md A.15).
 - [x] **Silent literal probes fixed (P1-1).** `IsLiteralAtom` probe-skipping +
       diagnostic rollback in `Expression.cpp`; §5.1 noise gone.
 - [x] **Script-visible logging (P1-2).** `Log` / `Log_Warn` / `Log_Error`
@@ -422,6 +425,10 @@ Recommendation §6.2 (bind `Log`/`Print`) removes that friction permanently.
 - [x] **Selftest app (new).** `resource/script/App/selftest.lts` — a 10-assert
       layout/focus harness that compiles via the engine and exits 0 on success
       (`python3 configure.py run selftest`). No C++ needed to extend.
+- [x] **`String_Split` 2-arg bound (P2-8).** `LTE/ScriptAPI/String.cpp:181`
+      binds the `(Vector<String>, String, String)` overload (+ `Split`
+      alias) — config parsing no longer needs `Substring`/`Length`.
+      Verified 2026-09-07.
 
 ---
 
@@ -441,11 +448,11 @@ For any LTSL bug, in order:
    printf in the engine with a `[tag]` prefix, and remove all of it before
    commit (grep for the tag).
 5. **Run the gates** before committing:
-   - `python3 configure.py build` (green, `-Werror` on project code)
-   - `python3 configure.py test` (492 checks, 0 failures)
-   - `python3 script/check_binding_alias_order.py $(git ls-files 'src/liblt/**/*.cpp' 'src/liblt/**/*.h')` → `OK: 509 / 1 known`
-   - API-DB diff vs `build/api-baseline.json` → 0 added / 0 removed
-    - `node script/ltsl-lsp/out/smoke.js $(find resource/script -name '*.lts' | sort)` → exactly 8 diagnostics (4 known unbalanced-paren fixtures + 4 accepted warnings, see AGENTS.md §6.2)
+   - `python3 configure.py build` (green, `-Werror` on project code, 0 warnings)
+   - `python3 configure.py test` (1009 checks, 0 failures as of 2026-09-07)
+   - `python3 script/check_binding_alias_order.py $(git ls-files 'src/liblt/**/*.cpp' 'src/liblt/**/*.h')` → `OK: 511 / 1 known`
+   - API-DB diff vs committed `script/ltsl-lsp/api-database.json` (fresh dump to a temp path) → 0 added / 0 removed / 0 signature diffs
+    - `node script/ltsl-lsp/out/smoke.js $(find resource/script -name '*.lts' | sort)` → exactly 7 diagnostics (4 known unbalanced-paren fixtures + 3 accepted warnings, see AGENTS.md §6.2)
    - `timeout 8 python3 configure.py run <app>` for the affected apps
 
 ---
@@ -471,8 +478,8 @@ Order below is "biggest DX win per unit of effort".
 | 5 | **Explicit-return strict mode** | Optional warning when a non-`Void` function body has no `return` (relies on last-expression fallback). Catches silent-wrong-value bugs. |
 | 6 | **`#` comment line attribution** ✅ done | ~~`#` comment lines feed tokens into the probe chain~~ — parse-time `#`-block strip in `StringList.cpp` + comment handling in the compile core landed 2026-08-08. |
 | 7 | **`StringList_Create` single-line** | Make single-line input not double-wrap (§5.2) so inline script tests stop producing `cannot resolve type '(...)'` noise. |
-| 8 | **Bind `String_Split` 2-arg** | Remove the `Substring`/`Length` workaround in config parsing. |
-| 9 | **Fix `ltsl_api_dump` docs** ✅ done | AGENTS.md §6.2 documents the explicit output-path arg (no `>` redirect); `build/api-baseline.json` synced to 1857 fns. |
+| 8 | **Bind `String_Split` 2-arg** ✅ done |~~Substring/Length workaround needed~~ — bound in `LTE/ScriptAPI/String.cpp:181` (verified 2026-09-07). Config.lts can now switch. |
+| 9 | **Fix `ltsl_api_dump` docs** ✅ done | AGENTS.md §6.2 documents the explicit output-path arg (no `>` redirect). |
 
 ### P3 — roadmap items already tracked elsewhere
 
@@ -502,6 +509,11 @@ Order below is "biggest DX win per unit of effort".
 
 ## 10. Change log
 
+- **2026-09-07** — Doc close-out. Binding-bridge master plan retired (verified
+  complete; see AGENTS.md A.15); gate numbers refreshed (alias gate 511/1,
+  suite 1009 checks / 0 failures, smoke 7 diagnostics, API-DB 0-diff).
+  P2-8 (`String_Split` 2-arg) confirmed bound. GCC 16.2/Omarchy bring-up +
+  warning sweep (0 warnings) noted.
 - **2026-08-08** — Error-surfacing + DX hardening session. Function-body
   compile errors now propagate (`Expression_Function` child env) instead of
   being silently swallowed — exposed real latent bugs in `SettingsPanel`
