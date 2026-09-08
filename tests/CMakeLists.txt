@@ -32,6 +32,7 @@ set(TEST_SRC
   TestLogBindings.cpp
   TestProgramBindings.cpp
   TestCrashHandler.cpp
+  TestWatchdog.cpp
   TestJsonDatabase.cpp
   TestPlanets.cpp
   TestStars.cpp)

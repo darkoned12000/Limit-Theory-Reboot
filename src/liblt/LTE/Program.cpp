@@ -7,9 +7,17 @@
 #include "Module.h"
 #include "Mouse.h"
 #include "StackFrame.h"
+#include "Watchdog.h"
 #include "Window.h"
 
 #include <ctime>
+
+/* P1-4 watchdog deadlines (ltsl-hardening.md §8/#4, §9). Generous by
+   design: only a section that never RETURNS trips — slow frames and
+   loading screens return and therefore never fire. A legitimately-ruled
+   stall >30s inside a frame or >120s in Initialize is a hang. */
+double const kWatchdogFrameSeconds = 10.0;
+double const kWatchdogStartupSeconds = 120.0;
 
 namespace  {
   bool destructed = false;
@@ -32,11 +40,13 @@ void Program::Delete() {
 }
 
 void Program::Execute() {
+  Watchdog_Arm(kWatchdogStartupSeconds, "Initialize");
   FRAME("Initialize") {
     Window_Push(window);
     OnInitialize();
     Window_Pop();
   }
+  Watchdog_Disarm();
 
   current = this;
   while (window->IsOpen()) {
@@ -62,7 +72,9 @@ void Program::Execute() {
       Window_Push(window);
     }
 
+    Watchdog_Arm(kWatchdogFrameSeconds, "Update");
     OnUpdate();
+    Watchdog_Disarm();
 
     Module_UpdateGlobal();
 
