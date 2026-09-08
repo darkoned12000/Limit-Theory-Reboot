@@ -201,7 +201,15 @@ To improve the usability of LTSL for contributors and gameplay designers, the fo
   see §6.2.
 - **Code Style:** Encourage a "Constants at Top" pattern where all magic numbers and configuration values are declared as local variables at the start of the script.
 - **Data-Driven Logic:** Transition towards moving UI layouts and complex generation parameters into external JSON files, using LTSL primarily for high-level state management and behavior.
-- **DX / Troubleshooting:** `ltsl-hardening.md` (repo root) is the living record of LTSL developer-experience feedback — render-pass/widget/alias ordering rules, known traps (spurious literal-probe errors, silent failures), and the prioritized hardening roadmap.
+- **DX / Troubleshooting:** ✅ P1/P2 hardening slate complete (2026-09-08) —
+  descriptive compile errors, script-visible `Log`/`Log_Warn`/`Log_Error`,
+  literal-probe silencing, `#`-comment parse strip, function-body error
+  propagation, `String_Split` binding, explicit-return warnings (opt-in),
+  single-line `StringList_Create`, runtime error channel (F3 overlay log
+  tail), and the startup watchdog (`LTE::Watchdog`). Ordering rules +
+  troubleshooting workflow live in §6.3; history in git
+  (`ltsl-hardening.md`, retired 2026-09-08). Remaining DX items are tracked
+  in ROADMAP §3.5a (P3: hot-reload, data-driven UI, list methods).
 
 ---
 
@@ -302,6 +310,96 @@ Any count above 7 = analyzer regression; investigate before committing.
   (`src/liblt/LTE/Expression.cpp:105`).
 
 Full design/architecture: `docs/LTSL-LSP-IMPLEMENTATION-GUIDE.md`.
+
+---
+
+## 6.3 LTSL ordering rules & troubleshooting (evergreen — retired ltsl-hardening.md)
+
+Evergreen rules from `ltsl-hardening.md` (retired 2026-09-08 — the P1/P2
+hardening slate is complete; history in git). Consult before debugging
+rendering/UI issues and before adding bindings.
+
+### Ordering — what runs before what
+
+- **Render passes run strictly in list order** (`Widget_Rendered::PreDraw`,
+  `UI/Widget/Rendered.cpp:128-129`). Canonical chain:
+  `RenderPass_Clear` (MUST be first) → `RenderPass_Camera` → `RenderPass_SMAA`
+  → `RenderPass_Interface` → `RenderPass_PostFilter` (MUST be last). The
+  camera pass runs its own fixed sub-chain (Visibility → DepthPrepass → HiZ →
+  GBuffer → GlobalLighting → LocalLighting → Blended → DustClouds →
+  Particles → LensFlares → Bloom → MotionBlur → PostFilter
+  `colorgrade1D.jsl`) — not controllable from LTSL. Individual passes are
+  toggled by `Settings_Bool("Graphics/<name>", true)`.
+- **Step the world before updating UI before drawing.** Prescribed app order:
+  `system.Update dt` → `ui.Update` → `gameView.Update` → `gameView.Draw`.
+  Call `gameView.Draw` (NOT `ui.Draw`) — it drives the entire pass pipeline,
+  including the interface. A missing `ui.Update` freezes hover/focus even
+  though it draws. Clamp dt: `dt = (Min dt 0.1)` (FrameTimer returns the
+  previous frame's delta, which included the prior app Update).
+- **Widget z-order = add order** (both inside an interface and inside a
+  Stack). Later-added draws on top and updates first (Interface draws
+  forward, updates reverse). Bring-to-front = re-add. A widget never showing
+  is almost always an add-order/containment problem.
+- **Widget hook order per frame** (`UI/Widget.cpp`, script hooks in
+  `UI/Widget/Custom.cpp:33-129`): Update phase = PreUpdate (fwd) → children
+  Update (reverse, deepest finishes first) → CaptureFocus → PostUpdate
+  (rev). Draw phase = PreDraw (rev) → children Draw (fwd, last on top) →
+  PostDraw (fwd). `CreateChildren` runs once when `!initialized` on
+  PrePosition; `Rebuild()` is consumed at next PrePosition, not mid-frame.
+  Put per-frame state changes in `PostUpdate`, layout reads in
+  `PostPosition`, draw-once graphics in PreDraw/PostDraw (never Update).
+- **`desc`/`block` bodies evaluate left-to-right**; only the last
+  expression becomes the return value; `return` sets `env.returnSignal` and
+  stops the block loop (`self.returnSignal`); `while` honors returnSignal
+  before re-evaluating its predicate.
+- **LTSL rewriting/precedence** (`LTE/LTSL.cpp`): `a.b` → `(b a)` bottom-up;
+  precedence `^` → `* /` → `+ -` → comparisons → `== !=` → `&&` → `||` →
+  assignment, left-associative. Parenthesize mixed-operator chains.
+
+### C++-side binding registration
+
+- **Alias AFTER source — hard invariant.** `Function_AddAlias` copies the
+  current source bucket at the moment it runs (`Function.cpp:62`); an alias
+  before its source registers an empty bucket *permanently*. Keep
+  `Function_Alias("Src", "…")` textually after the source binding. Gate:
+  `python3 script/check_binding_alias_order.py $(git ls-files 'src/liblt/**/*.cpp' 'src/liblt/**/*.h')`
+  → `OK: 513 (1 known exception ~ Vec2_Distance in V2.cpp)`.
+- **Bindings register at static-init, per TU.** No central pass — new
+  fns are script-visible as soon as the rebuilt `.so` loads. Prefers scalar
+  APIs in bindings: exposing parametric containers (`Vector<T>`) through the
+  script type system can trip the static-init type-resolution hazard
+  (A.7/A.16 SIGSEGV class).
+- **API DB** (`script/ltsl-lsp/api-database.json`) is editor-only. Regenerate
+  after API changes:
+  `cmake --build ./build --target ltsl_api_dump -j` then
+  `LD_LIBRARY_PATH=bin:extbin/linux64 ./bin/ltsl_api_dump script/ltsl-lsp/api-database.json`
+  (explicit target path — the tool defaults to `./api-database.json` in CWD;
+  a `>` redirect destroys the DB). Diff against a fresh pre-dump: expect
+  0 added / 0 removed / 0 signature diffs.
+
+### Debugging checklist ("it doesn't look right") — walk in order
+
+1. World stepped before draw? (`system.Update dt` before `gameView.Draw`)
+2. `gameView.Draw` called (not `ui.Draw`)?
+3. Render pass list in order (§ above)?
+4. Widget added to the right layer (ui vs gameView)? Added after what it covers?
+5. Hooks in the right phase (PreDraw backgrounds / PostDraw overlays /
+   PostUpdate state / PostPosition layout)?
+6. Per-frame allocation churn? Cache per-frame state in the widget type.
+
+### LTSL bug workflow (recommended)
+
+1. **Reproduce in `lte_tests` first** — headless
+   `tests/TestScriptCompile.cpp`-style test of the smallest failing script
+   (fast, assertable; this turned the while/return hang into a 10-minute fix).
+2. Read the *first* error line from app stdout, not the probe flood.
+3. Verify ordering against the rules above before touching rendering code.
+4. Use script-visible `Log`/`Log_Warn`/`Log_Error` (P1-2) instead of engine
+   printf; temporary engine prints use a `[tag]` prefix and are removed
+   before commit.
+5. Gates before committing: build (0 warnings), test (1052 checks),
+   alias-order gate, API-DB diff (0-diff), LSP smoke (= 7 diagnostics),
+   `timeout`-bounded app runs (§6.2).
 
 ---
 
@@ -1143,6 +1241,46 @@ note). Ships a real save/load manager behind the GameMenu's previously dead
   0.11.25). Warming the session (any audio client run once) avoids it. If
   SFML ever releases a fixed 3.1.1+, adopt it; meanwhile `war`-app crashes
   with the pulse assert are environmental, not engine regressions.
+- **`sfml-updates.md` retired (2026-09-08).** The SFML 3.1.0 migration
+  checklist is complete (event API, scoped enums, `Vector3f` audio,
+  buffer-pointer lifetime, `std::filesystem::path` I/O). Remaining
+  audit items are low-priority polish (mouse-position wrapper instead of
+  raw `GetImplData()` casts; evaluate SFML 3.1 listener vs the
+  relative-position audio approach) — tracked as appetite for later, not
+  blocking work.
+
+### A.16 LTSL Hardening Slate Complete (2026-09-08)
+
+P2-7/P2-5 (`6be17e9`), P1-3 (`2b77c6f`), P1-4 (`8e91cfb`) — the full
+`ltsl-hardening.md` P1/P2 queue is done; the doc itself was retired into
+§6.3 (evergreen rules) + this appendix (history).
+
+- [x] **P2-7 single-line `StringList_Create`** — ParseBlock no longer
+      re-wraps a lone statement element; inline scripts compile clean
+      (`6be17e9`).
+- [x] **P2-5 explicit-return strict mode** — default OFF
+      (`Script_WarnMissingReturn`); non-fatal warnings channel
+      (`ReportWarning`/`PrintWarnings`) so opt-in warnings never abort
+      app loads; `BodyHasReturn` scans nested constructs (`6be17e9`).
+- [x] **P1-3 runtime error channel** — scalar failure bindings
+      `Log_GetErrorCount`/`Log_GetError` (+ aliases); dispatch-failure
+      entries carry script-frame context; F3 overlay (`DebugScene.lts`)
+      renders the engine log tail. **Design rule:** keep complex reflected
+      containers (e.g. `Vector<String>`) out of script bindings — the
+      first Vector-based attempt hit the static-init type-resolution
+      hazard (SIGSEGV in `Expression_Access` → `Vector<String>` FindField
+      under app loads, NOT reproducible headless); see A.7 trap class
+      (`2b77c6f`).
+- [x] **P1-4 startup watchdog** — `LTE::Watchdog` (persistent trip thread;
+      append-only context pool; one-shot trips). `Program::Execute` arms
+      120s around `OnInitialize` and 10s per `OnUpdate`; default action =
+      Log_Critical + crash-style report + assert (fail loud per the
+      resolved §9 question). RETURNING sections (slow frames, loading
+      screens) never trip. Tests in `tests/TestWatchdog.cpp`
+      (trip/disarm-cancel/re-arm) (`8e91cfb`).
+- Suite at close: **1052 checks / 0 failures, 0 warnings**; alias gate
+      513/1; smoke 7 diagnostics; war + ltheory-main + ltheory-unitest
+      clean.
 
 ---
 

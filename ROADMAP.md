@@ -217,22 +217,24 @@ a big rewrite** — the engine core is healthy (§9 of AGENTS.md).
 
 ### 3.5a LTSL DX & tooling — making the language easy to work on
 
-> The living feedback + prioritized queue lives in `ltsl-hardening.md` (§5–9);
-> this table is the ROADMAP-side view. The **big DX wins already landed**
-> (2026-08-08): literal-probe silencing (spurious error flood), script-visible
-> `Log`/`Log_Warn`/`Log_Error`, `#`-comment parse strip, and **function-body
-> error propagation** — scripts that fail inside a function body now report
-> their errors instead of silently swallowing them (exposed `SettingsPanel`,
-> `DebugScene`, `ltheory-unitest`; see `ltsl-hardening.md` §6).
+> The P1/P2 hardening slate is **complete** (2026-09-08, see AGENTS.md A.16
+> + §6.3); the evergreen ordering rules live in AGENTS.md §6.3 and retired
+> `ltsl-hardening.md` is in git history. Landed DX wins: literal-probe
+> silencing (spurious error flood), script-visible
+> `Log`/`Log_Warn`/`Log_Error`, `#`-comment parse strip, function-body
+> error propagation, single-line `StringList_Create`, explicit-return
+> warnings (opt-in), runtime error channel (F3 overlay log tail), and the
+> startup watchdog (`LTE::Watchdog`).
 
 | Item | Priority | Effort | Status | Source |
 |------|----------|--------|--------|--------|
-| Runtime error channel (LTSL stack dump via `StackFrame_Print` + F3 overlay) | P1 | 2–3 d | todo | hardening P1-3 |
-| Startup watchdog (hang trip + stack dump) | P1 | 1–2 d | todo | hardening P1-4 |
-| Explicit-return strict mode | P2 | 2 d | todo | hardening P2-5 |
-| `StringList_Create` single-line no-double-wrap | P2 | 1 d | todo | hardening P2-7 |
-| Bind `String_Split` 2-arg | P2 | 1 d | todo | hardening P2-8 |
-| Selftest app (extend `App/selftest.lts` assert set) | P2 | — | done | hardening §6 |
+| Runtime error channel (LTSL stack dump via `StackFrame_Print` + F3 overlay) | P1 | 2–3 d | **done** (`2b77c6f`) | hardening P1-3 |
+| Startup watchdog (`LTE::Watchdog`) | P1 | 1–2 d | **done** (`8e91cfb`) | hardening P1-4 |
+| Explicit-return strict mode (default off) | P2 | 2 d | **done** (`6be17e9`) | hardening P2-5 |
+| `StringList_Create` single-line no-double-wrap | P2 | 1 d | **done** (`6be17e9`) | hardening P2-7 |
+| Bind `String_Split` 2-arg | P2 | 1 d | **done** | hardening P2-8 |
+| P1-1 literal probes / P1-2 log bindings / P2-6 `#`-strip | P1/P2 | — | **done** (2026-08-08) | retired hardening doc |
+| Selftest app (extend `App/selftest.lts` assert set) | P2 | — | done | retired hardening §6 |
 | API-DB refresh on C++ API change (gate: 0 added/0 removed) | — | 5 min | done | hardening §3.3 |
 
 ### 3.6 Content wiring & audio
@@ -263,7 +265,7 @@ were committed as **WIP** (`1549f45`) — **not runtime-verified**. Known
 issues: **confirmed not to compile** — 97 compile errors (unbound
 `Components:Margin`/`ToggleButton:Create`, missing `fullscreen`/`vsync`/
 `masterVolume` widget fields; surfaced by the function-body error propagation,
-see `ltsl-hardening.md` §6). Toggling fullscreen recreates the GL context and
+see AGENTS.md A.12-era body-error propagation; retired hardening doc in git history). Toggling fullscreen recreates the GL context and
 drops shader/texture state (note `Shader_RecompileAll`); panel focus/delete
 path unverified. Re-test before relying on any of it. `createSettings.md`
 holds the original creation plan.
@@ -316,6 +318,5 @@ After any engine/C++/GLSL change:
 | `docs/PROCEDURAL-GENERATION-GUIDE.md` | SDFs, PlateMesh, shader generation, hybrid pipeline |
 | `docs/AUDIO-SYSTEM-GUIDE.md` | Audio wiring, music manager, procedural audio |
 | `docs/VULKAN-AND-SPACE-PHENOMENA.md` | Vulkan assessment (rejected), space phenomena |
-| `ltsl-hardening.md` (repo root) | LTSL DX feedback, ordering/priority rules, hardening queue (P1–P3) |
 | `AGENTS.md` | Current state, subsystem map, completed-work log, §8 universe gen |
 | `SKILL.md` (`.opencode/skills/ltheory/`) | Master AI reference for engine + LTSL |

@@ -7,285 +7,229 @@ See NOTICE and LICENSE.GPL. Original engine (c) Josh Parnell, public domain.
 
 # Limit Theory Old
 
-This is the (old) C++ implementation of Limit Theory, the Limit Theory Engine (LTE), and the Limit Theory Scripting Language (LTSL), written from 2012 to 2015. While this code is dated compared to the newer C/Lua LT, it is arguably meatier in gameplay implementation.
+The (old) C++ implementation of **Limit Theory** — the Limit Theory Engine
+(LTE) and the Limit Theory Scripting Language (LTSL) — written by Josh Parnell
+from 2012 to 2015. While the code predates the newer C/Lua Limit Theory, it
+carries substantially more gameplay implementation: ships, weapons, mining,
+trade markets, docking, asteroid belts, procedural stellar systems.
 
-This fork (`ltheory-old-test`) focuses primarily on **Linux** support, building and running on modern GCC 15 / CMake 4.
-
----
-
-# Requirements
-
-Although LT was developed for both Windows and Linux (indeed, primarily developed on Linux), the Windows build was the one historically resurrected first. **Linux is now fully supported** in this fork (`ltheory-old-test`) — see the Linux section below.
-
-# Prerequisites
-
-To build Limit Theory, you'll need a few standard developer tools. All of them are available to download for free.
-
-- Python 3: https://www.python.org/downloads/
-- Git: https://git-scm.com/downloads
-- Git LFS: https://git-lfs.github.com/
-- A C++17 compiler (GCC or Clang)
-- CMake >= 3.10: https://cmake.org/download/
-
-> **Note on Git LFS**: The original repo used Git LFS for large resources. This
-> fork currently ships resources as plain files (no `.gitattributes`), so
-> `git lfs install` is optional here — but if you re-enable LFS upstream, run it
-> before cloning.
+This fork (`ltheory-old-test`) modernizes the engine for **Linux** on current
+toolchains (GCC 15/16, CMake 3.31+, SFML 3.1, OpenGL 4.6), hardens the LTSL
+scripting experience (better errors, editor tooling, watchdogged runtime), and
+builds toward a data-driven, moddable space sandbox.
 
 ---
 
-# Building on Linux
+## Features
 
-Limit Theory builds and runs on modern Linux (tested with GCC 15 / CMake 4).
+- **Real-time 3D space engine** — deferred G-buffer renderer (OpenGL 4.6,
+  GLSL 4.60 core), SMAA post-processing, lens flares, bloom, nebula and
+  star-field rendering, particles, dust clouds.
+- **Procedural universe** — seeded spectral-class stars with pulsing
+  brightness and auto-generated per-class lens flares, 5-biome planets
+  generated from JSON data, asteroid belts, dust flecks, nebulae.
+- **Flight & combat** — flyable ships with thruster visuals, turrets, weapon
+  classes (beam / pulse / rail / missile), shield and armor simulation.
+- **LTSL scripting** — the entire gameplay layer is script (`resource/script/`),
+  backed by ~1,600 engine bindings. Good compile-time errors with line
+  numbers and "did you mean?" suggestions; opt-in strict return checks; a
+  runtime error channel and startup watchdog for fast diagnosis.
+- **Proper tooling** — a language server (`script/ltsl-lsp/`) + ZED extension
+  with highlighting, completion, hover signatures, and live diagnostics driven
+  by a generated API database.
+- **Economy & ships** — component-based ship system (hull, scanner, generator,
+  power/boost, shields, thrusters), stations with docks and markets,
+  JSON-driven ship archetypes and weapon balance.
+- **Save/load** — timestamped quicksaves + named save slots (JSON), Esc-menu
+  save/load managers, per-slot metadata.
+- A **1,052-check headless test suite** (`python3 configure.py test`) covering the
+  type system, containers, script compile semantics, JSON database, planet/star
+  generation, save format, and engine bindings.
 
-> **Wayland / X11:** the engine uses **SFML 2.6.2**, which has an **X11-only**
-> backend. On a Wayland session it runs transparently through **XWayland** (most
-> distros enable this by default), so no extra setup is needed. If you are on a
-> pure-Wayland session without XWayland, launch under XWayland or an X11 session.
-> A known harmless quirk: on some Wayland+XWayland setups, pressing **ESC** can
-> leave the **CapsLock LED** stuck on — just tap CapsLock to clear it; it is a
-> compositor artifact, not an engine bug.
+<!-- Screenshots to be added: gameplay shots of ltheory-main / war apps -->
 
-## Dependencies
+---
 
-Install the following packages (Debian/Ubuntu):
+## Building on Linux
 
-```
-sudo apt update
-sudo apt install git-lfs \
-                 build-essential cmake \
-                 libopenal-dev \
-                 libvorbis-dev libogg-dev \
-                 libflac-dev flac libflac++-dev \
-                 libglew-dev \
-                 libfreetype6-dev \
-                 libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
-```
+### Debian / Ubuntu (PikaOS etc.)
 
-- **Git LFS** — optional for this fork, but recommended if LFS is reintroduced.
-- **OpenAL / Vorbis / FLAC / Ogg** — required by SFML's audio module.
-- **GLEW** — OpenGL extension loading.
-- **FreeType** — font rasterization (system FreeType is used; the old bundled
-  copy in `extbin/linux64` was removed because it shadowed the system lib).
-
-## Checking out the Repository
-
-```
-git lfs install        # optional for this fork
+```bash
+sudo apt install build-essential cmake libopenal-dev libvorbis-dev \
+                 libogg-dev libflac-dev flac libfreetype6-dev
 git clone https://github.com/darkoned12000/ltheory-old-test.git
 cd ltheory-old-test
+python3 configure.py            # CMake configure
+python3 configure.py build      # parallel build (~10s after first build)
+python3 configure.py run ltheory-main
 ```
 
-## Compiling & Unit Tests
+### Arch / Omarchy
 
-```
-python3 configure.py            # generate build files (CMake)
-python3 configure.py build      # compile (parallel, ~10s on fast hardware)
-python3 configurepy test
-```
-
-This produces `bin/launch` (the launcher) and `bin/liblt.so` (the engine).
-
-## Running an LTSL App
-
-`bin/launch` launches an LTSL script by name. Top-level apps live in
-`resource/script/App/`. For example:
-
-```
-python3 configure.py run war
+```bash
+sudo pacman -S base-devel cmake sfml freetype2 openal libvorbis libogg flac
+git clone https://github.com/darkoned12000/ltheory-old-test.git
+cd ltheory-old-test
+python3 configure.py && python3 configure.py build
+python3 configure.py run ltheory-main
 ```
 
-Example:
-![war.lts in action](screenshots/LTheoryOld_1.png)
+> **Wayland note:** the engine window runs through **XWayland** (SFML 3.1 is
+> X11-only). Most distros enable XWayland by default; on a
+> pure-Wayland session launch under XWayland. A harmless known quirk: pressing
+> ESC on some Wayland+XWayland setups can leave the CapsLock LED lit — tap
+> CapsLock to clear it (compositor artifact, not an engine bug).
+>
+> **Audio note:** SFML's audio backend can abort on a cold-started PipeWire
+> session (first-run race). Any audio client run once warms the session up if
+> you hit a `pa_channel_map_init_extend` abort.
 
-runs `resource/script/App/war.lts`, an AI skirmish test. The `war` app runs
-on Linux with working mouse UI — pressing Escape opens the menu, and EXIT GAME
-works. Many other apps are broken or incomplete, but several work well enough to
-fly around a system. Other apps to try: `dogfight`, `launcher`, `threads`,
-`colony`, `hnn`, `ui`, `platemesh`, `hud`, `objectinfo`, `map`, `market`.
+### Verified toolchain
 
-**`ltheory-main`** is the recommended starting point for exploring the engine:
-a seed-driven 3D universe sandbox (`python3 configure.py run ltheory-main`).
-It generates a star + nebula + a planet with a seeded asteroid belt, spawns the
-player ship among the rocks, and exposes a DevTool (**F2**) and a live scene
-inspector (**F3**). Tweak the system via `resource/script/gameConfig.txt`
-(`seed`, `loadTime`, `playerCredits`, `shipHull`).
-
-> The `run` helper sets `LD_LIBRARY_PATH` so the bundled FMOD runtime
-> libraries in `extbin/linux64` and `bin` are found automatically.
+GCC 16.2 / CMake 3.31 / SFML 3.1.0 — **zero build warnings** (`-Werror`
+scoped to project code), `lte_tests` at 1052 checks / 0 failures. Older
+toolchains (GCC 15, CMake 4) are fine too; see `AGENTS.md` §3 for details.
 
 ---
 
-# LTSL Editor Tooling: LSP + ZED
+## Running an App
 
-Editing `.lts` scripts is supported in **ZED** through a language server
-(LSP) + tree-sitter extension. It gives you syntax highlighting, bracket
-matching, code outline, autocomplete, hover signatures, signature help, and
-live diagnostics — all backed by the engine's real API database.
-
-> This setup targets **Linux** with **ZED** as the editor and **opencode** for
-> the verification commands.
-
-## Prerequisites
-
-- **Node.js + npm** — to build the TypeScript LSP server
-- **Rust** (rustup) with the `wasm32-wasip2` target — to build the ZED
-  extension adapter (grammar building is automatic)
-- **ZED** — any recent release
-- An engine build (`python3 configure.py build`) — only if you need to
-  regenerate the API database
-
-## Setup
+`bin/launch <name>` boots an LTSL script from `resource/script/App/`:
 
 ```bash
-# 1. Build the LSP server (TypeScript -> JS)
-cd script/ltsl-lsp
-npm install
-npm run compile
-cd ../..
-
-# 2. Install the ZED extension as a dev extension:
-#    Zed -> Extensions (zed: extensions) -> "Install Dev Extension"
-#    -> select the `extensions/ltsl/` folder.
-#    Zed auto-compiles the tree-sitter grammar to wasm on first use.
-
-# 3. (optional, only if you rebuild the extension adapter)
-rustup target add wasm32-wasip2
+python3 configure.py run ltheory-main     # recommended starting point
+python3 configure.py run war              # AI skirmish testing
 ```
 
-The LSP server is a pure Node.js stdio process — no engine DLL is required at
-edit time. It reads `script/ltsl-lsp/api-database.json`, which lists every
-script-visible C++ function and type. Regenerate that file after changing
-engine APIs:
+**`ltheory-main`** is the showcase app: a seed-driven universe sandbox —
+class-spectral star with pulsing brightness, nebula + 100k+ star-field,
+a biome-generated planet with rings, ~1000-asteroid belt, player ship flying
+among the rocks, and 12 seeded AI ships on a patrol shell outside the belt. Tweak it all from
+`resource/script/gameConfig.txt` (`seed`, `loadTime`, `playerCredits`,
+`shipHull`).
+
+In-app keys (ltheory-main):
+
+| Key | Action |
+|-----|--------|
+| Mouse | Camera rotation |
+| W / S | Thrust Forward / Backward |
+| A / D | Strafe Left / Right |
+| Q / E | Roll Left / Right |
+| Tab | Boost (thruster color ramp) |
+| Right Mouse | Fire Weapons |
+| Escape | Game menu (SAVE / LOAD / SETTINGS) |
+| F2 / F3 | DevPanel / Scene inspector & engine log |
+| F6 / F7 | Quicksave / Quickload |
+
+Other runnable apps: `war`, `dogfight`, `launcher`, `threads`, `colony`,
+`hnn`, `ui`, `platemesh`, `hud`, `objectinfo`, `map`, `market`, `rails`,
+`selftest`.
+
+### Unit tests
 
 ```bash
-cmake --build ./build --target ltsl_api_dump -j
-LD_LIBRARY_PATH=bin:extbin/linux64 ./bin/ltsl_api_dump > script/ltsl-lsp/api-database.json
+python3 configure.py test   # lte_tests: 1052 checks, headless
 ```
 
-## Using it
+---
 
-Open any `.lts` file (e.g. `resource/script/App/ltheory-main.lts`) in ZED:
+## LTSL Editor Tooling (LSP + ZED)
 
-- **Highlighting / brackets / outline** — from the tree-sitter grammar
-- **Completion** — triggers on `.` (e.g. `self.`) or after a type name
-- **Hover** — full signatures, e.g. `Object Object_System(Vec3d position, Uint32 seed)`
-- **Signature help** — on typing `(`
-- **Diagnostics** — live errors/warnings as you type. The whole corpus
-  currently sits at exactly **6 known diagnostics** (4 genuine unbalanced-paren
-  bugs in shipped scripts + 2 cross-file symbol notes) — see `AGENTS.md` §6.2.
+Editing `.lts` scripts is supported in **ZED** via a language server +
+tree-sitter extension: highlighting, completion (`.` trigger), hover
+signatures, signature help, live diagnostics — driven by the engine's real
+API database.
 
-## Verifying
-
-Quick checks from the repo root:
+Prerequisites: **Node.js + npm** (LSP build), **ZED**, plus an engine build
+if you regenerate the API database. Setup:
 
 ```bash
-# End-to-end protocol test (initialize/hover/completion/signatureHelp/diagnostics)
+cd script/ltsl-lsp && npm install && npm run compile && cd ../..
+# Zed → Extensions → "Install Dev Extension" → select extensions/ltsl/
+```
+
+Verify at any time:
+
+```bash
 node script/ltsl-lsp/test-rpc.js
-
-# Full-corpus diagnostics (expects exactly 8)
 node script/ltsl-lsp/out/smoke.js $(find resource/script -name '*.lts' | sort)
 ```
 
-In **opencode** the same checks are one command each: `/lsp-test`, `/lsp-smoke`,
-and `/lsp-build` (see `.opencode/command/`).
+Details live in `AGENTS.md` §6.2 (API database regeneration, expected
+diagnostic baseline, analyzer invariants).
 
 ---
 
-# Building on Windows (original instructions, untested in this fork)
+## Tech Stack
 
-With the above prerequisites installed, open a **Git Bash terminal**.
+| Layer | Technology |
+|-------|------------|
+| Language | C++17 (`-fno-exceptions`), GCC/Clang |
+| Build | CMake ≥ 3.10 via `configure.py` (CMakePresets) |
+| Window / Input / Audio | SFML 3.1.0 (miniaudio audio backend) |
+| Graphics | OpenGL 4.6 core + GLSL 4.60, GLAD loader, SMAA |
+| Fonts | FreeType |
+| Data | nlohmann/json (vendored, exception-free consumption) |
+| Scripting | LTSL — prefix/indentation syntax interpreter (tree-walking) |
+| Reflection | Custom macro system (`AutoClass`, `FIELDS`, `MapFields`) |
+| Tooling | TypeScript LSP + tree-sitter grammar + ZED extension |
+| Tests | Headless `lte_tests` suite (1052 checks) |
 
-## Checking out the Repository
-
-First, use `cd` to change directories to the place where you want to download LT.
-- `cd ~/Desktop/<path where you want to put the LT source>`
-
-Before doing any other `git` commands, make sure LFS is installed:
-- `git lfs install`
-
-You should see `Git LFS initialized` or a similar message. **Important**: if you forget to install and initialize Git LFS, most of the resources will probably be broken, and the whole process will likely fail in strange and mysterious ways. This is a common gotcha with projects that use LFS. Make sure you do the above step!
-
-Now, you can download the repository:
-
-- `git clone --recursive https://github.com/JoshParnell/ltheory-old.git ltheory-old`
-
-## Compiling
-
-From a terminal in the directory of the checked-out repository, run
-
-- `python configure.py`
-
-This runs CMake to generate the build files. Then, to compile,
-
-- `python configure.py build`
-
-This invokes compilation. It will take a while.
-
-## Running an LTSL App
-
-If the compilation is successful, you now have `bin/launch.exe`, which is the main executable. This program launches an LTSL script. The intention was for Limit Theory (and all mods) to be broken into many LTSL scripts, which would then implement the gameplay, using script functions exposed by the underlying engine.
-
-To launch an LTSL script, you can again use the python helper:
-
-- `python configure.py run <script_name_without_extension>`
-
-All top-level scripts are in the `resource/script/App` directory. So you can do, for example:
-
-- `python configure.py run war`
-
-To run the app 'war.lts', which is an AI skirmish test. Many of the apps are broken or incomplete, but some work enough to allow you to fly around in a system.
-
-# Example of the Entire Process
-
-An example of the entire sequence of commands to run an LTSL app, starting from nothing (but having the prerequisites installed):
-
-Open Git Bash. Each line below is one command, some of which will take a while to complete:
-
-```
-cd ~/Desktop
-git lfs install
-git clone --recursive https://github.com/JoshParnell/ltheory-old.git ltheory-old
-cd ltheory-old
-python configure.py
-python configure.py build
-python configure.py run war
-```
+> The engine keeps its own reflection/serialization spine — `Reference<T>`
+> (intrusive refcounting) is load-bearing, and the type/function registry
+> registers at static-init per translation unit. Read `AGENTS.md` before
+> engine surgery.
 
 ---
 
-# Architecture Overview
+## Architecture Overview
 
-- **`src/liblt/`** — the engine library (LTE). Subsystems: `LTE` (core, type
-  system, serializer, LTSL scripting), `Game`, `Component`, `UI`, `Module`
-  (SoundEngine/FMOD, Physics, Scheduler), `Audio`, `Volume`.
-- **`src/launch/`** — the `launch` executable entry point (`main()`).
-- **`extbin/`** — shipped runtime binaries (FMOD).
-- **`resource/`** — game data: 169 `.jsl` shaders, textures, fonts, LTSL scripts.
-- **`script/`** — Python tooling (`tloc`, `assetlist`, ...) plus the LTSL LSP
-  server (`script/ltsl-lsp/`), the tree-sitter grammar
-  (`script/tree-sitter-ltsl/`), and the ZED extension (`extensions/ltsl/`) —
-  see the "LTSL Editor Tooling" section above.
-
+- **`src/liblt/`** — the engine library (`liblt.so`). Subsystems: `LTE`
+  (core, type system, serializer, LTSL interpreter, reflection, watchdog),
+  `Game` (objects, items, generators, render passes), `Component`
+  (Drawable, Collidable, Pilotable, Account, …), `UI` (widgets, glyphs,
+  interface), `Module` (SoundEngine—SFML, Physics, Scheduler), `Audio`,
+  `Volume`.
+- **`src/launch/`** — the `launch` executable entry point.
+- **`resource/`** — game data: 169 `.jsl` shaders, LTSL script apps and
+  widgets, `gamedata/*.json` (stars, planets, ship archetypes), textures,
+  fonts, `gameConfig.txt`.
+- **`script/ltsl-lsp/`** + **`extensions/ltsl/`** + **`script/tree-sitter-ltsl/`**
+  — the LTSL editing stack (see above).
+- **`tests/`** — the headless `lte_tests` suite.
+- **`script/ltsl-lsp/api-database.json`** — generated binding database
+  (~1,600 fn entries / ~450 types) feeding the editor and the `/smoke` gate.
 
 ---
 
-# Current Controls
-| Key         | Action                                     |
-| ----------- | ------------------------------------------ |
-| Mouse       | Camera rotation (when <space> is active)   |
-| W / S       | Thrust Forward / Backward                  |
-| A / D       | Strafe Left / Right                        |
-| Q / E       | Roll Ship Left / Right                     |
-| Tab         | Engine Boost                               |
-| Right Mouse | Fire Weapons                               |
-| Space       | Toggle camera controls                     |
-| + / -       | Toggle camera location                     |
-| H (hold)    | Time Skip (20x spped)                      |
-| B           | Toggle HUD lock                            |
-| F3          | Show debug info                            |
-| F4          | Toggle HUD visibility                      |
+## Roadmap
 
+See [`ROADMAP.md`](ROADMAP.md) for the full plan; highlights:
 
-See `AGENTS.md` for a detailed technical reference and the modernization
-roadmap (library upgrades, build improvements, LTSL notes).
+- **PBR transition** — Albedo/Normal/Roughness/Metallic shaders, directional
+  shadows, atmospheric scattering.
+- **Data-driven everything (2.3)** — ships/weapons/stations/config/graphics/
+  NPC JSON databases (stars/planets/ships already loaded from
+  `resource/gamedata/`), hot-reload via `AssetWatcher`.
+- **Universe generation Pass A/B/C** — config-driven planet counts,
+  station placement, biome-bound planet rotation and cloud drift, moons,
+  and live DevTool tuning (F2) of all generator parameters.
+- **LTSL language upgrades** — lambdas, arrays, string interpolation, ranges,
+  pattern matching (see ROADMAP §3.5). Gameplay itself moves away from
+  hardcoded C++ toward JSON-driven configuration.
+- **Main menu + modding** — ModManager over the JSON databases, mod hooks,
+  input rebinding.
+
+---
+
+## Licensing
+
+- Original engine/languages (Josh Parnell, 2012–2015): **public domain**
+  (`LICENSE.UNLICENSE`).
+- Modernization / Revamp Work (this fork's new code and substantial
+  modifications): **GPL-3.0-or-later** (`LICENSE.GPL`) — see `NOTICE`.
+
+`AGENTS.md` is the technical reference for contributors and AI agents:
+build system, subsystem map, engine traps, verification gates, and the
+completed-work log.
