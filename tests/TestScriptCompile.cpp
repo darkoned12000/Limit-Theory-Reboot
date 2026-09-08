@@ -884,3 +884,22 @@ LTE_TEST(StrictReturn_NoWarningWhenReturnInsideIf) {
     Expression_Compile(list->Get(i), env);
   LTE_CHECK_EQ(env.warnings.size(), size_t(0));
 }
+
+// ── P1-3: DebugScene log-tail section must compile headlessly ───────────
+// Widget/DebugScene.lts (F3 overlay) renders the engine log tail via the
+// scalar failure bindings (Log_GetErrorCount / Log_GetError). A Vector<
+// String>-based overlay hit the static-init type-resolution hazard (SIGSEGV
+// in Expression_Access → Vector<String> FindField under app loads); the
+// scalar API must keep the script Vector-free and compiling clean.
+LTE_TEST(StringList_ZZLogTailFixtureLoads) {
+  Script_ClearCache();
+  Script script = Script_Load("Widget/DebugScene");
+  LTE_CHECK(script);
+  if (!script)
+    return;
+  ScriptFunction probe = script->GetFunction("Create");
+  LTE_CHECK(probe);
+  if (!probe)
+    return;
+  LTE_CHECK((bool)(Expression)probe->expression);
+}

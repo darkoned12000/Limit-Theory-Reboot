@@ -4491,6 +4491,25 @@
       "source": ""
     },
     {
+      "name": "GetError",
+      "signature": "String Log_GetError(Int32 index)",
+      "returnType": "String",
+      "parameters": [
+        {"name": "index", "type": "Int32"}
+      ],
+      "documentation": "Return the i-th failure log entry, 0 = oldest failure, empty string when the index is out of range",
+      "source": ""
+    },
+    {
+      "name": "GetErrorCount",
+      "signature": "Int32 Log_GetErrorCount()",
+      "returnType": "Int32",
+      "parameters": [
+      ],
+      "documentation": "Return the number of failure entries ([Error]/[CRITICAL]) in the engine log",
+      "source": ""
+    },
+    {
       "name": "GetHash",
       "signature": "Uint32 Item_GetHash(Item item)",
       "returnType": "Uint32",
@@ -10251,6 +10270,25 @@
         {"name": "entry", "type": "String"}
       ],
       "documentation": "Write an error message to the console and log file",
+      "source": ""
+    },
+    {
+      "name": "Log_GetError",
+      "signature": "String Log_GetError(Int32 index)",
+      "returnType": "String",
+      "parameters": [
+        {"name": "index", "type": "Int32"}
+      ],
+      "documentation": "Return the i-th failure log entry, 0 = oldest failure, empty string when the index is out of range",
+      "source": ""
+    },
+    {
+      "name": "Log_GetErrorCount",
+      "signature": "Int32 Log_GetErrorCount()",
+      "returnType": "Int32",
+      "parameters": [
+      ],
+      "documentation": "Return the number of failure entries ([Error]/[CRITICAL]) in the engine log",
       "source": ""
     },
     {

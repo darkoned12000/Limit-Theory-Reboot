@@ -87,6 +87,26 @@ type DebugScene
     else
       DrawText Fonts:Default ("Player: (no ship)") (Vec2 x y) 14 (Vec3 0.5 0.3 0.3) 1 false
 
+    # -- Engine log tail (P1-3 runtime error channel) --
+    var yLog 440.0
+    DrawPanel (Vec2 20 425) (Vec2 520 145) (Vec3 0.05 0.05 0.1) 0.04 0.85 1
+    DrawText Fonts:Medium "ENGINE LOG" (Vec2 30.0 435.0) 16 (Vec3 1.0 1.0 1.0) 1 false
+    yLog = yLog + 22.0
+
+    var errorCount (Log_GetErrorCount)
+    var first 0
+    if errorCount > 8
+      first = errorCount - 8
+    for i 0 i < errorCount i.++
+      if i >= first
+        var e (Log_GetError i)
+        DrawText Fonts:Default e (Vec2 30.0 yLog) 13 (Vec3 1.0 0.45 0.45) 1 false
+        yLog = yLog + 17.0
+        if yLog > 555.0
+          break
+    if errorCount == 0
+      DrawText Fonts:Default "(no recent errors)" (Vec2 30.0 yLog) 13 (Vec3 0.5 0.65 0.5) 1 false
+
 function Widget Create (Object target)
   Components:Expand
     Custom Widget

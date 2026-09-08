@@ -17,10 +17,10 @@
 
 using namespace LTE;
 
-static Function FindLogBinding(String const& name) {
+static Function FindLogBinding(String const& name, uint arity = 1) {
   Vector<Function> const& funcs = Function_Find(name);
   for (size_t i = 0; i < funcs.size(); ++i)
-    if (funcs[i]->name == name && funcs[i]->paramCount == 1)
+    if (funcs[i]->name == name && funcs[i]->paramCount == arity)
       return funcs[i];
   return nullptr;
 }
@@ -45,4 +45,50 @@ LTE_TEST(LogBinding_EmitsEntry) {
   void* args[] = { &msg };
   fn->call(fn->binding, args, nullptr);
   LTE_CHECK(Log_GetEntries() > before);
+}
+
+LTE_TEST(LogBinding_FailureAccessors) {
+  // P1-3: scalar failure accessors feed the F3 overlay. Logging via the
+  // Log binding (a plain message) must NOT count as a failure; the
+  // error channel must only include [Error]/[CRITICAL] entries.
+  Function tailFn = FindLogBinding("Log_GetErrorCount", 0);
+  LTE_CHECK(tailFn);
+  if (!tailFn) return;
+
+  size_t before = Log_GetEntries();
+  String plain = "log-count-no-failure-marker";
+  void* argsPlain[] = { &plain };
+  Function logfn = FindLogBinding("Log");
+  logfn->call(logfn->binding, argsPlain, nullptr);
+  LTE_CHECK(Log_GetEntries() > before);
+
+  int countBefore = 0;
+  tailFn->call(tailFn->binding, nullptr, &countBefore);
+  LTE_CHECK(countBefore >= 0);
+
+  String err1 = "log-failure-counter-check-alpha Error";
+  Function errFn = FindLogBinding("Log_Error");
+  void* argsErr[] = { &err1 };
+  errFn->call(errFn->binding, argsErr, nullptr);
+
+  int countAfter = 0;
+  tailFn->call(tailFn->binding, nullptr, &countAfter);
+  LTE_CHECK_EQ(countAfter, countBefore + 1);
+
+  /* Out-of-range index returns the empty string safely. */
+  Function getFn = FindLogBinding("Log_GetError");
+  LTE_CHECK(getFn);
+  if (!getFn) return;
+  int bogus = countAfter + 100;
+  void* argsBogus[] = { &bogus };
+  String outOfRange;
+  getFn->call(getFn->binding, argsBogus, &outOfRange);
+  LTE_CHECK(outOfRange.size() == 0);
+
+  /* In-range index returns the failure entry text. */
+  int last = countAfter - 1;
+  void* argsLast[] = { &last };
+  String entry;
+  getFn->call(getFn->binding, argsLast, &entry);
+  LTE_CHECK(entry.find("log-failure-counter-check-alpha") != String::npos);
 }

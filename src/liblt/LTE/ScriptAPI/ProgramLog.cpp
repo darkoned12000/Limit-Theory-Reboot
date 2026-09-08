@@ -6,6 +6,7 @@
 #include "LTE/Function.h"
 #include "LTE/FunctionBind.h"
 #include "LTE/ProgramLog.h"
+#include "LTE/Vector.h"
 
 /* Script-visible logging (ltsl-hardening.md §8 P1-2): lets apps trace to the
    console + log file without touching engine C++. Level mapping mirrors
@@ -37,3 +38,28 @@ static Function const Log_Error_Registration = Function_Bind(
   ::LTE::Log_Error(entry);
   },
   "entry");
+
+/* P1-3 runtime error channel: scalar failure-entry access for the F3
+   debug overlay. Deliberately Vector-free — exposing Vector<String>
+   through the script type system hit the static-init type-resolution
+   hazard (AGENTS.md A.7 class) in app loads; String/int params are safe. */
+static Function const Log_GetErrorCount_Registration = Function_Bind(
+  "Log_GetErrorCount",
+  "Return the number of failure entries ([Error]/[CRITICAL]) in the engine log",
+  []() -> int
+  {
+    return (int)::LTE::Log_GetFailureCount();
+  });
+static int const Log_GetErrorCount_Alias =
+  Function_Alias("Log_GetErrorCount", "GetErrorCount");
+
+static Function const Log_GetError_Registration = Function_Bind(
+  "Log_GetError",
+  "Return the i-th failure log entry, 0 = oldest failure, empty string "
+  "when the index is out of range",
+  [](int const& index) -> String
+  {
+    return ::LTE::Log_GetFailure(index);
+  },
+  "index");
+static int const Log_GetError_Alias = Function_Alias("Log_GetError", "GetError");

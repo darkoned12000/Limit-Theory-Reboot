@@ -79,6 +79,33 @@ namespace LTE {
     return GetEntryVector().size();
   }
 
+  static bool IsFailureEntry(String const& entry) {
+    return entry.contains("[Error]") || entry.contains("[CRITICAL]");
+  }
+
+  size_t Log_GetFailureCount() {
+    Vector<String> const& entries = GetEntryVector();
+    size_t count = 0;
+    for (size_t i = 0; i < entries.size(); ++i)
+      if (IsFailureEntry(entries[i]))
+        count++;
+    return count;
+  }
+
+  String const& Log_GetFailure(int index) {
+    Vector<String> const& entries = GetEntryVector();
+    size_t seen = 0;
+    for (size_t i = 0; i < entries.size(); ++i) {
+      if (!IsFailureEntry(entries[i]))
+        continue;
+      if ((int)seen == index)
+        return entries[i];
+      seen++;
+    }
+    static String empty;
+    return empty;
+  }
+
   String const& Log_GetEntry(int index) {
     return GetEntryVector()[index];
   }

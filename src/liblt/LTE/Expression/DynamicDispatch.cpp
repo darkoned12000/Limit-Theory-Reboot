@@ -4,6 +4,7 @@
 #include "LTE/Environment.h"
 #include "LTE/Pool.h"
 #include "LTE/ProgramLog.h"
+#include "LTE/StackFrame.h"
 #include "LTE/ScriptFunction.h"
 #include "LTE/StringList.h"
 
@@ -48,13 +49,15 @@ namespace {
 
       Type const& type = objectData.type;
       if (!type) {
-        Log_Critical("LTSL dynamic dispatch to typeless data.");
+        Log_Critical(Stringize()
+          | "LTSL dynamic dispatch to typeless data (from " | StackFrame_Get() | ")");
         return;
       }
 
       Data const& aux = type->GetAux();
       if (!aux.IsType<ScriptType>()) {
-        Log_Critical("LTSL dynamic dispatch to non-LTSL type.");
+        Log_Critical(Stringize()
+          | "LTSL dynamic dispatch to non-LTSL type (from " | StackFrame_Get() | ")");
         return;
       }
 
@@ -62,20 +65,26 @@ namespace {
       ScriptFunction* function = st->functions.get(name);
 
       if (!function) {
-        Log_Critical("LTSL dynamic dispatch to '" + name + "' failed (function not found)");
+        Log_Critical(Stringize()
+          | "LTSL dynamic dispatch to '" | name | "' failed (function not found; from "
+          | StackFrame_Get() | ")");
         return;
       }
 
       ScriptFunction const& fn = *function;
 
       if (fn->parameters.size() != args.size() + 1) {
-        Log_Critical("LTSL dynamic dispatch to '" + name + "' failed (wrong number of arguments)");
+        Log_Critical(Stringize()
+          | "LTSL dynamic dispatch to '" | name
+          | "' failed (wrong number of arguments; from " | StackFrame_Get() | ")");
         return;
       }
 
       for (size_t i = 0; i < args.size(); i++) {
         if (args[i].type != fn->parameters[i + 1].type) {
-          Log_Critical("LTSL dynamic dispatch to '" + name + "' failed (argument type mismatch)");
+          Log_Critical(Stringize()
+            | "LTSL dynamic dispatch to '" | name
+            | "' failed (argument type mismatch; from " | StackFrame_Get() | ")");
           return;
         }
       }
