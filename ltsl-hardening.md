@@ -468,16 +468,16 @@ Order below is "biggest DX win per unit of effort".
 |---|------|------------|-------|
 | 1 | **Silent literal probes** ✅ done | ~~Make the Variable/Reference/FunctionCall/ExpressionCall/Constructor probes return `nullptr` without `ReportError` when the atom parses as a literal (number/string/bool)~~ — `IsLiteralAtom` + rollback landed 2026-08-08. | `Expression.cpp` atom path, `Variable.cpp`, `FunctionCall.cpp`, `Constructor.cpp` |
 | 2 | **Script-visible logging** ✅ done | ~~Bind `Log`/`Print` (level + tag + string)~~ — `Log`/`Log_Warn`/`Log_Error` bound in `ScriptAPI/ProgramLog.cpp`; verified by `TestLogBindings.cpp`. | `ScriptAPI` (e.g. `String.cpp`), `ProgramLog.cpp` |
-| 3 | **Runtime error channel** | On script exception/failure, print the LTSL stack via `StackFrame_Print` and route a message to the debug overlay (F3). Turns silent last-expression returns into diagnosable failures. | `StackFrame.cpp`, `Widget/DebugScene.lts` |
-| 4 | **Startup watchdog** | A watchdog (frame counter or wall-clock) that trips if the app's `Update` runs too long / never returns — with a stack dump. Would have caught the while/return hang in seconds. | `Program.cpp`, `launch.cpp` |
+| 3 | **Runtime error channel** ✅ done | ~~On script exception/failure, print the LTSL stack via `StackFrame_Print` and route a message to the debug overlay (F3)~~ — landed 2026-09-08 (`2b77c6f`): scalar failure bindings (`Log_GetErrorCount`/`Log_GetError`), dispatch-failure entries carry script-frame context, and `Widget/DebugScene.lts` renders the failure log tail in the F3 overlay. Deliberately Vector-free in the script API (static-init reflection hazard, AGENTS A.7 class). | `ProgramLog.{h,cpp}`, `ScriptAPI/ProgramLog.cpp`, `Widget/DebugScene.lts` |
+| 4 | **Startup watchdog** ✅ done | ~~Watchdog that trips if `Update`/`Initialize` never returns — with a stack dump~~ — landed 2026-09-08 (`8e91cfb`). `LTE::Watchdog` arms 120s around app Initialize and 10s per frame; generic trip action (default: crash-log + fail loud per §9); RETURNING sections (slow frames, loading screens) are immune by design. | `Watchdog.{h,cpp}`, `Program.cpp`, `tests/TestWatchdog.cpp` |
 
 ### P2 — medium value/effort
 
 | # | Item | What / why |
 |---|------|------------|
-| 5 | **Explicit-return strict mode** | Optional warning when a non-`Void` function body has no `return` (relies on last-expression fallback). Catches silent-wrong-value bugs. |
+| 5 | **Explicit-return strict mode** ✅ done | ~~Optional warning when a non-`Void` function body has no `return`~~ — landed 2026-09-08 (`6be17e9`); default OFF (`Script_WarnMissingReturn`), non-fatal warnings channel, opt-in per script | `Environment.h`, `Expression/Function.cpp` |
 | 6 | **`#` comment line attribution** ✅ done | ~~`#` comment lines feed tokens into the probe chain~~ — parse-time `#`-block strip in `StringList.cpp` + comment handling in the compile core landed 2026-08-08. |
-| 7 | **`StringList_Create` single-line** | Make single-line input not double-wrap (§5.2) so inline script tests stop producing `cannot resolve type '(...)'` noise. |
+| 7 | **`StringList_Create` single-line** ✅ done | ~~Single-line input double-wraps~~ (§5.2) — landed 2026-09-08 (`6be17e9`): a lone statement element is no longer re-wrapped; inline tests compile clean. | `StringList.cpp` |
 | 8 | **Bind `String_Split` 2-arg** ✅ done |~~Substring/Length workaround needed~~ — bound in `LTE/ScriptAPI/String.cpp:181` (verified 2026-09-07). Config.lts can now switch. |
 | 9 | **Fix `ltsl_api_dump` docs** ✅ done | AGENTS.md §6.2 documents the explicit output-path arg (no `>` redirect). |
 
@@ -508,6 +508,16 @@ Order below is "biggest DX win per unit of effort".
 ---
 
 ## 10. Change log
+
+- **2026-09-08** — **P1/P2 slate complete.** P2-7 + P2-5 landed (`6be17e9`),
+  P1-3 (runtime error channel → F3 overlay; scalar bindings, Vector-free by
+  design after the static-init hazard) + P1-4 (LTE::Watchdog, 120s
+  Initialize / 10s frame budgets, fail-loud default per §9) landed
+  (`2b77c6f`, `8e91cfb`). Suite now 1052 checks / 0 failures, 0 warnings.
+  **P1/P2 hardening is DONE** — remaining items are the P3 list (tracked in
+  AGENTS.md / ROADMAP). This doc is a retirement candidate next session;
+  the evergreen ordering rules (§2–4) move into AGENTS.md before the file
+  is removed.
 
 - **2026-09-07** — Doc close-out. Binding-bridge master plan retired (verified
   complete; see AGENTS.md A.15); gate numbers refreshed (alias gate 511/1,
